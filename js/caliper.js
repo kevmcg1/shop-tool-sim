@@ -50,7 +50,7 @@ renderer.localClippingEnabled = true;
 const GFX = {
   high:   { maxDpr: Math.min(window.devicePixelRatio || 1, 2), shadows: true, map: 2048 },
   medium: { maxDpr: Math.min(window.devicePixelRatio || 1, 1.25), shadows: true, map: 1024 },
-  low:    { maxDpr: 0.85, shadows: false, map: 1024 }
+  low:    { maxDpr: 0.85, minDpr: 0.6, shadows: false, map: 1024 }
 };
 let gfx = GFX.high, dprCur = gfx.maxDpr, dprCeil = gfx.maxDpr;
 
@@ -142,6 +142,22 @@ function applyGfx(name) {
   resize(); updateGfxInfo();
 }
 function updateGfxInfo() { $('gfxInfo').textContent = `Render scale ${Math.round(dprCur * 100)}% · adapts automatically to hold 60 fps.`; }
+// a weak machine (few cores, little memory, or a basic or software graphics chip) starts on a lighter setting
+function autoGfx(){
+  const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 8;
+  let gpu = '';
+  try { const gl = renderer.getContext(), d = gl.getExtension('WEBGL_debug_renderer_info'); gpu = d ? String(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)) : ''; } catch (e) {}
+  if (/swiftshader|llvmpipe|software|basic render/i.test(gpu) || cores <= 2 || mem <= 2) return 'low';
+  if (/intel|mali|adreno|powervr|videocore/i.test(gpu) || cores <= 4 || mem <= 4) return 'medium';
+  return 'high';
+}
+// still slow at the lowest render scale: drop to the next lighter setting, which the sidebar shows
+function stepGfxDown(){
+  const sel = $('gfxSel'), next = { high: 'medium', medium: 'low' }[sel.value];
+  if (!next) return false;
+  sel.value = next; applyGfx(next);
+  return true;
+}
 
 /* ------------------------------------------------------------------ textures */
 function brushedTexture(base, spread, color) {
@@ -913,7 +929,8 @@ const OV_PLANS = [
   { '.views': 'bl', '.quick': 'bl', '.flat': 'tr', legend: false }
 ];
 function layoutOverlays(){
-  if (OVL.busy) return;
+  // while the flat view glides open or shut its size is mid-way, not real: its glide lays out again when it lands
+  if (OVL.busy || $('flat')._flatAnim) return;
   const W = wrap.clientWidth, H = wrap.clientHeight;
   if (W < 2 || H < 2) return;
   OVL.busy = true;
@@ -1047,9 +1064,12 @@ function setFlatMax(on){
   b.dataset.tip = t + (on ? '\nBack to its corner size.' : '\nStretches it to the full height of the 3D view.');
   document.body.classList.toggle('flat-max', on);
   try { localStorage.setItem('pt-flat-max', on ? '1' : '0'); } catch (e) {}
-  if (on && !flatOpen) $('flatBtn').click();
+  // from hidden, opening it lays it out already maximized, in one glide; laying out again
+  // mid-glide would measure the half-open panel and snap it to the wrong size
+  const opening = on && !flatOpen;
+  if (opening) $('flatBtn').click();
   flatKey = '';
-  flipLayout(() => { OVL.queued = false; placeFlat(); layoutOverlays(); }); queueLayout();
+  if (!opening) flipLayout(() => { OVL.queued = false; placeFlat(); layoutOverlays(); }); queueLayout();
 }
 function queueLayout(){
   if (OVL.queued) return;
@@ -1611,7 +1631,7 @@ const inputInches = s => { const n = numOf(s), u = unitOf(s) || units; return u 
 function syncGoHint(){
   const st = document.getElementById('setTo'); if (!st) return;
   const inchOnly = !isVern();
-  st.placeholder = inchOnly ? 'Inches only: 1.234' : units === 'mm' ? 'Go to 31.34 mm' : 'Go to 1.234 in';
+  st.placeholder = inchOnly ? 'Enter inches only here' : units === 'mm' ? 'Go to 31.34 mm' : 'Go to 1.234 in';
   st.title = inchOnly ? 'The dial caliper reads in inches only' : 'Add in or mm to pick the unit';
 }
 
@@ -2874,7 +2894,7 @@ function checkPracticeMM() {
   const goodRow = good.length ? `<div class="fx-sec">What you got right</div><div class="fx-good">${good.map(k => `<span><i class="fa-solid fa-circle-check"></i>${STEP_MM[k].name}</span>`).join('')}</div>` : '';
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok ? 'Press <b>Next</b> whenever you’d like another one.' : 'Check the arrows on the caliper, then press <b>Next</b> when you’re ready.'}</span></div>`;
   fb.innerHTML = `<div class="fx">${hero}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
-  fb.scrollTop = 0;
+  (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 function checkPractice() {
   if (metric() && sample.tool) return checkPracticeMM();
@@ -2928,7 +2948,7 @@ function checkPractice() {
   const goodRow = good.length ? `<div class="fx-sec">What you got right</div><div class="fx-good">${good.map(k => `<span><i class="fa-solid fa-circle-check"></i>${STEP_DEF[k].name}</span>`).join('')}</div>` : '';
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok ? 'Press <b>Next</b> whenever you’d like another one.' : 'Check the arrows on the caliper, then press <b>Next</b> when you’re ready.'}</span></div>`;
   fb.innerHTML = `<div class="fx">${hero}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
-  fb.scrollTop = 0;
+  (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
 /* ================================================================== tutorial */
@@ -3118,6 +3138,7 @@ function bindUI() {
     if (e.key === 'Escape') { closeTut(); if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     const sm = state.fine ? FINE.key : 0.001, bg = state.fine ? FINE.keyBig : 0.01;
     let d = 0;
     if (e.key === 'ArrowRight') d = e.shiftKey ? bg : sm;
@@ -3145,30 +3166,45 @@ function adaptResolution(now) {
   perf.push(dt);
   if (perf.length < 60) return;
   const avg = perf.reduce((a, b) => a + b, 0) / perf.length; perf.length = 0;
-  const floor = Math.min(1, gfx.maxDpr);
+  const floor = gfx.minDpr || Math.min(1, gfx.maxDpr);
   if (drag) return;
+  if (avg > 28 && dprCur <= floor + 0.01 && stepGfxDown()) return;   // under ~36 fps even at the floor
   if (avg > 21 && dprCur > floor + 0.01) { dprCeil = dprCur * 0.95; dprCur = Math.max(floor, dprCur * 0.85); resize(); updateGfxInfo(); }
   else if (avg < 17.4 && dprCur < Math.min(dprCeil, gfx.maxDpr) - 0.01) { dprCur = Math.min(dprCeil, gfx.maxDpr, dprCur * 1.08); resize(); updateGfxInfo(); }
 }
+// The 3D view is drawn only when something in it can have changed, so a still caliper costs next to
+// nothing: when a part moves, the camera moves or eases, a section animates, and for a moment after
+// any input (clicks, keys, the wheel, typing) since those can change colors and what shows. A slow
+// heartbeat catches anything that lands later on its own.
+let drawUntil = 0, lastDraw = 0, lastSig = '';
+function invalidate(ms) { drawUntil = Math.max(drawUntil, performance.now() + (ms || 350)); }
+['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'keyup', 'input', 'change', 'click'].forEach(t => window.addEventListener(t, () => invalidate(), { capture: true, passive: true }));
+const ease1 = (v, to) => Math.abs(to - v) < 1e-4 ? to : v + (to - v) * 0.15;
 function loop(now) {
+  now = now || performance.now();
   const dt = Math.min(0.05, clock.getDelta());
   stepAnim(dt);
   slider.position.x = state.pos;
   needle.rotation.z = -TAU * needlePos() / 0.1;
   wheel.rotation.z = state.pos / WHEEL_R;
   bezel.rotation.z = state.bezel;
-  lockTopKnob.rotation.y += (knobAnim.top - lockTopKnob.rotation.y) * 0.15;
+  lockTopKnob.rotation.y = ease1(lockTopKnob.rotation.y, knobAnim.top);
   lockTopKnob.position.y = lockTopKnob.rotation.y / (-Math.PI * 1.5) * -0.012;
-  lockBotKnob.rotation.y += (knobAnim.bot - lockBotKnob.rotation.y) * 0.15;
+  lockBotKnob.rotation.y = ease1(lockBotKnob.rotation.y, knobAnim.bot);
   lockBotKnob.position.y = lockBotKnob.rotation.y / (-Math.PI * 1.5) * -0.012;
   if (state.cut) updateSection();
+  const tweening = !!camTween;
   stepCam(dt);
-  controls.update();
+  const camMoved = controls.update() || tweening;
   updateUI(); updateHighlights(); drawFlat();
+  const sig = state.pos + '|' + state.bezel + '|' + lockTopKnob.rotation.y + '|' + lockBotKnob.rotation.y + '|' + state.cut + '|' + sample.type + '|' + sample.size;
+  const changed = sig !== lastSig; lastSig = sig;
+  if (!(changed || camMoved || SecFx.running() || now < drawUntil || now - lastDraw > 1000)) return;
+  lastDraw = now;
   shopFinish(scene);
   renderer.render(scene, camera);
   updateOverlays();
-  adaptResolution(now || performance.now());
+  adaptResolution(now);
 }
 
 async function start() {
@@ -3179,7 +3215,7 @@ async function start() {
   controls.minDistance = 1; controls.maxDistance = 60;
   controls.addEventListener('start', () => { camTween = null; if (state.exam && controls.autoRotate) setSpin(false); });
   bindUI();
-  applyGfx('high');
+  { const g = autoGfx(); $('gfxSel').value = g; applyGfx(g); }
   // the host tab opens this page as the dial or the vernier caliper (caliper.html?inst=vern)
   { const q = new URLSearchParams(location.search).get('inst') || window.__INST; setInst(q === 'vern' ? 'vern' : 'dial', true); }
   buildSample('none');

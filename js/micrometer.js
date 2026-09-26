@@ -297,7 +297,7 @@ const MAX_ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 const GFX = {
   high:   { maxDpr: Math.min(window.devicePixelRatio || 1, 2), shadows: true, map: 1024 },
   medium: { maxDpr: Math.min(window.devicePixelRatio || 1, 1.25), shadows: true, map: 512 },
-  low:    { maxDpr: 0.85, shadows: false, map: 512 }
+  low:    { maxDpr: 0.85, minDpr: 0.6, shadows: false, map: 512 }
 };
 let gfx = GFX.high, dprCur = gfx.maxDpr, dprCeil = gfx.maxDpr;
 
@@ -400,6 +400,22 @@ function applyGfx(name){
   resize(); updateGfxInfo();
 }
 function updateGfxInfo(){ $('gfxInfo').textContent = `Render scale ${Math.round(dprCur*100)}% · adapts automatically to hold 60 fps.`; }
+// a weak machine (few cores, little memory, or a basic or software graphics chip) starts on a lighter setting
+function autoGfx(){
+  const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 8;
+  let gpu = '';
+  try { const gl = renderer.getContext(), d = gl.getExtension('WEBGL_debug_renderer_info'); gpu = d ? String(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)) : ''; } catch (e) {}
+  if (/swiftshader|llvmpipe|software|basic render/i.test(gpu) || cores <= 2 || mem <= 2) return 'low';
+  if (/intel|mali|adreno|powervr|videocore/i.test(gpu) || cores <= 4 || mem <= 4) return 'medium';
+  return 'high';
+}
+// still slow at the lowest render scale: drop to the next lighter setting, which the sidebar shows
+function stepGfxDown(){
+  const sel = $('gfxSel'), next = { high: 'medium', medium: 'low' }[sel.value];
+  if (!next) return false;
+  sel.value = next; applyGfx(next);
+  return true;
+}
 function placeLights(){
   const c = center(), D = dims(), s = Math.max(S0 + 3 - D.armL, 1 - D.bottom)/2 + 1.2;
   key.position.set(c.x + 1.5, c.y + 12, c.z + 3.5); key.target.position.copy(c);
@@ -1514,7 +1530,8 @@ const OV_PLANS = [
   { '.views': 'bl', '.quick': 'bl', '.flat': 'tr', legend: false }
 ];
 function layoutOverlays(){
-  if (OVL.busy) return;
+  // while the flat view glides open or shut its size is mid-way, not real: its glide lays out again when it lands
+  if (OVL.busy || $('flat')._flatAnim) return;
   const W = wrap.clientWidth, H = wrap.clientHeight;
   if (W < 2 || H < 2) return;
   OVL.busy = true;
@@ -1648,9 +1665,12 @@ function setFlatMax(on){
   b.dataset.tip = t + (on ? '\nBack to its corner size.' : '\nStretches it to the full height of the 3D view.');
   document.body.classList.toggle('flat-max', on);
   try { localStorage.setItem('pt-flat-max', on ? '1' : '0'); } catch (e) {}
-  if (on && !flatOpen) $('flatBtn').click();
+  // from hidden, opening it lays it out already maximized, in one glide; laying out again
+  // mid-glide would measure the half-open panel and snap it to the wrong size
+  const opening = on && !flatOpen;
+  if (opening) $('flatBtn').click();
   flatKey = '';
-  flipLayout(() => { OVL.queued = false; placeFlat(); layoutOverlays(); }); queueLayout(); if (typeof invalidate === 'function') invalidate(); drawFlat();
+  if (!opening) flipLayout(() => { OVL.queued = false; placeFlat(); layoutOverlays(); }); queueLayout(); if (typeof invalidate === 'function') invalidate(); drawFlat();
 }
 function queueLayout(){
   if (OVL.queued) return;
@@ -2060,7 +2080,7 @@ function checkPractice(){
     ? 'Press <b>Next</b> whenever you’d like another one.'
     : 'Every expert has made this exact slip while learning. Take a look at the arrows, then press <b>Next</b> when you feel ready — you’re improving with every try.'}</span></div>`;
   fb.innerHTML = `<div class="fx">${hero}${cmp}${missBox}${notes}${eq}${steps}${goodRow}${foot}</div>`;
-  fb.scrollTop = 0;
+  (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
 /* ---------- tutorial ---------- */
@@ -2711,6 +2731,7 @@ function bindUI(){
     if (e.key === 'Escape'){ endCoach(true); closeTut(); if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     let d = 0;
     if (e.key === 'ArrowUp') d = e.shiftKey ? 0.0001 : 0.001;
     else if (e.key === 'ArrowDown') d = e.shiftKey ? -0.0001 : -0.001;
@@ -2738,8 +2759,9 @@ function adaptResolution(now){
   perf.push(dt);
   if (perf.length < 60) return;
   const avg = perf.reduce((a, b) => a + b, 0)/perf.length; perf.length = 0;
-  const floor = Math.min(1, gfx.maxDpr);
+  const floor = gfx.minDpr || Math.min(1, gfx.maxDpr);
   if (drag || document.activeElement === $('slider')) return;
+  if (avg > 28 && dprCur <= floor + 0.01 && stepGfxDown()) return;   // under ~36 fps even at the floor
   if (avg > 21 && dprCur > floor + 0.01){ dprCeil = dprCur*0.95; dprCur = Math.max(floor, dprCur*0.85); resize(); updateGfxInfo(); }
   else if (avg < 17.4 && dprCur < Math.min(dprCeil, gfx.maxDpr) - 0.01){ dprCur = Math.min(dprCeil, gfx.maxDpr, dprCur*1.08); resize(); updateGfxInfo(); }
 }
@@ -2835,7 +2857,7 @@ function start(){
   controls.addEventListener('start', () => { camTween = null; if (state.exam && controls.autoRotate) setSpin(false); });
   controls.addEventListener('change', invalidate);
   bindUI();
-  applyGfx('high');
+  { const g = autoGfx(); $('gfxSel').value = g; applyGfx(g); }
   setRange(0);
   bindFinish();
   setView('iso', true);
