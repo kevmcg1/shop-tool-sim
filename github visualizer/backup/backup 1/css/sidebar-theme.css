@@ -1,0 +1,665 @@
+  #sidebar {
+    --sb-surface:  #202225;
+    --sb-card:     #26282c;
+    --sb-well:     #17181a;
+    --sb-line:     #303338;
+    --sb-line-soft:#2a2c30;
+    --sb-ink:      #e4e6ea;
+    --sb-ink-soft: #9ba1aa;
+    --sb-ink-mute: #6d737c;
+    --sb-glow:     rgba(232,197,71,0.13);
+
+    width: 322px; min-width: 322px;
+    background: var(--sb-surface);
+    border-right: 1px solid var(--sb-line);
+    font-size: 13px;
+    color: var(--sb-ink);
+    scrollbar-width: thin;
+    scrollbar-color: #3a3d43 transparent;
+  }
+  #sidebar::-webkit-scrollbar { width: 10px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb {
+    background: #34373d; border-radius: 6px;
+    border: 3px solid var(--sb-surface);
+  }
+  #sidebar::-webkit-scrollbar-thumb:hover { background: #454951; }
+
+  #sidebar #sidebar-header {
+    padding: 18px 18px 16px;
+    border-bottom: 1px solid var(--sb-line);
+    background: linear-gradient(180deg, #24262a 0%, var(--sb-surface) 100%);
+  }
+  #sidebar #sidebar-header h1 {
+    font-size: 16px; font-weight: 700;
+    letter-spacing: -0.01em; text-transform: none;
+    color: var(--sb-ink);
+  }
+  #sidebar #sidebar-header p {
+    font-size: 12px; color: var(--sb-ink-mute);
+    letter-spacing: 0; margin-top: 3px; line-height: 1.45;
+  }
+
+  /* Name and version, nothing else.
+
+     The name is set as a masthead between a pair of brackets: the machine on
+     the first line in solid type, what the page does under it in outline
+     italics, then a rule and the version beneath. The two lines are a
+     centered column so the shorter of them sits under the middle of the
+     longer one rather than hanging off its left edge, and the brackets are
+     their own flex items so they run the full height of both lines. */
+  #sidebar #sidebar-header { text-align: center; }
+
+  #sidebar #sidebar-header h1.brand {
+    /* The sidebar sets Inter on everything inside it with !important; two ids
+       beat that one, so the masthead keeps its own face. */
+    font-family: 'Bebas Neue', 'Inter', sans-serif !important;
+    font-size: clamp(1.7rem, 8vw, 2.3rem);
+    font-weight: 400;
+    letter-spacing: 0.055em;
+    line-height: 0.9;
+    text-transform: none;
+    color: var(--sb-ink);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28em;
+  }
+
+  #sidebar #sidebar-header h1.brand .brand-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.06em;
+  }
+
+  #sidebar #sidebar-header h1.brand .brand-top {
+    display: block;
+    color: var(--sb-ink);
+    white-space: nowrap;
+  }
+
+  /* Anywhere without text-stroke the outline line keeps a dimmer fill rather
+     than vanishing into transparent. */
+  #sidebar #sidebar-header h1.brand .brand-bot {
+    display: block;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    /* Italics lean the last letter toward the right bracket; the extra
+       letter-spacing is on the right of every glyph including the last, so
+       this pulls the whole line back onto center. */
+    text-indent: 0.1em;
+    color: var(--sb-ink-mute);
+    white-space: nowrap;
+  }
+  @supports (-webkit-text-stroke: 1px black) {
+    #sidebar #sidebar-header h1.brand .brand-bot {
+      color: transparent;
+      -webkit-text-stroke: 1.4px var(--sb-ink);
+    }
+  }
+
+  #sidebar #sidebar-header h1.brand .brand-brk {
+    display: block;
+    font-size: 1.55em;
+    line-height: 0.78;
+    font-weight: 400;
+    color: var(--accent);
+    opacity: 0.85;
+  }
+
+  #sidebar #sidebar-header .hdr-rule {
+    width: 100%; max-width: 210px;
+    height: 1.5px;
+    margin: 12px auto 0;
+    background: linear-gradient(90deg,
+      transparent 0%, var(--sb-ink) 50%, transparent 100%);
+    opacity: 0.35;
+  }
+
+  #sidebar #sidebar-header p.app-version {
+    margin-top: 9px;
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--sb-ink-mute);
+  }
+
+  #sidebar #machine-state-panel {
+    padding: 15px 16px 16px;
+    background: var(--sb-surface);
+    border-bottom: 1px solid var(--sb-line);
+  }
+  #sidebar #machine-state-panel .ms-header { margin-bottom: 11px; }
+  #sidebar #machine-state-panel .ms-title {
+    font-size: 12.5px; font-weight: 700; letter-spacing: 0;
+    text-transform: none; color: var(--sb-ink);
+  }
+  #sidebar #machine-state-panel .ms-hud-toggle .toggle-text {
+    font-size: 12px; letter-spacing: 0; color: var(--sb-ink-mute);
+  }
+  #sidebar #machine-state-panel .ms-grid { gap: 7px; }
+  #sidebar #machine-state-panel .ms-cell {
+    background: var(--sb-well); border: 1px solid var(--sb-line-soft);
+    border-radius: 9px; padding: 9px 11px;
+    min-height: 40px; gap: 10px;
+
+    min-width: 0; overflow: hidden;
+  }
+  #sidebar #machine-state-panel .ms-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0;
+    text-transform: none; color: var(--sb-ink-mute);
+    flex: 0 0 auto;
+  }
+
+  #sidebar #machine-state-panel .ms-val {
+    font-size: 14px; font-weight: 600;
+    font-variant-numeric: tabular-nums; color: var(--sb-ink);
+    flex: 1 1 auto; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  #sidebar .section { border-bottom: 1px solid var(--sb-line-soft); }
+  #sidebar .sec-head {
+    padding: 15px 18px; gap: 10px;
+    border-left: 3px solid transparent;
+    transition: background .13s, border-color .13s;
+  }
+  #sidebar .sec-head:hover { background: rgba(255,255,255,0.035); }
+  #sidebar .sec-head .sec-name {
+    font-size: 13.5px; font-weight: 600; letter-spacing: 0;
+    text-transform: none; color: var(--sb-ink-soft);
+    transition: color .13s;
+  }
+
+  #sidebar .sec-head.open {
+    border-left-color: var(--accent);
+    background: rgba(232,197,71,0.05);
+  }
+  #sidebar .sec-head.open .sec-name { color: var(--accent); }
+  #sidebar .sec-head .sec-chev {
+    font-size: 10px; color: var(--sb-ink-mute);
+    transition: transform .2s cubic-bezier(.4,0,.2,1), color .13s;
+  }
+  #sidebar .sec-head.open .sec-chev { color: var(--accent); }
+
+  /* A section that is announced but not built yet. The tag sits on the header
+     only — the body says what it means in words. */
+  #sidebar .sec-head .sec-soon {
+    flex: 0 0 auto;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(232, 197, 71, 0.45);
+    background: rgba(232, 197, 71, 0.10);
+    color: var(--accent);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 0.14em; text-transform: uppercase !important;
+    line-height: 1.5;
+  }
+
+  #sidebar .sec-body { padding: 2px 18px 18px; }
+
+  #sidebar .sub-head {
+    font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--sb-ink-mute);
+    margin: 20px 0 9px;
+  }
+  #sidebar .sec-body > .sub-head:first-child { margin-top: 12px; }
+
+  #sidebar .hint {
+    font-size: 11.5px; color: var(--sb-ink-mute);
+    line-height: 1.5; margin-top: 7px;
+  }
+
+  #sidebar .samples-grid { gap: 8px; }
+  #sidebar .sample-card {
+    padding: 13px 8px; min-height: 62px;
+    background: var(--sb-card); border: 1px solid var(--sb-line);
+    border-radius: 10px;
+    transition: background .14s, border-color .14s, transform .08s;
+  }
+  #sidebar .sample-card:hover {
+    background: #2e3137; border-color: #454951;
+  }
+  #sidebar .sample-card:active { transform: translateY(1px) scale(0.995); }
+  #sidebar .sample-name {
+    font-size: 12.5px; font-weight: 600; letter-spacing: 0;
+    text-transform: none; color: var(--sb-ink);
+  }
+  #sidebar .sample-desc {
+    font-size: 11px; letter-spacing: 0; margin-top: 3px; color: var(--sb-ink-mute);
+  }
+
+  #sidebar .stat-grid { gap: 7px; }
+  #sidebar .stat-item {
+    background: var(--sb-well); border: 1px solid var(--sb-line-soft);
+    border-radius: 9px; padding: 9px 11px;
+  }
+  #sidebar .stat-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0;
+    text-transform: none; color: var(--sb-ink-mute);
+  }
+  #sidebar .stat-value {
+    font-size: 15px; font-weight: 600; margin-top: 2px;
+    font-variant-numeric: tabular-nums; color: var(--sb-ink);
+  }
+
+  #sidebar .toggle-row {
+    padding: 9px 10px; margin: 0 -10px;
+    border-radius: 8px; transition: background .12s;
+  }
+  #sidebar .toggle-row:hover { background: rgba(255,255,255,0.035); }
+  #sidebar .toggle-text { font-size: 12.5px; color: var(--sb-ink-soft); }
+  #sidebar .toggle-track {
+    width: 38px; height: 22px; border-radius: 11px;
+    background: #3a3d43; transition: background .18s;
+  }
+  #sidebar .toggle-track.on { background: var(--accent); }
+  #sidebar .toggle-thumb {
+    top: 3px; left: 3px; width: 16px; height: 16px; background: #cfd3d9;
+    transition: left .18s cubic-bezier(.4,0,.2,1), background .18s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.45);
+  }
+  #sidebar .toggle-track.on .toggle-thumb { left: 19px; background: #1b1c1e; }
+
+  #sidebar .sec-body input[type="number"],
+  #sidebar .sec-body input[type="text"],
+  #sidebar .sec-body select {
+    background: var(--sb-well) !important;
+    border: 1px solid var(--sb-line) !important;
+    border-radius: 8px !important;
+    color: var(--sb-ink) !important;
+    font-size: 12.5px !important;
+    padding: 7px 9px !important;
+  }
+  #sidebar .sec-body input[type="number"]:focus,
+  #sidebar .sec-body input[type="text"]:focus,
+  #sidebar .sec-body select:focus {
+    outline: none;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--sb-glow);
+  }
+  #sidebar .sec-body input[type="range"] { accent-color: var(--accent); height: 20px; }
+
+  #sidebar .sec-body button:not(.qa-btn) {
+    font-size: 12px !important;
+    border-radius: 8px !important;
+    padding: 8px 10px !important;
+    background: var(--sb-card);
+    border: 1px solid var(--sb-line);
+    color: var(--sb-ink-soft);
+    transition: background .14s, border-color .14s, color .14s;
+  }
+  #sidebar .sec-body button:not(.qa-btn):hover {
+    background: #2e3137; border-color: #454951; color: var(--sb-ink);
+  }
+  #sidebar .sec-body button.on,
+  #sidebar .sec-body button.active {
+    border-color: var(--accent) !important;
+    background: var(--sb-glow) !important;
+    color: var(--accent) !important;
+  }
+
+  #sidebar .pm-sample-row {
+    border-radius: 9px !important; padding: 10px 12px !important;
+    background: var(--sb-card) !important; border: 1px solid var(--sb-line) !important;
+  }
+  #sidebar .pm-sample-row:hover { background: #2e3137 !important; border-color: #454951 !important; }
+  #sidebar .pm-sample-name { font-size: 12.5px !important; color: var(--sb-ink) !important; }
+  #sidebar .pm-sample-note { font-size: 11px !important; color: var(--sb-ink-mute) !important; }
+  #sidebar .pm-note, #sidebar .pm-msg { font-size: 11.5px !important; line-height: 1.5; }
+  #sidebar .pm-line > span:first-child { font-size: 12px; }
+
+  #sidebar .legend-col-hdr {
+    font-size: 10.5px !important; letter-spacing: 0.04em;
+    color: var(--sb-ink-mute) !important;
+  }
+
+  /* ================================================================== *
+   * Model mode's sidebar.
+   *
+   * While model mode is on, everything the sim sidebar carries is put
+   * away and this stands in its place. It is deliberately not built like
+   * the rest of the sidebar: no accordions to find, no abbreviations, no
+   * two-letter labels. Each block is a question and each button is a
+   * sentence, because the person reading it may never have seen a mill.
+   * ================================================================== */
+
+  /* Out of the way while modelling — every one of these is about running a
+     program, which is not what model mode is for. */
+  body.model-mode #sidebar .section,
+  body.model-mode #sidebar #machine-state-panel,
+  body.model-mode #sidebar #mkp-launch,
+  body.model-mode #sidebar #sb-setup { display: none; }
+
+  /* Whether this is on screen is JS's call — it sets the hidden attribute
+     alongside the body class, so nothing here has to fight it. */
+
+  /* "Browse the shelf" lends the Library section back for as long as it is
+     wanted, without bringing the other nine with it. */
+  body.model-mode #sidebar .section.ms-reveal { display: block; }
+
+  #sidebar #sb-model {
+    padding: 4px 16px 22px;
+  }
+
+  #sidebar #sb-model .ms-step {
+    padding: 18px 0 17px;
+    border-bottom: 1px solid var(--sb-line-soft);
+  }
+  #sidebar #sb-model .ms-step:last-child { border-bottom: 0; }
+  /* A step that needs a blank before it means anything stays out of the way
+     until there is one. */
+  #sidebar #sb-model .ms-step.is-idle { display: none; }
+
+  #sidebar #sb-model .ms-q {
+    font-size: 15px; font-weight: 700;
+    color: var(--sb-ink);
+    line-height: 1.3;
+  }
+  #sidebar #sb-model .ms-sub {
+    font-size: 12px; line-height: 1.5;
+    color: var(--sb-ink-mute);
+    margin-top: 5px;
+  }
+  #sidebar #sb-model .ms-label {
+    font-size: 11.5px; font-weight: 700;
+    color: var(--sb-ink-soft);
+    margin: 14px 0 7px;
+  }
+
+  #sidebar #sb-model .ms-row {
+    display: flex; flex-direction: column; gap: 7px;
+    margin-top: 11px;
+  }
+  #sidebar #sb-model .ms-row-2 { flex-direction: row; }
+  #sidebar #sb-model .ms-row-3 { flex-direction: row; }
+  #sidebar #sb-model .ms-row-2 > .ms-btn,
+  #sidebar #sb-model .ms-row-3 > .ms-btn { flex: 1 1 0; min-width: 0; }
+
+  #sidebar #sb-model .ms-btn {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    width: 100%;
+    padding: 11px 13px;
+    text-align: left;
+    background: var(--sb-card);
+    border: 1px solid var(--sb-line);
+    border-radius: 10px;
+    color: var(--sb-ink);
+    cursor: pointer;
+    transition: background .13s, border-color .13s, transform .07s;
+  }
+  #sidebar #sb-model .ms-btn:hover {
+    background: #2e3137; border-color: #4a4e56;
+  }
+  #sidebar #sb-model .ms-btn:active { transform: translateY(1px); }
+  #sidebar #sb-model .ms-btn.on {
+    border-color: var(--accent);
+    background: rgba(232, 197, 71, 0.10);
+  }
+  #sidebar #sb-model .ms-btn.on .ms-btn-t { color: var(--accent); }
+  #sidebar #sb-model .ms-btn:disabled,
+  #sidebar #sb-model .ms-btn.is-off {
+    opacity: 0.38; cursor: default; transform: none;
+  }
+  #sidebar #sb-model .ms-btn:disabled:hover,
+  #sidebar #sb-model .ms-btn.is-off:hover {
+    background: var(--sb-card); border-color: var(--sb-line);
+  }
+
+  #sidebar #sb-model .ms-btn-t {
+    font-size: 13px; font-weight: 600; line-height: 1.25;
+  }
+  #sidebar #sb-model .ms-btn-d {
+    font-size: 11px; font-weight: 500; line-height: 1.35;
+    color: var(--sb-ink-mute);
+  }
+  #sidebar #sb-model .ms-small { padding: 9px 11px; align-items: center; }
+  #sidebar #sb-model .ms-small .ms-btn-t { font-size: 12px; }
+
+  /* What is currently picked up, and where it is. */
+  #sidebar #sb-model .ms-selected {
+    margin-top: 10px;
+    padding: 9px 11px;
+    border-radius: 9px;
+    background: var(--sb-well);
+    border: 1px solid var(--sb-line-soft);
+    font-size: 12px; color: var(--sb-ink);
+  }
+  #sidebar #sb-model .ms-selected.is-empty { color: var(--sb-ink-mute); }
+  #sidebar #sb-model .ms-readout {
+    margin-top: 7px;
+    font-family: var(--font-mono);
+    font-size: 11px; color: var(--sb-ink-mute);
+    font-variant-numeric: tabular-nums;
+    min-height: 15px;
+  }
+
+  #sidebar #sb-model .ms-note {
+    margin-top: 10px;
+    font-size: 11.5px; line-height: 1.45;
+    color: var(--sb-ink-mute);
+  }
+  #sidebar #sb-model .ms-note.ms-ok {
+    padding: 8px 11px; border-radius: 8px;
+    background: rgba(95, 208, 138, 0.08);
+    border: 1px solid rgba(95, 208, 138, 0.28);
+    color: #9fdcb8;
+  }
+
+  #sidebar #sb-model .ms-finish { padding-bottom: 6px; }
+  #sidebar #sb-model .ms-go {
+    margin-top: 11px;
+    align-items: center;
+    background: rgba(232, 197, 71, 0.12);
+    border-color: rgba(232, 197, 71, 0.5);
+  }
+  #sidebar #sb-model .ms-go:hover {
+    background: rgba(232, 197, 71, 0.2);
+    border-color: var(--accent);
+  }
+  #sidebar #sb-model .ms-go .ms-btn-t { color: var(--accent); font-size: 13.5px; }
+
+  /* ================================================================== *
+   * Guide Me Through It — the build panel as a checklist.
+   * ================================================================== */
+
+  #sidebar #gd-host { margin-top: 4px; }
+
+  #sidebar .gd-modes {
+    display: flex; gap: 4px;
+    padding: 3px;
+    margin-bottom: 12px;
+    background: var(--sb-well);
+    border: 1px solid var(--sb-line-soft);
+    border-radius: 9px;
+  }
+  #sidebar .gd-mode {
+    flex: 1; padding: 7px 6px;
+    border: 1px solid transparent; border-radius: 7px;
+    background: transparent; color: var(--sb-ink-mute);
+    font-size: 11.5px; font-weight: 600; cursor: pointer;
+    transition: color .13s, background .13s, border-color .13s;
+  }
+  #sidebar .gd-mode:hover { color: var(--sb-ink); }
+  #sidebar .gd-mode.on {
+    color: var(--accent);
+    border-color: rgba(232, 197, 71, 0.45);
+    background: rgba(232, 197, 71, 0.08);
+  }
+
+  #sidebar .gd-step {
+    border: 1px solid var(--sb-line-soft);
+    border-radius: 11px;
+    margin-bottom: 8px;
+    background: var(--sb-surface);
+    overflow: hidden;
+  }
+  #sidebar .gd-step.is-open { border-color: rgba(232, 197, 71, 0.4); }
+
+  #sidebar .gd-head {
+    display: flex; align-items: flex-start; gap: 10px;
+    width: 100%; padding: 12px 13px;
+    background: transparent; border: 0; cursor: pointer; text-align: left;
+    transition: background .12s;
+  }
+  #sidebar .gd-head:hover { background: rgba(255, 255, 255, 0.03); }
+
+  /* The checklist mark: empty ring until the step has been answered. */
+  #sidebar .gd-tick {
+    flex: 0 0 auto;
+    width: 17px; height: 17px; margin-top: 1px;
+    border-radius: 50%;
+    border: 1.5px solid var(--sb-line);
+    position: relative;
+    transition: border-color .15s, background .15s;
+  }
+  #sidebar .gd-step.is-done .gd-tick {
+    border-color: #5fd08a;
+    background: rgba(95, 208, 138, 0.16);
+  }
+  #sidebar .gd-step.is-done .gd-tick::after {
+    content: '';
+    position: absolute; left: 5px; top: 2px;
+    width: 4px; height: 8px;
+    border: solid #7fe0a6; border-width: 0 1.6px 1.6px 0;
+    transform: rotate(42deg);
+  }
+
+  #sidebar .gd-htext { flex: 1 1 auto; min-width: 0; display: block; }
+  #sidebar .gd-q {
+    display: block;
+    font-size: 13px; font-weight: 700; line-height: 1.3;
+    color: var(--sb-ink);
+  }
+  #sidebar .gd-step.is-open .gd-q { color: var(--accent); }
+  #sidebar .gd-hint {
+    display: block; margin-top: 3px;
+    font-size: 11px; font-weight: 500; line-height: 1.4;
+    color: var(--sb-ink-mute);
+  }
+  #sidebar .gd-chev {
+    flex: 0 0 auto; margin-top: 2px;
+    font-size: 10px; color: var(--sb-ink-mute);
+    transition: transform .18s cubic-bezier(.4,0,.2,1), color .13s;
+  }
+  #sidebar .gd-step.is-open .gd-chev { transform: rotate(90deg); color: var(--accent); }
+
+  #sidebar .gd-body { display: none; padding: 0 13px 13px; }
+  #sidebar .gd-step.is-open .gd-body { display: block; }
+
+  /* One step at a time: only the step being worked on shows its heading text
+     in full. In the everything view the hints stay put so the whole job can
+     be read down the page. */
+  #sidebar #gd-host:not(.is-all) .gd-step:not(.is-open) .gd-hint { display: none; }
+
+  #sidebar .gd-body .mkp-step.gd-adopted {
+    border: 0; padding: 0; margin: 0; background: none;
+  }
+
+  #sidebar .gd-nav {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--sb-line-soft);
+  }
+  #sidebar .gd-arrow {
+    padding: 8px 12px;
+    border: 1px solid var(--sb-line); border-radius: 8px;
+    background: var(--sb-card); color: var(--sb-ink);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background .13s, border-color .13s, opacity .13s;
+  }
+  #sidebar .gd-arrow:hover:not(:disabled) { background: #2e3137; border-color: #4a4e56; }
+  #sidebar .gd-arrow:disabled { opacity: 0.3; cursor: default; }
+  #sidebar .gd-arrow.gd-next {
+    margin-left: auto;
+    border-color: rgba(232, 197, 71, 0.45);
+    background: rgba(232, 197, 71, 0.1);
+    color: var(--accent);
+  }
+  #sidebar .gd-count { font-size: 11px; color: var(--sb-ink-mute); }
+
+  /* ---- the machine-type question ---- */
+  #sidebar .gd-axis { display: flex; flex-direction: column; gap: 7px; margin-top: 4px; }
+  #sidebar .gd-axis-btn {
+    display: block; width: 100%; padding: 11px 13px; text-align: left;
+    background: var(--sb-card); border: 1px solid var(--sb-line);
+    border-radius: 10px; cursor: pointer;
+    transition: background .13s, border-color .13s;
+  }
+  #sidebar .gd-axis-btn:hover { background: #2e3137; border-color: #4a4e56; }
+  #sidebar .gd-axis-btn.on {
+    border-color: var(--accent); background: rgba(232, 197, 71, 0.1);
+  }
+  #sidebar .gd-axis-n {
+    display: block; font-size: 13px; font-weight: 700; color: var(--sb-ink);
+  }
+  #sidebar .gd-axis-btn.on .gd-axis-n { color: var(--accent); }
+  #sidebar .gd-axis-d {
+    display: block; margin-top: 3px;
+    font-size: 11px; font-weight: 500; line-height: 1.4; color: var(--sb-ink-mute);
+  }
+
+  /* ---- the read-back and the way out ---- */
+  #sidebar #gd-footer {
+    margin-top: 16px; padding-top: 16px;
+    border-top: 1px solid var(--sb-line);
+  }
+  #sidebar .gd-sum-head {
+    font-size: 13px; font-weight: 700; color: var(--sb-ink);
+  }
+  #sidebar .gd-sum-lead {
+    margin-top: 7px;
+    font-size: 12px; font-weight: 500; line-height: 1.55;
+    color: var(--sb-ink-soft);
+  }
+  #sidebar .gd-sum-list {
+    list-style: none; margin: 12px 0 0; padding: 10px 12px;
+    background: var(--sb-well); border: 1px solid var(--sb-line-soft);
+    border-radius: 9px;
+  }
+  #sidebar .gd-sum-list li {
+    display: flex; gap: 10px; padding: 3px 0;
+    font-size: 11.5px; line-height: 1.45;
+  }
+  #sidebar .gd-sum-k { flex: 0 0 82px; color: var(--sb-ink-mute); font-weight: 600; }
+  #sidebar .gd-sum-v { flex: 1 1 auto; color: var(--sb-ink); min-width: 0; }
+
+  #sidebar .gd-exit { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  #sidebar .gd-exit button {
+    position: relative; display: block; width: 100%;
+    padding: 12px 14px; text-align: left;
+    border-radius: 10px; cursor: pointer; overflow: hidden;
+    border: 1px solid var(--sb-line); background: var(--sb-card);
+    transition: background .13s, border-color .13s;
+  }
+  #sidebar .gd-b-t { display: block; position: relative; font-size: 13px; font-weight: 700; }
+  #sidebar .gd-b-d {
+    display: block; position: relative; margin-top: 3px;
+    font-size: 11px; font-weight: 500; line-height: 1.4; color: var(--sb-ink-mute);
+  }
+  #sidebar .gd-save {
+    border-color: rgba(95, 208, 138, 0.45) !important;
+    background: rgba(95, 208, 138, 0.1) !important;
+  }
+  #sidebar .gd-save:hover { background: rgba(95, 208, 138, 0.18) !important; }
+  #sidebar .gd-save .gd-b-t { color: #8fe3b2; }
+
+  #sidebar .gd-wipe {
+    border-color: rgba(232, 112, 128, 0.45) !important;
+    background: rgba(232, 112, 128, 0.07) !important;
+    user-select: none; touch-action: none;
+    --hold: 0%;
+  }
+  #sidebar .gd-wipe:hover { border-color: rgba(232, 112, 128, 0.8) !important; }
+  #sidebar .gd-wipe .gd-b-t { color: #f08a98; }
+  #sidebar .gd-wipe-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: var(--hold);
+    background: linear-gradient(90deg,
+      rgba(232, 112, 128, 0.28) 0%, rgba(232, 112, 128, 0.5) 100%);
+    pointer-events: none;
+  }
+  #sidebar .gd-wipe:not(.is-holding) .gd-wipe-fill { transition: width .22s ease; }

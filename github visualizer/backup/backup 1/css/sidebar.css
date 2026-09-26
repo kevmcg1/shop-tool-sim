@@ -1,0 +1,89 @@
+  /* The quick-action bar that used to sit under the masthead is gone: Fit
+     view and Reset cam are buttons in the viewport dock, and Reset is at the
+     top of Settings behind a three-second hold. */
+
+  #machine-state-panel {
+    padding: 10px 14px 12px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1f1f1f 0%, #1a1a1a 100%);
+    flex-shrink: 0;
+  }
+  #machine-state-panel .ms-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 9px;
+  }
+  #machine-state-panel .ms-title {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent);
+  }
+  #machine-state-panel .ms-hud-toggle { gap: 6px; }
+  #machine-state-panel .ms-hud-toggle .toggle-text {
+    font-size: 9px; letter-spacing: 0.04em;
+  }
+  #machine-state-panel .ms-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+  #machine-state-panel .ms-cell {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #161616; border-radius: 4px; padding: 6px 9px;
+    border: 1px solid rgba(255,255,255,0.03);
+  }
+  #machine-state-panel .ms-label {
+    font-size: 9px; color: var(--text-dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-weight: 700;
+  }
+  #machine-state-panel .ms-val {
+    font-size: 11px; font-family: var(--font-mono);
+    color: var(--text); font-weight: 600;
+    text-align: right;
+  }
+  #machine-state-panel .ms-val.ms-accent { color: var(--accent); }
+
+  .section { padding: 0; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .section.legacy { padding: 11px 16px; }
+  .section-title { font-size: 9px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+
+  .sec-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 16px; cursor: pointer; user-select: none;
+    transition: background 0.12s;
+  }
+  .sec-head:hover { background: rgba(255,255,255,0.02); }
+
+  .sec-head .sec-name { flex: 1; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text); }
+  .sec-head .sec-chev {
+    font-size: 9px; color: var(--text-dim);
+    transition: transform 0.18s;
+    line-height: 1; flex-shrink: 0;
+  }
+  .sec-head.open .sec-chev { transform: rotate(90deg); color: var(--accent); }
+  .sec-head.open .sec-name { color: var(--accent); }
+
+  .sec-body {
+    padding: 0 16px 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.22s ease;
+    opacity: 0;
+  }
+  .sec-head.open + .sec-body {
+    opacity: 1;
+  }
+
+  .sec-body .section-title { display: none; }
+
+  #dropzone-editor {
+    position: absolute; inset: 0; z-index: 50;
+    background: rgba(232,197,71,0.08);
+    border: 2px dashed var(--accent);
+    border-radius: 4px;
+    display: none; align-items: center; justify-content: center;
+    font-family: var(--font-ui); font-size: 12px; color: var(--accent);
+    pointer-events: none;
+    letter-spacing: 0.05em;
+  }
+  #dropzone-editor.dragover { display: flex; }

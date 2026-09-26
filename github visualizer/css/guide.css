@@ -1,0 +1,490 @@
+/* guide.css — the walkthrough's own furniture.
+ *
+ * Loads after sidebar-theme.css, which already dresses .gd-step, .gd-head and
+ * the tick. What is here is everything that came with the rebuild: the nested
+ * sub-questions, the tool cards, the offsets editor, the warning box, the
+ * button that lives in the 3D view, and the stock-above-the-jaws panel that
+ * the Fixture sidebar shares.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Who owns the sidebar
+ *
+ * Build mode is also a model mode, so model mode's own sidebar used to open
+ * on top of the guide and the guide never showed at all. While Guide Me
+ * Through It is on, it owns the panel outright.
+ * ------------------------------------------------------------------ */
+
+body.mkp-on #sidebar #mkp-section { display: block; }
+body.mkp-on #sidebar #sb-model,
+body.mkp-on #sidebar #sb-setup { display: none; }
+
+/* ------------------------------------------------------------------ *
+ * Nested categories
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-num {
+  flex: 0 0 auto;
+  width: 18px; height: 18px; margin-top: 1px;
+  border-radius: 6px;
+  background: rgba(232, 197, 71, 0.12);
+  color: var(--accent);
+  font-size: 10.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+}
+
+#sidebar .gd-subcount {
+  flex: 0 0 auto; margin-top: 2px;
+  font-size: 10px; font-weight: 700;
+  padding: 2px 6px; border-radius: 999px;
+  color: var(--sb-ink-mute);
+  border: 1px solid var(--sb-line-soft);
+}
+#sidebar .gd-subcount.is-full {
+  color: #7fe0a6; border-color: rgba(95, 208, 138, 0.45);
+  background: rgba(95, 208, 138, 0.12);
+}
+
+#sidebar .gd-subs { margin-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+
+#sidebar .gd-sub {
+  border: 1px solid var(--sb-line-soft);
+  border-radius: 9px;
+  background: var(--sb-well);
+  overflow: hidden;
+}
+#sidebar .gd-sub.is-open { border-color: rgba(232, 197, 71, 0.35); }
+#sidebar .gd-subhead { padding: 10px 11px; gap: 9px; }
+#sidebar .gd-sub .gd-q { font-size: 12px; }
+#sidebar .gd-sub .gd-hint { font-size: 10.5px; }
+
+/* The step-level rule opens every .gd-body inside it, sub-bodies included.
+   Four classes beats its three, so the sub keeps its own mind. */
+#sidebar .gd-step .gd-sub:not(.is-open) > .gd-body { display: none; }
+#sidebar .gd-step .gd-sub.is-open > .gd-body { display: block; padding: 0 11px 11px; }
+
+/* Same for the tick: a finished step must not tick its unfinished children. */
+#sidebar .gd-step.is-done .gd-sub:not(.is-done) > .gd-head .gd-tick {
+  border-color: var(--sb-line);
+  background: transparent;
+}
+#sidebar .gd-step.is-done .gd-sub:not(.is-done) > .gd-head .gd-tick::after { content: none; }
+#sidebar .gd-sub.is-done > .gd-head .gd-tick {
+  border-color: #5fd08a;
+  background: rgba(95, 208, 138, 0.16);
+}
+#sidebar .gd-sub.is-done > .gd-head .gd-tick::after {
+  content: '';
+  position: absolute; left: 5px; top: 2px;
+  width: 4px; height: 8px;
+  border: solid #7fe0a6; border-width: 0 1.6px 1.6px 0;
+  transform: rotate(42deg);
+}
+
+/* ------------------------------------------------------------------ *
+ * Small shared pieces
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-notice {
+  margin: 2px 0 12px;
+  padding: 10px 12px;
+  border-left: 2px solid var(--accent);
+  border-radius: 0 8px 8px 0;
+  background: rgba(232, 197, 71, 0.07);
+  font-size: 11px; line-height: 1.5; color: var(--sb-ink-soft);
+}
+
+#sidebar .gd-label {
+  margin: 12px 0 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--sb-ink-mute);
+}
+#sidebar .gd-note {
+  margin: 8px 0;
+  font-size: 11px; line-height: 1.5; color: var(--sb-ink-mute);
+}
+#sidebar .gd-out {
+  margin-top: 8px; padding: 8px 10px;
+  border: 1px solid var(--sb-line-soft); border-radius: 8px;
+  background: var(--sb-well);
+  font-size: 11px; color: var(--sb-ink-soft);
+}
+#sidebar .gd-empty {
+  padding: 10px; text-align: center;
+  font-size: 11px; font-style: italic; color: var(--sb-ink-mute);
+}
+
+#sidebar .gd-wide {
+  display: block; width: 100%; margin-top: 10px;
+  padding: 10px 12px; text-align: left;
+  border: 1px solid rgba(232, 197, 71, 0.4); border-radius: 9px;
+  background: rgba(232, 197, 71, 0.1); color: var(--accent);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: background .13s, border-color .13s, opacity .13s;
+}
+#sidebar .gd-wide:hover:not(:disabled) { background: rgba(232, 197, 71, 0.18); }
+#sidebar .gd-wide:disabled { opacity: 0.4; cursor: default; }
+#sidebar .gd-wide em {
+  display: block; margin-top: 3px;
+  font-style: normal; font-size: 10.5px; font-weight: 500;
+  line-height: 1.4; color: var(--sb-ink-mute);
+}
+
+/* ------------------------------------------------------------------ *
+ * Step 3 · the tool describer
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-tooltext {
+  width: 100%; margin-top: 4px; padding: 10px;
+  border: 1px solid var(--sb-line); border-radius: 9px;
+  background: var(--sb-well); color: var(--sb-ink);
+  font-family: var(--font-mono, monospace); font-size: 11px; line-height: 1.5;
+  resize: vertical;
+}
+#sidebar .gd-tooltext:focus { outline: none; border-color: var(--accent); }
+
+#sidebar .gd-toolcards { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+#sidebar .gd-toolcard {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 9px 11px;
+  border: 1px solid var(--sb-line-soft); border-radius: 9px;
+  background: var(--sb-card);
+}
+#sidebar .gd-tc-t {
+  flex: 0 0 auto; padding: 2px 7px; border-radius: 6px;
+  background: rgba(232, 197, 71, 0.14); color: var(--accent);
+  font-family: var(--font-mono, monospace); font-size: 11px; font-weight: 700;
+}
+#sidebar .gd-tc-body { flex: 1 1 auto; min-width: 0; }
+#sidebar .gd-tc-name {
+  display: block; font-size: 11.5px; font-weight: 600; color: var(--sb-ink);
+}
+#sidebar .gd-tc-said {
+  display: block; margin-top: 2px;
+  font-size: 10.5px; color: var(--sb-ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+#sidebar .gd-readlist { list-style: none; margin: 4px 0 0; padding: 0; }
+#sidebar .gd-readlist li {
+  display: flex; gap: 9px; padding: 5px 0;
+  font-size: 11.5px; line-height: 1.45;
+  border-bottom: 1px solid var(--sb-line-soft);
+}
+#sidebar .gd-readlist li:last-child { border-bottom: 0; }
+#sidebar .gd-rl-t {
+  flex: 0 0 34px; color: var(--accent); font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+#sidebar .gd-rl-d { flex: 1 1 auto; color: var(--sb-ink-soft); min-width: 0; }
+
+/* ------------------------------------------------------------------ *
+ * Step 4 · offsets
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-offhead {
+  margin: 14px 0 6px;
+  font-size: 11.5px; font-weight: 700; color: var(--sb-ink);
+}
+#sidebar .gd-offlist { display: flex; flex-direction: column; gap: 5px; }
+#sidebar .gd-offrow {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 8px;
+  border: 1px solid var(--sb-line-soft); border-radius: 8px;
+  background: var(--sb-well);
+}
+#sidebar .gd-off-k {
+  flex: 0 0 42px; color: var(--accent); font-weight: 700;
+  font-family: var(--font-mono, monospace); font-size: 11px;
+}
+#sidebar .gd-offrow input {
+  flex: 0 0 74px; min-width: 0;
+  padding: 5px 6px;
+  border: 1px solid var(--sb-line); border-radius: 6px;
+  background: var(--sb-card); color: var(--sb-ink);
+  font-family: var(--font-mono, monospace); font-size: 11px;
+}
+#sidebar .gd-off-n {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 10.5px; color: var(--sb-ink-mute);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#sidebar .gd-off-x {
+  flex: 0 0 auto; width: 22px; height: 22px; padding: 0;
+  /* Centered both ways — a bare × in a button sits high and left of center
+     on its own, because the glyph carries its own bearings. */
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--sb-line); border-radius: 6px;
+  background: transparent; color: var(--sb-ink-mute);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+#sidebar .gd-off-x:hover { color: #ff6b6b; border-color: #ff6b6b; }
+
+#sidebar .gd-addrow { display: flex; gap: 6px; margin-top: 7px; }
+#sidebar .gd-addrow input {
+  flex: 1 1 0; min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--sb-line); border-radius: 7px;
+  background: var(--sb-card); color: var(--sb-ink);
+  font-family: var(--font-mono, monospace); font-size: 11px;
+}
+#sidebar .gd-addbtn {
+  flex: 0 0 auto; padding: 7px 12px;
+  border: 1px solid rgba(232, 197, 71, 0.4); border-radius: 7px;
+  background: rgba(232, 197, 71, 0.1); color: var(--accent);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+}
+#sidebar .gd-addbtn:hover { background: rgba(232, 197, 71, 0.2); }
+
+/* ------------------------------------------------------------------ *
+ * Step 4 · before / after and the collision warning
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-warnbox {
+  margin-top: 10px; padding: 10px 12px;
+  border-radius: 9px; border: 1px solid var(--sb-line-soft);
+  background: var(--sb-well);
+}
+#sidebar .gd-warnbox.is-good { border-color: rgba(95, 208, 138, 0.35); }
+#sidebar .gd-warnbox.is-bad  { border-color: rgba(255, 107, 107, 0.45); background: rgba(255, 80, 80, 0.06); }
+#sidebar .gd-warn-head { font-size: 12px; font-weight: 700; color: var(--sb-ink); }
+#sidebar .gd-warnbox.is-good .gd-warn-head { color: #7fe0a6; }
+#sidebar .gd-warnbox.is-bad  .gd-warn-head { color: #ff8f8f; }
+#sidebar .gd-warn-sub {
+  margin-top: 4px; font-size: 10.5px; line-height: 1.5; color: var(--sb-ink-mute);
+}
+#sidebar .gd-warn-list {
+  list-style: none; margin: 8px 0 0; padding: 0;
+  max-height: 168px; overflow: auto;
+}
+#sidebar .gd-warn-list li {
+  padding: 3px 0;
+  font-family: var(--font-mono, monospace); font-size: 10.5px;
+  color: var(--sb-ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#sidebar .gd-warn-more { margin-top: 5px; font-size: 10.5px; color: var(--sb-ink-mute); }
+
+/* ------------------------------------------------------------------ *
+ * The button in the 3D view
+ * ------------------------------------------------------------------ */
+
+#gd-vpact {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: 16px; z-index: 92;
+}
+#gd-vpact[hidden] { display: none; }
+#gd-vpact button {
+  padding: 9px 22px;
+  border: 1px solid rgba(232, 197, 71, 0.55); border-radius: 10px;
+  background: linear-gradient(180deg, rgba(232,197,71,0.22) 0%, rgba(232,197,71,0.12) 100%);
+  color: var(--accent);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.01em;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+  transition: background .13s, transform .1s;
+}
+#gd-vpact button:hover { background: rgba(232,197,71,0.28); }
+#gd-vpact button:active { transform: translateY(1px); }
+
+/* ------------------------------------------------------------------ *
+ * Above the jaws — shared by the guide and the Fixture sidebar
+ * ------------------------------------------------------------------ */
+
+#sidebar .jc-wrap.is-idle .jc-mode,
+#sidebar .jc-wrap.is-idle .jc-field,
+#sidebar .jc-wrap.is-idle .jc-zs,
+#sidebar .jc-wrap.is-idle .jc-reset { opacity: 0.35; pointer-events: none; }
+
+#sidebar .jc-stat {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--sb-line-soft); border-radius: 9px;
+  background: var(--sb-well);
+}
+#sidebar .jc-stat-k { font-size: 11px; color: var(--sb-ink-mute); font-weight: 600; }
+#sidebar .jc-stat-v {
+  font-family: var(--font-mono, monospace); font-size: 16px; font-weight: 700;
+  color: var(--accent);
+}
+
+#sidebar .jc-verdict {
+  margin-top: 7px; font-size: 10.5px; line-height: 1.5; color: var(--sb-ink-mute);
+}
+#sidebar .jc-verdict.is-good { color: #7fe0a6; }
+#sidebar .jc-verdict.is-warn { color: #ffc46b; }
+#sidebar .jc-verdict.is-bad  { color: #ff8f8f; }
+
+#sidebar .jc-label {
+  margin: 12px 0 6px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--sb-ink-mute);
+}
+#sidebar .jc-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 6px;
+}
+#sidebar .jc-grid button {
+  min-width: 0; padding: 8px 9px;
+  border: 1px solid var(--sb-line); border-radius: 8px;
+  background: var(--sb-card); color: var(--sb-ink-mute);
+  font-size: 11px; font-weight: 600; line-height: 1.3; cursor: pointer;
+  overflow-wrap: anywhere; hyphens: auto;
+  transition: color .13s, background .13s, border-color .13s;
+}
+#sidebar .jc-grid button:hover { color: var(--sb-ink); border-color: #4a4e56; }
+#sidebar .jc-grid button.on {
+  color: var(--accent);
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(232, 197, 71, 0.1);
+}
+
+#sidebar .jc-field { display: flex; align-items: center; gap: 6px; }
+#sidebar .jc-field input {
+  flex: 1 1 auto; min-width: 0; padding: 7px 8px;
+  border: 1px solid var(--sb-line); border-radius: 7px;
+  background: var(--sb-card); color: var(--sb-ink);
+  font-family: var(--font-mono, monospace); font-size: 12px;
+}
+#sidebar .jc-unit { flex: 0 0 auto; font-size: 11px; color: var(--sb-ink-mute); }
+#sidebar .jc-go {
+  flex: 0 0 auto; padding: 7px 12px;
+  border: 1px solid rgba(232, 197, 71, 0.4); border-radius: 7px;
+  background: rgba(232, 197, 71, 0.1); color: var(--accent);
+  font-size: 11px; font-weight: 700; cursor: pointer;
+}
+#sidebar .jc-go:hover { background: rgba(232, 197, 71, 0.2); }
+
+#sidebar .jc-zs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px;
+}
+#sidebar .jc-z {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 8px 10px; min-width: 0;
+  border: 1px solid var(--sb-line-soft); border-radius: 8px;
+  background: var(--sb-card);
+}
+#sidebar .jc-z-k { font-size: 10px; color: var(--sb-ink-mute); font-weight: 600; }
+#sidebar .jc-z-v {
+  font-family: var(--font-mono, monospace); font-size: 12.5px; font-weight: 700;
+  color: var(--sb-ink);
+  overflow: hidden; text-overflow: ellipsis;
+}
+
+#sidebar .jc-reset {
+  display: block; width: 100%; margin-top: 12px;
+  padding: 9px 11px; text-align: left;
+  border: 1px solid var(--sb-line); border-radius: 8px;
+  background: var(--sb-card); color: var(--sb-ink);
+  font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+#sidebar .jc-reset:hover:not(:disabled) { border-color: #4a4e56; background: #2e3137; }
+#sidebar .jc-reset:disabled { opacity: 0.35; cursor: default; }
+#sidebar .jc-reset em {
+  display: block; margin-top: 3px;
+  font-style: normal; font-size: 10px; font-weight: 500; color: var(--sb-ink-mute);
+}
+#sidebar .jc-note { margin-top: 10px; }
+
+/* ------------------------------------------------------------------ *
+ * The "you haven't finished" modal
+ * ------------------------------------------------------------------ */
+
+#gd-leave-body { padding: 16px 20px; }
+#gd-leave-body .mkp-warn-lead {
+  font-size: 14px; font-weight: 700; color: #ffc46b; margin-bottom: 10px;
+}
+#gd-leave-list { margin: 0 0 12px; padding-left: 20px; }
+#gd-leave-list li { font-size: 12.5px; line-height: 1.7; color: var(--text, #d7dade); }
+#gd-leave-tail { font-size: 12px; line-height: 1.6; color: var(--text-dim, #8b9099); margin: 0; }
+
+
+/* ------------------------------------------------------------------ *
+ * Option grids
+ *
+ * These lists grow — a round blank alone offers four kinds of point and
+ * eight angles — so they wrap into as many columns as fit and the labels
+ * wrap inside their own button rather than running out of the card.
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+  margin-bottom: 2px;
+}
+#sidebar .gd-grid button {
+  min-width: 0; padding: 8px 9px;
+  border: 1px solid var(--sb-line); border-radius: 8px;
+  background: var(--sb-card); color: var(--sb-ink-mute);
+  font-size: 11px; font-weight: 600; line-height: 1.3; text-align: center;
+  cursor: pointer;
+  overflow-wrap: anywhere; hyphens: auto;
+  transition: color .13s, background .13s, border-color .13s;
+}
+#sidebar .gd-grid button:hover:not(:disabled) { color: var(--sb-ink); border-color: #4a4e56; }
+#sidebar .gd-grid button.on {
+  color: var(--accent);
+  border-color: rgba(232, 197, 71, 0.5);
+  background: rgba(232, 197, 71, 0.1);
+}
+#sidebar .gd-grid button:disabled { opacity: 0.35; cursor: default; }
+
+/* The angle row is short labels, so it packs tighter. */
+#sidebar .gd-roundangle { grid-template-columns: repeat(auto-fit, minmax(54px, 1fr)); }
+
+/* Show / hide, one per solid. */
+#sidebar .gd-vis button { display: flex; flex-direction: column; gap: 3px; }
+#sidebar .gd-vis-n { font-size: 11px; font-weight: 700; }
+#sidebar .gd-vis-s { font-size: 9.5px; font-weight: 500; opacity: 0.75; }
+
+/* "Set origin" turns into "Stop picking" while a pick is live. */
+#sidebar .gd-wide.on {
+  border-color: var(--accent);
+  background: rgba(232, 197, 71, 0.22);
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Step 3 · the samples, the status line and the read-back table
+ * ------------------------------------------------------------------ */
+
+#sidebar .gd-toolstatus {
+  margin-top: 8px;
+  font-size: 10.5px; line-height: 1.5; color: var(--sb-ink-mute);
+}
+#sidebar .gd-toolstatus.is-warn { color: #ffc46b; }
+
+#sidebar .gd-tooltable {
+  width: 100%; margin-top: 4px;
+  border-collapse: collapse; table-layout: fixed;
+}
+#sidebar .gd-tooltable th {
+  padding: 0 6px 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--sb-ink-mute); text-align: left;
+  border-bottom: 1px solid var(--sb-line-soft);
+}
+#sidebar .gd-tooltable th:first-child { width: 44px; }
+#sidebar .gd-tooltable th:last-child  { width: 50px; text-align: right; }
+#sidebar .gd-tooltable td {
+  padding: 7px 6px;
+  font-size: 11.5px; line-height: 1.4; vertical-align: top;
+  border-bottom: 1px solid var(--sb-line-soft);
+}
+#sidebar .gd-tooltable tr:last-child td { border-bottom: 0; }
+#sidebar .gd-tt-t {
+  color: var(--accent); font-weight: 700;
+  font-family: var(--font-mono, monospace);
+}
+#sidebar .gd-tt-d { color: var(--sb-ink); overflow-wrap: anywhere; }
+#sidebar .gd-tt-e { text-align: right; }
+#sidebar .gd-editbtn {
+  padding: 4px 9px;
+  border: 1px solid var(--sb-line); border-radius: 6px;
+  background: var(--sb-card); color: var(--sb-ink-mute);
+  font-size: 10.5px; font-weight: 600; cursor: pointer;
+  transition: color .13s, border-color .13s;
+}
+#sidebar .gd-editbtn:hover { color: var(--accent); border-color: rgba(232, 197, 71, 0.5); }

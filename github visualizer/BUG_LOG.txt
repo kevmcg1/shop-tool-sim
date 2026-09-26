@@ -1,0 +1,602 @@
+================================================================================
+CNC MILL VISUALIZER - BUG LOG & GLITCHES REPORT
+Date: 2026-09-04
+Software Version: v1.4.0
+================================================================================
+
+SEVERITY LEVELS:
+  [HIGH]     - Critical functionality broken, app unusable
+  [MEDIUM]   - Feature broken or significant issue
+  [LOW]      - Minor issue, cosmetic, or workaround exists
+  [INFO]     - Incomplete feature or planned for later
+
+================================================================================
+ISSUES FOUND: 18 TOTAL ISSUES
+(8 General Issues + 10 "Guide Me Through It" Specific Issues)
+================================================================================
+
+1. [MEDIUM] WebGL SHADER COMPILATION WARNINGS
+   Location: Browser Console
+   Severity: Medium (Potential rendering issues)
+   Description:
+     - WebGL shader programs show warnings about uninitialized variables
+     - Warning: "gl.getProgramInfoLog() (284,1): warning X4000: use of
+       potentially uninitialized variable (f_cutSDF_float4_float4)"
+     - Warning: "(447,1): warning X4000: use of potentially uninitialized
+       variable (f_grainAt)"
+     - Warning repeats: "(284,1): warning X4000: use of potentially
+       uninitialized variable (f_cutSDF_float4_float4)"
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for the page to fully load (loading bar completes)
+     3. Open the browser's Developer Console (F12 or Right-click > Inspect)
+     4. Look at the Console tab
+     5. Observe the warnings listed above appear immediately on page load
+
+   Impact:
+     - Could cause rendering artifacts or performance issues
+     - May affect viewport display quality
+   Reproducibility: Always - appears on page load
+   Notes: This is a THREE.js WebGL program compilation issue that appears
+          on initial page load and is persistent throughout the session.
+
+---
+
+2. [INFO] INCOMPLETE FEATURE - "SETUP SHEET" MARKED "SOON"
+   Location: Sidebar > Setup Sheet section
+   Severity: Info/Low (Not yet implemented feature)
+   Description:
+     - The "Setup Sheet" section in the sidebar displays a "SOON" badge
+     - Feature is not yet available but is included in the UI
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load completely
+     3. On the left sidebar, scroll down to the bottom
+     4. Locate the "Setup Sheet" section with orange "SOON" badge next to it
+     5. Observe that the section is visible but marked as coming soon
+
+   Impact:
+     - Feature unavailable but properly marked
+   Reproducibility: Always visible in sidebar when scrolled to that section
+   Notes: This appears to be intentional - a placeholder for a planned feature.
+          No error occurs when attempting to interact with it.
+
+---
+
+3. [LOW] UI TEXT VISIBILITY - DIM TEXT IN COLLAPSED SECTIONS
+   Location: Stock section header and other collapsed panel headers
+   Severity: Low (Cosmetic issue)
+   Description:
+     - When Stock section is first expanded, some text appears very dim/low
+       contrast
+     - Specifically noticed: "Add a blank" and button labels initially appear
+       very faint
+     - Text becomes more visible after scrolling
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load
+     3. In the left sidebar, scroll down to find the "Stock" section header
+     4. Click on "Stock" section header to expand it
+     5. Immediately after expansion, observe that some text (like "Add a blank"
+        and the "Block"/"Round bar" buttons) appears very dim/low contrast
+     6. Scroll down slightly and scroll back up to the same location
+     7. Observe that text contrast improves after scrolling interaction
+
+   Impact:
+     - Makes UI slightly harder to read on first expansion
+     - Readability improves after interaction
+   Reproducibility: Occasionally - most noticeable when first expanding sections
+   Notes: Could be a CSS transition/animation issue or rendering timing problem.
+
+---
+
+4. [LOW] POSSIBLE CONSOLE LOG FLOODING (INFORMATIONAL)
+   Location: Browser Console
+   Severity: Low (Informational only)
+   Description:
+     - Multiple console.log messages appear on page load:
+       * "[ToolLib] ready — drop a .tools.json file onto the page."
+       * "[ToolModels] ready — paste a CT1.… code to replace the
+          placeholder cylinder."
+       * "[ToolChanger] ready — the arm swings on every M06."
+       * "[PartModels] ready — import a STEP/STL/OBJ, or drop one on the page."
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Open the browser's Developer Console (F12 or Right-click > Inspect)
+     3. Click on the "Console" tab
+     4. Refresh the page (F5 or Ctrl+R)
+     5. Observe the four informational log messages appear in sequence as the
+        page loads
+     6. These messages appear before any shader warnings
+
+   Impact:
+     - No functional impact, just console clutter
+   Reproducibility: Always - appears on page load
+   Notes: These are informational messages, not errors. Could be consolidated
+          or made optional via a debug flag.
+
+---
+
+5. [LOW] TOGGLE SWITCH VISUAL STATE CLARITY
+   Location: Display section (Show grid, Show axes, Show axis letters toggles)
+   Severity: Low (Minor visual clarity)
+   Description:
+     - Toggle switches show as circular UI elements
+     - Some toggles show as filled/yellow (ON state) and some show as unfilled
+       gray (OFF state)
+     - Visual distinction is clear but could be more obvious
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load
+     3. In the left sidebar, scroll down to the "Display" section
+     4. Click on "Display" section header to expand it
+     5. Scroll down within the Display section to find "Scene Visibility"
+     6. Observe the toggle switches:
+        - "Show grid" - appears as gray/unfilled circle (OFF)
+        - "Show axes" - appears as yellow/filled circle (ON)
+        - "Show axis letters (X Y Z)" - appears as yellow/filled circle (ON)
+     7. Notice that ON/OFF state is indicated by color fill, not by position
+
+   Impact:
+     - No functional issue, toggles work correctly
+   Reproducibility: Always visible in Display section
+   Notes: UI is functional and reasonably clear; this is a minor visual
+          design observation.
+
+---
+
+6. [LOW] ZOOM CONTROL BUTTON STATE PERSISTENCE
+   Location: Viewport toolbar (zoom buttons: 0.5x, 1x, 2x, 5x, 10x)
+   Severity: Low (Minor inconsistency)
+   Description:
+     - After clicking zoom button, the button state doesn't clearly show as
+       selected/active
+     - Visual feedback for which zoom level is currently active could be
+       more obvious
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load completely
+     3. In the viewport toolbar at the top-right of the 3D view, locate the
+        zoom buttons: "0.5×", "1×", "2×", "5×", "10×"
+     4. Click on the "0.5×" button
+     5. Observe the viewport zooms to 0.5x
+     6. Look at the "0.5×" button to see if it appears as selected/highlighted
+     7. Notice that the selected state is not clearly visible
+     8. Click on other zoom buttons and compare their visual state
+
+   Impact:
+     - Zoom function works, but user might not know which zoom is active
+   Reproducibility: Click any zoom button and observe - selected state is subtle
+   Notes: Could benefit from more prominent button state styling when active.
+
+---
+
+7. [LOW] RESPONSIVE TEXT SIZING IN TOOL TABLE
+   Location: Tool Table section
+   Severity: Low (Minor readability)
+   Description:
+     - Some text in the Tool Table section (like "Diameter units" label)
+       is quite small
+     - Font size appears to be 9px which is below recommended minimum for
+       accessibility
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load
+     3. In the left sidebar, scroll down to find "Tool Table" section
+     4. Click on "Tool Table" section header to expand it
+     5. Observe the expanded Tool Table content
+     6. Look at the "Diameter units" label at the top
+     7. Notice that the text is small (9px font size)
+     8. Compare with other section headers and labels
+     9. Note that this small text is harder to read than other UI text
+
+   Impact:
+     - Harder to read on smaller screens or for users with vision issues
+   Reproducibility: Always visible when Tool Table is expanded
+   Notes: Tool table is functional but text sizing could be improved for
+          better readability.
+
+---
+
+8. [LOW] PROGRAM SWITCHING - MOVE COUNT UPDATES
+   Location: GCode Editor section (move counter)
+   Severity: Low (Expected behavior, but noting the change)
+   Description:
+     - When a different sample program is loaded, the move count updates
+       but no visual feedback indicates which program is active
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load
+     3. Observe the GCode Editor shows "17 moves" for the current program
+     4. In the left sidebar, scroll to the "Program" section
+     5. Click on one of the sample program cards (e.g., "Probe Touch-Off")
+     6. Observe the GCode Editor updates to show "28 moves"
+     7. The program loaded but there's no visual indicator of which sample
+        program is currently selected in the sidebar
+
+   Impact:
+     - Slightly confusing which sample is currently loaded
+   Reproducibility: Click any sample program card and the move count updates
+   Notes: Programs load correctly; this is a minor UX observation.
+
+---
+
+9. [LOW] "GUIDE ME THROUGH IT" WARNING MODAL - POOR TEXT CONTRAST
+   Location: Warning modal dialog when entering guide mode
+   Severity: Low (Text readability issue)
+   Description:
+     - When user clicks "Guide Me Through It" button, a warning modal appears
+     - The modal contains colored text (blue, orange, purple) on a dark background
+     - Text contrast is low and colors make the text difficult to read
+     - Specifically affects the bullet points listing what will be cleared:
+       "every solid in the scene — billet, vise, parallels, table, imported models"
+       "the program in the editor"
+       "the tool table and the D-offset table"
+       "the run in progress, back to the first line"
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Wait for page to load
+     3. In the left sidebar, locate the "Guide Me Through It" button
+     4. Click on the "✚ Guide Me Through It" button
+     5. A warning modal appears with title "Guide Me Through It"
+     6. Observe that the bullet point text appears in different colors
+     7. Notice that the colored text (especially blue, orange) has poor contrast
+        against the dark modal background and is hard to read
+
+   Impact:
+     - User cannot easily read what will be cleared before proceeding
+     - Could lead to accidental data loss if user doesn't understand consequences
+   Reproducibility: Always - appears every time "Guide Me Through It" is clicked
+   Notes: This is a critical usability issue for the warning dialog.
+
+---
+
+10. [LOW] GUIDE MODE - SAMPLE PROGRAM CARDS NOT SHOWING SELECTED STATE
+   Location: Guide Me Through It > Step 2 "Time for the code" > Sample programs
+   Severity: Low (Minor UX issue)
+   Description:
+     - After clicking on a sample program card (e.g., "Drilling"), the program
+       loads and the G-code editor updates
+     - However, the sample program card does not show any visual indication
+       that it has been selected/loaded
+     - User has to look at the GCode editor to confirm which program is loaded
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click on "✚ Guide Me Through It" button
+     3. Click "Erase and start new" in the warning modal
+     4. In the sidebar, the "Guide Me Through It" section appears
+     5. The step "Time for the code" is visible
+     6. Scroll to find the sample program cards (Outside contour, Inside contour,
+        Pockets, Drilling, Tapping, Facing, etc.)
+     7. Click on "Drilling" card
+     8. Observe the G-code editor updates and shows 175 moves
+     9. Look back at the "Drilling" card - it does not appear highlighted or
+        show any visual indication that it's the active/selected program
+     10. The setup summary updates correctly, but the card itself shows no change
+
+   Impact:
+     - User has to check the editor to confirm which program is loaded
+     - Confusing UX - no visual feedback when a sample is selected
+   Reproducibility: Consistently - no visual feedback after selecting any program
+   Notes: Simple CSS styling (highlight/border/background change) would fix this.
+
+---
+
+11. [LOW] GUIDE MODE - MULTIPLE REFERENCES TO "CHAMFER" IN SAMPLE LIST
+   Location: Guide Me Through It > Step 2 > Sample program cards
+   Severity: Low (Possible duplicate or labeling issue)
+   Description:
+     - In the sample program list for Step 2, "Chamfer" appears to be listed
+       twice with the same description
+     - First instance: "Chamfer (0.040 edge break)"
+     - Second instance: Also appears to be "Chamfer" with same description
+     - This may be a duplicate entry or a labeling error
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. In the sidebar, scroll down to Step 2 "Time for the code"
+     5. Look at the sample program grid showing all available samples
+     6. Observe the program cards in order:
+        - Outside contour
+        - Inside contour
+        - Pockets
+        - Drilling
+        - Tapping
+        - Facing
+        - Slotting (may appear)
+        - Boring (G03 helical · Ø1.500)
+        - Chamfer (0.040 edge break) - appears FIRST
+        - Text engrave
+     7. Continue scrolling or look for the second Chamfer entry
+     8. Verify if Chamfer appears twice or if it's a different program mislabeled
+
+   Impact:
+     - Potential UI confusion if duplicate entry exists
+     - User may click wrong program if they see duplicate
+   Reproducibility: Need to verify exact layout - possible display issue
+   Notes: May be a layout/grid issue where content is being shown twice.
+
+---
+
+12. [VERY LOW] GUIDE MODE - LARGE MODAL OVERLAY ON RIGHT SIDE OF VIEWPORT
+   Location: Guide Me Through It mode - Main viewport area
+   Severity: Very Low (Partially obscures 3D view but doesn't prevent use)
+   Description:
+     - When in Guide Me Through It mode, a large information panel appears on
+       the right side of the 3D viewport
+     - The panel shows build instructions and appears to be a help/instructional
+       overlay
+     - The overlay takes up approximately 20-30% of the viewport width on the
+       right side
+     - While it provides useful information, it significantly reduces the 3D
+       viewport area available for viewing the model
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new" in the modal
+     4. Observe the guide mode interface
+     5. Look at the right side of the screen where the 3D viewport is
+     6. Notice a large dark panel/overlay on the right side of the viewport
+     7. Observe that this reduces the visible 3D model area
+
+   Impact:
+     - Reduced viewport area for viewing the 3D model
+     - However, this may be intentional for the guide mode UI
+   Reproducibility: Always visible in guide mode
+   Notes: This may be by design, but it's worth noting as a potential UX issue
+          for users who want a larger view of the 3D model during setup.
+
+---
+
+13. [MEDIUM] GUIDE MODE - CANNOT SELECT TOP OF CYLINDER WHEN SETTING ORIGIN
+   Location: Guide Me Through It > Step 1 > Setting origin using circumference point
+   Severity: Medium (Limits functionality for circular workpieces)
+   Description:
+     - When setting origin on a cylindrical workpiece using the "point on
+       circumference" method, the user can only click and select the middle
+       vertical band of the cylinder
+     - The top edge/surface of the cylinder cannot be selected as an origin point
+     - This prevents users from setting the origin at the top of the workpiece,
+       which is a common machining reference point
+     - Clicking on the top of the cylinder does nothing or selects the middle
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. In Step 1, change the stock shape to "Round bar" instead of "Block"
+     5. Proceed through the guide steps
+     6. In a step that allows setting origin, select the "middle of an edge"
+        or circumference selection method
+     7. Try to click on the TOP of the cylinder in the 3D viewport
+     8. Observe that clicking the top does not register as a selection point
+     9. Only the middle/side of the cylinder registers as selectable
+
+   Impact:
+     - Users cannot set origin points on the top surface of cylindrical stock
+     - Limits flexibility in workholding setup options
+     - Users may be forced to use less optimal origin points
+   Reproducibility: Always occurs with cylindrical workpieces
+   Notes: The selection/hit-test logic may not be correctly handling the top
+          cap geometry of cylinders.
+
+---
+
+14. [MEDIUM] GUIDE MODE - SHAPE SWITCHING LOSES ORIGIN REFERENCE
+   Location: Guide Me Through It > When switching between block and round bar shapes
+   Severity: Medium (Causes frustration and lost work)
+   Description:
+     - When user sets an origin point on one shape (e.g., Block) and then
+       switches to a different shape (e.g., Round bar)
+     - The origin that was set on the first shape is lost or not transferred
+     - User has to re-set the origin when switching between stock shapes
+     - The reference frame or origin point does not follow the shape switch
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. In Step 1, keep the default Block shape
+     5. Set an origin point on the block (e.g., top corner)
+     6. In the Shape section, click "Round bar" to switch to a cylinder
+     7. Try to set an origin on the cylinder
+     8. Switch back to "Block"
+     9. Observe that the origin that was set on the block is no longer present
+     10. User must re-set the origin from scratch
+
+   Impact:
+     - Users lose origin settings when switching shapes
+     - Frustrating UX for experimenting with different stock geometries
+     - Requires re-work when comparing different stock types
+   Reproducibility: Always occurs when changing shapes mid-setup
+   Notes: Origin points should either persist or clearly indicate they've been
+          cleared when shapes change.
+
+---
+
+15. [LOW] MATERIAL COLOR - ALUMINUM APPEARS TOO DARK
+   Location: Guide Me Through It > Step 1 > Stock material display
+   Severity: Low (Visual representation issue)
+   Description:
+     - When the stock material is set to "Aluminum", the 3D model color is
+       not bright/white enough to represent aluminum
+     - Aluminum should appear much whiter/lighter in the 3D viewport
+     - Current aluminum color appears too dark/gray, similar to other metals
+     - Makes it difficult to visually distinguish aluminum from brass or
+       stainless steel in the viewport
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. In Step 1, observe the default Aluminum block
+     5. Note the color - should be much brighter/whiter
+     6. Click on "Brass" to see the comparison
+     7. Click back to "Aluminum"
+     8. Compare to how aluminum appears in the 3D view
+     9. Aluminum should be noticeably whiter/brighter than current appearance
+
+   Impact:
+     - Poor visual feedback for material selection
+     - Users cannot easily distinguish aluminum from other metals by color
+     - Reduces visual realism of the simulation
+   Reproducibility: Always - aluminum color is consistently too dark
+   Notes: Material colors should be more accurately represented. Aluminum
+          should have a bright, silvery-white appearance.
+
+---
+
+16. [MEDIUM] GUIDE MODE - DRILLING & TAPPING SAMPLE TOOLS DISPLAY INCORRECTLY
+   Location: Guide Me Through It > Drilling and Tapping sample programs
+   Severity: Medium (Tools not rendering correctly)
+   Description:
+     - When loading the "Drilling" or "Tapping" sample programs in guide mode
+     - The tool/cutter displays as a white cylinder or strange shape
+     - Tools may be overlapping each other in the viewport
+     - The tool geometry is not properly rendered or displayed
+     - Tools appear as simple white geometric shapes instead of proper tool models
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. Proceed to Step 2 "Time for the code"
+     5. Click on "Drilling" sample program
+     6. Observe the tool in the 3D viewport - should be a drill bit representation
+     7. Instead, observe a white cylinder or unusual geometric shape
+     8. Repeat the same steps with "Tapping" sample
+     9. Same issue occurs - tool appears as white cylinder or strange shape
+
+   Impact:
+     - Poor visual representation of tools
+     - Users cannot see proper tool geometry
+     - May cause confusion about which tool is being used
+     - Rendering performance may be affected if tools are overlapping
+   Reproducibility: Consistently occurs with Drilling and Tapping samples
+   Notes: Tools may be overlapping or the tool model generation may have an
+          issue specific to these sample programs.
+
+---
+
+17. [LOW] TERMINOLOGY - "JOBBER DRILL" SHOULD BE "TWIST DRILL"
+   Location: Tool Models or Tool Library (exact location needs verification)
+   Severity: Low (Terminology/labeling issue)
+   Description:
+     - In the tool naming or tool library, the term "jobber drill" is used
+     - This should be replaced with the more common/correct term "twist drill"
+     - "Jobber" is an older or less common term; "twist drill" is standard
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Navigate to Tool Models section or Tool Library
+     3. Look for any references to "jobber drill"
+     4. Verify that "jobber drill" should be changed to "twist drill"
+     5. Check in sample tool definitions or tool descriptions
+
+   Impact:
+     - Incorrect or non-standard terminology may confuse users
+     - Should use industry-standard tool naming conventions
+   Reproducibility: Wherever "jobber drill" appears in the interface
+   Notes: Replace all instances of "jobber drill" with "twist drill" for
+          consistency with industry standards.
+
+---
+
+18. [MEDIUM] GUIDE MODE - TOOLS SECTION MISSING DETECTED TOOL INPUTS
+   Location: Guide Me Through It > Step 4 "Now for your tools"
+   Severity: Medium (Missing important functionality)
+   Description:
+     - In the "Now for your tools" section, only tools that are explicitly
+       detected in the G-code appear in the list
+     - However, there should be input boxes next to EVERY detected tool
+     - For example, if T1 is detected in the code, there should be an input
+       field where the user can type "2 inch face mill" to identify the tool
+     - The tool detection should automatically parse this input and update
+       the tool offset readings
+     - Currently, the inputs may be missing or not properly linked to tool
+       detection
+
+   REPRODUCTION STEPS:
+     1. Open http://localhost:8123 in a web browser
+     2. Click "✚ Guide Me Through It" button
+     3. Click "Erase and start new"
+     4. Proceed through steps 1-3
+     5. Reach Step 4 "Now for your tools" or "Putting everything in picture"
+     6. Look for detected tools from the loaded program (e.g., T1, T2, M06)
+     7. For each detected tool, check if there's an input box to describe it
+     8. Try to enter tool descriptions (e.g., "2 inch face mill" for T1)
+     9. Verify that the system detects/recognizes the tool description
+     10. Check if tool offset readings are updated based on the input
+
+   Impact:
+     - Users cannot easily identify what each tool number represents
+     - Tool offset detection may not work without proper tool identification
+     - Workflow is incomplete for tool setup in guide mode
+   Reproducibility: In Step 4 "Now for your tools" when tools are detected
+   Notes: Each detected tool (T1, T2, etc.) should have an accompanying input
+          field for user to describe/identify the tool, with automatic detection
+          and reading generation from that identification.
+
+================================================================================
+FEATURES TESTED SUCCESSFULLY (NO BUGS FOUND):
+================================================================================
+
+✓ Program Loading - Sample programs load correctly (tested Probe Touch-Off)
+✓ GCode Editor - Editor loads and displays G-code correctly
+✓ Section Expansion/Collapse - All sidebar sections expand and collapse properly
+✓ Material Selection - Buttons for Aluminum, Brass, Stainless appear functional
+✓ Stock Parameters - Size input fields visible and appear functional
+✓ Display Toggle - Scene visibility toggles appear to work correctly
+✓ Tool Table Display - Tool table shows tool information correctly
+✓ Viewport Controls - Navigation controls visible and appear responsive
+✓ Playback Controls - Transport controls (play, pause, step) visible
+✓ Zoom Controls - Zoom buttons present and clickable
+✓ Page Loading - Loading bar completes successfully
+
+================================================================================
+OUTSTANDING ITEMS & OBSERVATIONS:
+================================================================================
+
+- The application loads and functions overall
+- No JavaScript errors encountered in console (only warnings)
+- Page performance appears acceptable during testing
+- No broken links detected in visible UI
+- All major sections load without errors
+- Sample program loading works without issues
+- The 3D viewport rendering appears to work without crashes
+
+================================================================================
+RECOMMENDATIONS FOR FURTHER TESTING:
+================================================================================
+
+1. Test all interactive buttons more thoroughly (e.g., material switching)
+2. Test file upload/drop functionality for G-code and model files
+3. Test the Settings panel functionality
+4. Test the Library and Tool Models sections with actual files
+5. Test on different screen sizes and browsers
+6. Verify all viewport controls (pan, rotate, zoom) work correctly
+7. Test the GCode editor for input handling and syntax highlighting
+8. Test playback controls (play, pause, step through program)
+9. Verify 3D rendering quality and performance
+10. Check responsive design on mobile/tablet sizes
+11. Test keyboard shortcuts and hotkeys
+12. Test undo/redo functionality if available
+13. Test the Settings panel (accessibility, theme options, etc.)
+14. Verify all tooltips and help text displays correctly
+
+================================================================================
+END OF BUG LOG
+================================================================================

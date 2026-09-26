@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "visualizer",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8123"],
+      "port": 8123
+    },
+    {
+      "name": "visualizer-node",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--no-install", "http-server", ".", "-p", "8124", "-c-1"],
+      "port": 8124
+    }
+  ]
+}

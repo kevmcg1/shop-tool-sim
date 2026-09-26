@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CNC Mill Visualizer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Roboto:ital,wght@1,500;1,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/sidebar.css">
+<link rel="stylesheet" href="css/overlays.css">
+<link rel="stylesheet" href="css/viewport.css">
+<link rel="stylesheet" href="css/editor.css">
+<link rel="stylesheet" href="css/tool-panel.css">
+<link rel="stylesheet" href="css/modals.css">
+<link rel="stylesheet" href="css/part-models.css">
+<link rel="stylesheet" href="css/sidebar-theme.css">
+<link rel="stylesheet" href="css/scene-visibility.css">
+<link rel="stylesheet" href="css/footer.css">
+<link rel="stylesheet" href="css/ui-extras.css">
+</head>
+<body>
+<div id="app-dropzone" aria-hidden="true">
+  <div id="app-dropzone-inner">
+    <div id="app-dropzone-icon">⬇</div>
+    <div id="app-dropzone-title">Drop to Load Program</div>
+    <div id="app-dropzone-sub">
+      .nc · .gcode · .tap · .ngc · .cnc · .step · .stp · .txt<br>
+      File will replace the current GCode editor contents
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="mkp-warn-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Guide Me Through It</span>
+      <button class="modal-close" data-close="mkp-warn-modal">&times;</button>
+    </div>
+    <div id="mkp-warn-body">
+      <div class="mkp-warn-lead">Clicking this will currently erase everything on screen and start new</div>
+      <p>Build mode starts from an empty machine. Going in clears:</p>
+      <ul>
+        <li>every solid in the scene — billet, vise, parallels, table, imported models</li>
+        <li>the program in the editor</li>
+        <li>the tool table and the D-offset table</li>
+        <li>the run in progress, back to the first line</li>
+      </ul>
+    </div>
+    <div id="mkp-warn-actions">
+      <button data-close="mkp-warn-modal" class="modal-close">Cancel</button>
+      <button id="mkp-warn-go" class="mkp-go">Erase and start new</button>
+    </div>
+  </div>
+</div>
+
+<div id="site-header">
+  <a href="https:/kevmcg1.github.io" target="_blank">
+    <span class="brk">⌐</span>KEVMCG1.GITHUB.IO<span class="brk">¬</span>
+  </a>
+</div>
+<div id="app">
+
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <!-- Two lines, centered between a pair of brackets: the machine on top
+           in solid type, what the page does under it in outline italics. -->
+      <h1 class="brand">
+        <span class="brand-brk" aria-hidden="true">[</span>
+        <span class="brand-stack">
+          <span class="brand-top">CNC MILL</span>
+          <span class="brand-bot">Visualizer</span>
+        </span>
+        <span class="brand-brk" aria-hidden="true">]</span>
+      </h1>
+      <div class="hdr-rule"></div>
+      <p class="app-version">v1.4.0</p>
+    </div>
+
+    <div id="sb-setup">
+      <div class="sb-setup-head">Setup</div>
+
+      <!-- Sim / Model lives on the switch in the viewport now. -->
+      <div id="vp-mode" hidden>
+        <button data-vpmode="sim" class="on"></button>
+        <button data-vpmode="model"></button>
+      </div>
+
+      <div id="pm-model-tools" hidden>
+        <div class="sb-setup-label">Arrange</div>
+        <div id="pm-history">
+          <button id="pm-undo" title="Undo the last placement or origin change (Ctrl+Z)" disabled><i class="fa-solid fa-rotate-left"></i> Undo</button>
+          <button id="pm-redo" title="Redo (Ctrl+Shift+Z)" disabled><i class="fa-solid fa-rotate-right"></i> Redo</button>
+        </div>
+
+        <div id="pm-select">
+          <button id="gz-sel-part" title="Select the billet">Part</button>
+          <button id="gz-sel-fix" title="The vise, its jaws and the parallels — not the part, not the table">Fixture</button>
+          <button id="gz-sel-all" title="Part and fixture together — still not the machine table">All</button>
+        </div>
+        <div id="pm-gizmo" hidden>
+          <div class="gz-name" id="gz-name"></div>
+          <div class="gz-btns" id="gz-modes">
+            <button data-gz="move">Position</button>
+            <button data-gz="rotate">Rotate</button>
+            <button data-gz="scale">Scale</button>
+          </div>
+          <button class="gz-wide" id="gz-whole" hidden>Select whole part</button>
+          <div class="gz-out" id="gz-out"></div>
+          <div class="gz-sep"></div>
+          <div class="gz-label">Set origin from</div>
+          <button class="gz-wide" id="gz-align" title="Move the selection so a point on it lands on a point somewhere else">Align two points…</button>
+          <div class="gz-btns" id="gz-snaps">
+            <button data-gzsnap="vertex">Vertex</button>
+            <button data-gzsnap="edgemid">Edge center</button>
+            <button data-gzsnap="face">Face center</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ============================================================ *
+         Model mode's own sidebar.
+
+         Model mode used to show the same dozen panels sim mode does, with a
+         small "Arrange" block bolted on top — so the one thing you had come
+         to do was buried under nine things you had not. This replaces the
+         lot while model mode is on. Every heading is the question you turned
+         up with, and every button says what will happen in words rather than
+         in machinist's shorthand.
+
+         Nothing here has any logic of its own: each button forwards its
+         click to the real control, which still lives in the panels below and
+         is simply hidden. That way there is exactly one implementation of
+         everything, and the friendly front is only a front.
+         ============================================================ -->
+    <div id="sb-model" hidden>
+
+      <div class="ms-step">
+        <div class="ms-q">Is there anything to cut yet?</div>
+        <div class="ms-sub">Start with a lump of metal. You can change its size and material afterwards.</div>
+        <div class="ms-row">
+          <button class="ms-btn" data-doclick="#pm-stock-block">
+            <span class="ms-btn-t">Add a rectangular block</span>
+            <span class="ms-btn-d">The usual starting point</span>
+          </button>
+          <button class="ms-btn" data-doclick="#pm-stock-cyl">
+            <span class="ms-btn-t">Add a round bar</span>
+            <span class="ms-btn-d">For anything turned or round</span>
+          </button>
+        </div>
+        <div class="ms-note ms-ok" data-mirror-hidden="#pm-stock-wrap">
+          There is already a blank in the scene. Adding another replaces it.
+        </div>
+      </div>
+
+      <div class="ms-step" data-needs-stock>
+        <div class="ms-q">Want to move the stock itself?</div>
+        <div class="ms-sub">Pick the thing you want to move, then choose what to do to it. Drag the arrows that appear on it in the view.</div>
+
+        <div class="ms-label">First, what are you moving?</div>
+        <div class="ms-row">
+          <button class="ms-btn ms-pick" data-doclick="#gz-sel-part">
+            <span class="ms-btn-t">The metal</span>
+            <span class="ms-btn-d">The block or bar you're cutting</span>
+          </button>
+          <button class="ms-btn ms-pick" data-doclick="#gz-sel-fix">
+            <span class="ms-btn-t">The vice and parallels</span>
+            <span class="ms-btn-d">What's holding it</span>
+          </button>
+          <button class="ms-btn ms-pick" data-doclick="#gz-sel-all">
+            <span class="ms-btn-t">Both together</span>
+            <span class="ms-btn-d">Move the whole setup at once</span>
+          </button>
+        </div>
+
+        <div class="ms-selected" data-mirror-text="#gz-name" data-empty="Nothing picked yet — press one of those, or click the thing in the view."></div>
+
+        <div class="ms-label">Now, what do you want to do to it?</div>
+        <div class="ms-row ms-row-3" data-mirror-disabled="#pm-gizmo">
+          <button class="ms-btn ms-do" data-doclick='#gz-modes [data-gz="move"]' data-mirror-on='#gz-modes [data-gz="move"]'>
+            <span class="ms-btn-t">Slide it</span>
+            <span class="ms-btn-d">Left, right, up, down</span>
+          </button>
+          <button class="ms-btn ms-do" data-doclick='#gz-modes [data-gz="rotate"]' data-mirror-on='#gz-modes [data-gz="rotate"]'>
+            <span class="ms-btn-t">Turn it</span>
+            <span class="ms-btn-d">Spin it around</span>
+          </button>
+          <button class="ms-btn ms-do" data-doclick='#gz-modes [data-gz="scale"]' data-mirror-on='#gz-modes [data-gz="scale"]'>
+            <span class="ms-btn-t">Resize it</span>
+            <span class="ms-btn-d">Bigger or smaller</span>
+          </button>
+        </div>
+        <div class="ms-readout" data-mirror-text="#gz-out"></div>
+
+        <div class="ms-label" data-mirror-hidden="#pm-align-row">Or drop it straight into the vice</div>
+        <div class="ms-row ms-row-3" data-mirror-hidden="#pm-align-row">
+          <button class="ms-btn ms-small" data-doclick='#pm-align-row [data-stockalign="left"]'>
+            <span class="ms-btn-t">Left end</span>
+          </button>
+          <button class="ms-btn ms-small" data-doclick='#pm-align-row [data-stockalign="center"]'>
+            <span class="ms-btn-t">Middle</span>
+          </button>
+          <button class="ms-btn ms-small" data-doclick='#pm-align-row [data-stockalign="right"]'>
+            <span class="ms-btn-t">Right end</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ms-step" data-needs-stock>
+        <div class="ms-q">Want to re-set the origin?</div>
+        <div class="ms-sub">
+          The origin is the corner the program measures everything from — the
+          machine's X0&nbsp;Y0&nbsp;Z0. Pick one of these, then click the spot
+          on the metal in the view.
+        </div>
+        <div class="ms-row" data-mirror-disabled="#pm-gizmo">
+          <button class="ms-btn" data-doclick='#gz-snaps [data-gzsnap="vertex"]' data-mirror-on='#gz-snaps [data-gzsnap="vertex"]'>
+            <span class="ms-btn-t">On a corner</span>
+            <span class="ms-btn-d">Where two edges meet — the usual choice</span>
+          </button>
+          <button class="ms-btn" data-doclick='#gz-snaps [data-gzsnap="edgemid"]' data-mirror-on='#gz-snaps [data-gzsnap="edgemid"]'>
+            <span class="ms-btn-t">Halfway along an edge</span>
+            <span class="ms-btn-d">The middle of one side</span>
+          </button>
+          <button class="ms-btn" data-doclick='#gz-snaps [data-gzsnap="face"]' data-mirror-on='#gz-snaps [data-gzsnap="face"]'>
+            <span class="ms-btn-t">In the middle of a face</span>
+            <span class="ms-btn-d">Dead centre of a flat surface</span>
+          </button>
+          <button class="ms-btn" data-doclick="#gz-align" data-mirror-on="#gz-align">
+            <span class="ms-btn-t">Line two points up</span>
+            <span class="ms-btn-d">Click a point on the part, then where it should sit</span>
+          </button>
+        </div>
+        <div class="ms-note">Press <b>Esc</b> at any time to stop picking.</div>
+      </div>
+
+      <div class="ms-step" data-needs-stock>
+        <div class="ms-q">Want to change how it's held?</div>
+        <div class="ms-sub">The vice grips the metal; the two bars underneath it — the parallels — set how far it stands up out of the jaws.</div>
+        <div class="ms-row">
+          <button class="ms-btn" data-doclick="#vp-stock-auto">
+            <span class="ms-btn-t">Sort it out for me</span>
+            <span class="ms-btn-d">Sets the bars, closes the jaws and stands the metal on them</span>
+          </button>
+          <button class="ms-btn" data-doclick="#pm-jaw-now">
+            <span class="ms-btn-t">Close the jaws on it</span>
+            <span class="ms-btn-d">Grip whatever size the metal is now</span>
+          </button>
+          <button class="ms-btn" data-doclick="#fx-par-align">
+            <span class="ms-btn-t">Re-cut the parallels to fit</span>
+            <span class="ms-btn-d">Sizes both bars to the jaws</span>
+          </button>
+          <button class="ms-btn" data-doclick="#gz-bank">
+            <span class="ms-btn-t">Push the bars home</span>
+            <span class="ms-btn-d">Leaves them the size they are</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ms-step">
+        <div class="ms-q">Want something else in the scene?</div>
+        <div class="ms-sub">Ready-made vices, blanks and whole example setups, or a file from your own computer.</div>
+        <div class="ms-row">
+          <button class="ms-btn" data-doclick="#pm-import">
+            <span class="ms-btn-t">Open a file from my computer</span>
+            <span class="ms-btn-d">STEP, STL or OBJ</span>
+          </button>
+          <button class="ms-btn" id="ms-open-library">
+            <span class="ms-btn-t">Browse the shelf</span>
+            <span class="ms-btn-d">Vices, blanks, clamps and complete setups</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ms-step">
+        <div class="ms-q">Changed your mind?</div>
+        <div class="ms-row ms-row-2">
+          <button class="ms-btn ms-small" data-doclick="#pm-undo" data-mirror-disabled="#pm-undo">
+            <span class="ms-btn-t">Undo that</span>
+          </button>
+          <button class="ms-btn ms-small" data-doclick="#pm-redo" data-mirror-disabled="#pm-redo">
+            <span class="ms-btn-t">Do it again</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="ms-step ms-finish">
+        <div class="ms-q">Finished setting up?</div>
+        <div class="ms-sub">Go back to watching the program cut. Nothing you've arranged is lost.</div>
+        <button class="ms-btn ms-go" id="ms-done">
+          <span class="ms-btn-t">Take me back to the program</span>
+        </button>
+      </div>
+
+    </div>
+
+    <div id="mkp-launch">
+      <button id="btn-make-program" title="Start a new setup from your own program — clears the screen first">
+        ✚ Guide Me Through It
+        <span class="mkp-sub">Step by step, from an empty machine to a running job</span>
+      </button>
+    </div>
+
+    <div id="machine-state-panel">
+      <div class="ms-header">
+        <span class="ms-title">Machine State</span>
+        <div class="toggle-row ms-hud-toggle" id="hud-visible-label" title="Also show this info as floating HUDs in the viewport">
+          <span class="toggle-text">In viewport</span>
+          <span class="toggle-track" id="hud-visible-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+      </div>
+      <div class="ms-grid">
+        <div class="ms-cell"><span class="ms-label">X</span><span class="ms-val" id="ms-x">—</span></div>
+        <div class="ms-cell"><span class="ms-label">Feed</span><span class="ms-val ms-accent" id="ms-feed">—</span></div>
+        <div class="ms-cell"><span class="ms-label">Y</span><span class="ms-val" id="ms-y">—</span></div>
+        <div class="ms-cell"><span class="ms-label">RPM</span><span class="ms-val" id="ms-rpm">—</span></div>
+        <div class="ms-cell"><span class="ms-label">Z</span><span class="ms-val" id="ms-z">—</span></div>
+        <div class="ms-cell"><span class="ms-label">Tool</span><span class="ms-val" id="ms-tool">—</span></div>
+      </div>
+    </div>
+
+    <div class="section" id="stock-section">
+      <div class="sec-head" data-sec="stock">
+        <span class="sec-name">Stock</span>
+        <span class="sec-chev">&#9654;</span>
+      </div>
+      <div class="sec-body stk-body">
+
+        <div class="stk-group">
+          <div class="stk-head">Add a blank</div>
+          <div class="stk-row stk-row-2">
+            <button id="pm-stock-block" class="stk-btn">Block</button>
+            <button id="pm-stock-cyl" class="stk-btn">Round bar</button>
+          </div>
+          <div class="stk-note" id="stock-empty" hidden>
+            Nothing to cut yet — drop a blank in with one of those, or load a
+            scenario from the Library.
+          </div>
+        </div>
+
+        <div id="pm-bank" hidden>
+          <div id="pm-align-stock" hidden>
+            <div class="stk-group" id="pm-align-label">
+              <div class="stk-head">Slide along the jaws</div>
+              <div class="stk-row stk-row-3" id="pm-align-row">
+                <button data-stockalign="left"   title="Jaws close on the width, billet registered on the fixed jaw and pushed to the left-hand end of the jaws">Left</button>
+                <button data-stockalign="center" title="Jaws close on the width, billet registered on the fixed jaw and centered along the jaws">Center</button>
+                <button data-stockalign="right"  title="Jaws close on the width, billet registered on the fixed jaw and pushed to the right-hand end of the jaws">Right</button>
+              </div>
+            </div>
+
+            <div class="stk-group" id="pm-preview-label">
+              <div class="stk-head">Showcase</div>
+              <div class="stk-row stk-row-2 pm-bank-ba" id="pm-stock-preview">
+                <button data-stockpreview="before" title="The billet as it arrives — program rewound to the first line, grid, origin and WCS marks hidden">Before</button>
+                <button data-stockpreview="after"  title="The billet at the end of the program — every cut made, grid, origin and WCS marks hidden">After</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="pm-stock-wrap" hidden>
+
+          <div class="stk-group">
+            <div class="stk-head">Material</div>
+            <div class="stk-row stk-row-3" id="pm-metals">
+              <button data-metal="aluminium">Aluminium</button>
+              <button data-metal="brass">Brass</button>
+              <button data-metal="stainless">Stainless</button>
+            </div>
+            <div class="stk-note">
+              The blank re-skins itself a cell at a time — a front crosses it on
+              the diagonal and the new metal follows it across. Machining already
+              done is kept.
+            </div>
+          </div>
+
+          <div class="stk-group">
+            <div class="stk-head">Size <span class="stk-unit">(<span class="pm-unit">mm</span>)</span></div>
+            <div id="pm-stock-size"></div>
+            <div class="stk-note">Type and the blank resizes as you go — the machining is kept.</div>
+          </div>
+
+          <div class="stk-group">
+            <div class="stk-head">Jaws</div>
+            <label class="stk-check">
+              <input type="checkbox" id="pm-jaw-auto" checked>
+              <span>Close the jaws when the size changes</span>
+            </label>
+            <div class="stk-row stk-row-1">
+              <button id="pm-jaw-now" class="stk-btn">Close the jaws now</button>
+            </div>
+          </div>
+
+          <div class="stk-group">
+            <div class="stk-head">Dovetail</div>
+            <div class="stk-row stk-row-3" id="pm-dt-mode">
+              <button data-dt="off" class="on">Plain blank</button>
+              <button data-dt="x">↔ X</button>
+              <button data-dt="y">↕ Y</button>
+            </div>
+            <div id="pm-dt-size" hidden>
+              <div class="pm-grid stk-grid">
+                <label>Foot</label><input id="pm-dt-w" type="number" step="0.05">
+                <label>Depth</label><input id="pm-dt-h" type="number" step="0.01">
+                <label>Angle</label><input id="pm-dt-a" type="number" step="1">
+              </div>
+            </div>
+            <div class="stk-note">
+              Machined into the bottom of the blank itself, not parked underneath
+              it — the cutter can reach it and the raymarcher draws it. It runs
+              along the axis you pick, so the jaws close across the other one:
+              <b>↔ X</b> puts the jaws on Y. <b>Foot</b> is the width across the
+              widest part, at the bottom; the root comes out narrower by the depth
+              times the angle, which is what stops it lifting out.
+              1.250 × .125 at 45° is the usual prep.
+            </div>
+          </div>
+
+          <div class="stk-group">
+            <div class="stk-head">Solver</div>
+            <div class="stk-line">
+              <span class="stk-line-name">Solve steps</span>
+              <input id="pm-stock-res" type="range" min="48" max="192" step="8">
+              <span class="stk-line-val" id="pm-stock-res-out"></span>
+            </div>
+            <div class="stk-row stk-row-1">
+              <button id="pm-stock-reset" class="stk-btn">Restore material</button>
+            </div>
+            <div class="stk-note">
+              The cutter takes this away as the program runs. Every surface is a
+              live equation solved per pixel — no voxels, no mesh, exact at any
+              zoom. More solve steps means deeper pockets resolve cleanly; fewer
+              is faster.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="fixture-section">
+      <div class="sec-head" data-sec="fixture">
+        <span class="sec-name">Fixture</span>
+        <span class="sec-chev">&#9654;</span>
+      </div>
+      <div class="sec-body">
+
+        <div class="fx-group">
+          <div class="fx-group-head">
+            <span class="fx-group-name">Vice</span>
+            <span class="fx-show" data-fxshow="vise" role="switch">
+              <span class="fx-show-text">Shown</span>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </div>
+          <div class="mkp-rows" id="fx-vises"></div>
+          <div class="pm-note" id="fx-empty" hidden>
+            No vice in the scene — pick one above, or load a scenario from the Library.
+          </div>
+        </div>
+
+        <div class="fx-group">
+          <div class="fx-group-head">
+            <span class="fx-group-name">Parallels</span>
+            <span class="fx-show" data-fxshow="pars" role="switch">
+              <span class="fx-show-text">Shown</span>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </div>
+          <label class="pm-check">
+            <input type="checkbox" id="fx-par-auto" checked>
+            Height to suit the blank
+          </label>
+          <div class="pm-grid" style="margin-top:8px;">
+            <label>Height</label><input id="fx-par-h" type="number" step="0.05" min="0.1">
+            <label>Thick</label><input id="fx-par-t" type="number" step="0.01" min="0.03">
+          </div>
+          <button id="fx-par-align" class="pm-wide">Auto align parallels</button>
+          <button id="gz-bank" class="pm-wide" title="Find the vice, its fixed jaw and its movable jaw, and bank both bars against them">
+            Bank the bars on the jaws
+          </button>
+          <div class="pm-note">
+            <b>Auto align</b> re-cuts the pair to the jaws as they stand, sets them
+            flush on both sides and banks one against each jaw face.
+            <b>Bank</b> leaves the bars the size they are and just pushes them home.
+          </div>
+        </div>
+
+        <div class="fx-group">
+          <div class="fx-group-head">
+            <span class="fx-group-name">Table</span>
+            <span class="fx-show" data-fxshow="table" role="switch">
+              <span class="fx-show-text">Shown</span>
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+            </span>
+          </div>
+          <div class="pm-note" id="fx-table-note">
+            The VF-1 work surface under the vice — 26 × 14, three 5/8 T-slots on
+            4.92 centers. It arrives with a scenario or with the vice in build mode.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="mkp-section">
+      <div class="sec-head open" data-sec="make-program">
+        <span class="sec-name">Guide Me Through It</span>
+        <span class="sec-chev">&#9654;</span>
+      </div>
+      <div class="sec-body">
+
+        <div id="mkp-banner">
+          <span><b>Build mode.</b> The screen was cleared. Everything below builds one setup — work down the steps, or press a sample and watch it cut.</span>
+          <button id="mkp-exit" title="Leave build mode and put the normal panels back">Exit</button>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">1</span>
+            <span><span class="mkp-step-name">Your program</span><em>The code the machine will run</em></span>
+          </div>
+
+          <div class="mkp-label">Start from a sample</div>
+          <div class="samples-grid" id="mkp-samples">
+            <div class="sample-card" data-mkpsample="outside" title="Profile round the outside of a boss — G42 cutter comp right">
+              <div class="sample-name">Outside contour</div>
+              <div class="sample-desc">G42 · 4 × 3 boss</div>
+            </div>
+            <div class="sample-card" data-mkpsample="inside" title="Profile round the inside of an opening — G41 cutter comp left">
+              <div class="sample-name">Inside contour</div>
+              <div class="sample-desc">G41 · 3½ × 2½ bore</div>
+            </div>
+            <div class="sample-card" data-mkpsample="pocket" title="A rastered rectangular pocket and a G12 circular one">
+              <div class="sample-name">Pockets</div>
+              <div class="sample-desc">raster + G12 circular</div>
+            </div>
+            <div class="sample-card" data-mkpsample="drill" title="Spot, then peck-drill a row and a bolt circle">
+              <div class="sample-name">Drilling</div>
+              <div class="sample-desc">G81 · G82 · G83</div>
+            </div>
+            <div class="sample-card" data-mkpsample="tap" title="Spot, tap-drill, then rigid tap ¼–20">
+              <div class="sample-name">Tapping</div>
+              <div class="sample-desc">G84 · ¼–20</div>
+            </div>
+            <div class="sample-card" data-mkpsample="face" title="Face the whole top flat in overlapping passes">
+              <div class="sample-name">Facing</div>
+              <div class="sample-desc">0.040 off the top</div>
+            </div>
+            <div class="sample-card" data-mkpsample="slot" title="A through slot and a rebate round the top edge">
+              <div class="sample-name">Slotting</div>
+              <div class="sample-desc">slot + edge rebate</div>
+            </div>
+            <div class="sample-card" data-mkpsample="bore" title="Helical interpolation — ramp a bore down on a spiral">
+              <div class="sample-name">Boring</div>
+              <div class="sample-desc">G03 helical · Ø1.500</div>
+            </div>
+            <div class="sample-card" data-mkpsample="chamfer" title="Break the top edge all the way round with a 90° chamfer tool">
+              <div class="sample-name">Chamfer</div>
+              <div class="sample-desc">0.040 edge break</div>
+            </div>
+            <div class="sample-card" data-mkpsample="engrave" title="G47 text engraving on the faced top" style="grid-column: 1 / -1;">
+              <div class="sample-name">Text engrave</div>
+              <div class="sample-desc">G47 · part number and serial</div>
+            </div>
+          </div>
+          <div class="pm-note">
+            Each one brings its own blank, tools and work origin, set in
+            the vise and ready to play.
+          </div>
+
+          <div class="mkp-label">Or bring your own</div>
+          <div id="mkp-drop">
+            <b>Drop a file here</b>
+            Programs — .nc .gcode .tap .ngc .cnc .txt<br>
+            Models — .step .stp .stl .obj .iges .brep<br>
+            or click to browse
+          </div>
+          <input type="file" id="mkp-file" multiple hidden
+                 accept=".nc,.gcode,.tap,.ngc,.cnc,.txt,.step,.stp,.stl,.obj,.iges,.igs,.brep">
+          <textarea id="mkp-paste" spellcheck="false"
+                    placeholder="…or paste G-code here"></textarea>
+          <button id="mkp-paste-load" class="pm-wide">Use this code</button>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">2</span>
+            <span><span class="mkp-step-name">Workholding</span><em>What holds the metal</em></span>
+          </div>
+
+          <label class="mkp-switch">
+            <input type="checkbox" id="mkp-use-vise" checked>
+            <span><b>Vise and parallels</b><em>Off leaves the blank standing on its own</em></span>
+          </label>
+
+          <div class="mkp-rows" id="mkp-vises"></div>
+
+          <label class="mkp-switch">
+            <input type="checkbox" id="mkp-use-table" checked>
+            <span><b>Machine table</b><em>The VF-1 table, square to the machine with the vise across its slots</em></span>
+          </label>
+
+          <div class="mkp-label">Parallels</div>
+          <label class="mkp-switch">
+            <input type="checkbox" id="mkp-par-auto" checked>
+            <span><b>Height to suit the blank</b><em>Stands it so the jaws grip the bottom and the cutter clears them</em></span>
+          </label>
+          <div class="mkp-num-row">
+            <label><span>Height (<span class="mkp-unit">in</span>)</span>
+              <input type="number" id="mkp-par-h" step="0.05" min="0.1">
+            </label>
+            <label><span>Thickness (<span class="mkp-unit">in</span>)</span>
+              <input type="number" id="mkp-par-t" step="0.01" min="0.03">
+            </label>
+          </div>
+          <button id="mkp-par-align" type="button">
+            Auto align parallels
+            <em>Re-cuts the pair to the jaws as they stand, sets them flush on
+            both sides and banks one against each jaw face</em>
+          </button>
+          <div class="pm-note">
+            The bars arrive with the vise, banked on its jaw faces and
+            sitting on the bed. Anything you change here re-cuts them and
+            re-banks — they are flush against both jaws whatever the vise
+            is opened to.
+          </div>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">3</span>
+            <span><span class="mkp-step-name">Stock</span><em>The lump you are cutting from</em></span>
+          </div>
+
+          <div class="mkp-summary" id="mkp-stock-summary"></div>
+
+          <label class="mkp-switch">
+            <input type="checkbox" id="mkp-show-stock" checked>
+            <span><b>Show the blank</b><em>Off leaves the toolpath and the workholding, so you can see the cut from underneath. The metal is still there and still gets cut.</em></span>
+          </label>
+
+          <div class="mkp-label">Blank</div>
+          <div class="pm-mini" id="mkp-stock-mode">
+            <button data-mkpstockmode="rec" class="on"
+                    title="5 × 4 × 1 in 6061 — long way along the bars, short way across the jaws">Recommended</button>
+            <button data-mkpstockmode="custom"
+                    title="Set the shape, the material and the size yourself — every change lands on the blank straight away">Custom blank</button>
+          </div>
+
+          <div id="mkp-stock-manual">
+            <div id="mkp-live-note">
+              Live — shape, material and size land on the blank as you set them,
+              jaws re-close and the parallels re-bank each time.
+            </div>
+            <div class="mkp-label">Shape</div>
+            <div class="pm-mini" id="mkp-stock-shape">
+              <button data-mkpshape="block" class="on">Block</button>
+              <button data-mkpshape="cyl">Round bar</button>
+            </div>
+            <div class="mkp-label">Material</div>
+            <div class="pm-mini" id="mkp-stock-metal">
+              <button data-mkpmetal="aluminium" class="on">Aluminium</button>
+              <button data-mkpmetal="brass">Brass</button>
+              <button data-mkpmetal="stainless">Stainless</button>
+            </div>
+            <div class="mkp-label">Size</div>
+            <div id="mkp-stock-dims"></div>
+            <button id="mkp-stock-build" class="pm-wide">Cut a fresh blank</button>
+          </div>
+          <div class="mkp-out" id="mkp-stock-out"></div>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">4</span>
+            <span><span class="mkp-step-name">Tooling</span><em>What is in the spindle</em></span>
+          </div>
+
+          <label class="mkp-switch">
+            <input type="checkbox" id="mkp-tool-rec" checked>
+            <span><b>Recommended tooling</b><em>Whatever the program calls for, and Ø½ where it does not say. Off lets you set each diameter.</em></span>
+          </label>
+          <div id="mkp-tool-list"></div>
+          <div class="pm-note">
+            Cutters are drawn as plain cylinders of the stated diameter.
+            The builder that draws real flutes from a code lives in
+            <b>Tool Models</b>, outside build mode.
+          </div>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">5</span>
+            <span><span class="mkp-step-name">Set the job</span><em>Where the metal sits, and where zero is</em></span>
+          </div>
+
+          <!-- Both blocks are lifted out of here by the guide: the slide
+               becomes its own step, and the origin joins the stock step,
+               which is where someone actually thinks about it. -->
+          <div id="mkp-slide-block">
+            <div class="mkp-label">Slide the blank along the jaws</div>
+            <div class="pm-mini" id="mkp-slide">
+              <button data-mkpslide="left">Left</button>
+              <button data-mkpslide="center" class="on">Center</button>
+              <button data-mkpslide="right">Right</button>
+            </div>
+            <div class="pm-note">
+              Flush with that end of the parallels, standing on top of
+              them, jaws closed on the blank's own width.
+            </div>
+          </div>
+
+          <div id="mkp-origin-block">
+            <div class="mkp-label">Work origin</div>
+            <div class="pm-note" style="margin-top:0;">
+              The origin is the corner the whole program measures from —
+              the machine's X0 Y0 Z0. Pick what kind of point you want it
+              on, press Set origin, then click that point in the view.
+            </div>
+            <div class="pm-mini" id="mkp-origin-modes">
+              <button data-mkporigin="vertex" class="on">A corner</button>
+              <button data-mkporigin="edgemid">Middle of an edge</button>
+              <button data-mkporigin="face">Middle of a face</button>
+            </div>
+            <button id="mkp-set-origin" class="pm-wide">Set origin</button>
+            <div class="mkp-out" id="mkp-origin-out"></div>
+            <div class="pm-note">
+              The grid and the X/Y/Z arrows move onto the point you click,
+              and the program follows — the metal itself does not budge.
+              Shift-click keeps picking, Esc cancels.
+            </div>
+          </div>
+        </div>
+
+        <div class="mkp-step">
+          <div class="mkp-step-title">
+            <span class="mkp-n">6</span>
+            <span><span class="mkp-step-name">Scene</span><em>Extras and starting again</em></span>
+          </div>
+          <div class="pm-btns">
+            <button id="mkp-import">Import a model</button>
+            <button id="mkp-fit">Fit view</button>
+          </div>
+          <div class="mkp-out" id="mkp-scene-out"></div>
+          <div class="pm-note" id="mkp-saved-note">
+            Leaving build mode saves this setup, and the page opens with
+            it from then on — after a refresh, and after closing the tab.
+          </div>
+          <button id="mkp-restart" class="pm-wide mkp-red">Start over — clear this setup</button>
+          <button id="mkp-forget" class="pm-wide mkp-red">Leave without saving — go back to the built-in demo</button>
+        </div>
+
+        <button id="mkp-done" class="mkp-done">
+          I'm all done! Save and exit
+          <span>Keeps this setup as what the page opens with</span>
+        </button>
+
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head open" data-sec="program">
+        <span class="sec-name">Program</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="sub-head">Load a sample</div>
+        <div class="samples-grid">
+          <div class="sample-card" id="btn-load-drill" title="Load Drill Cycle Demo (G81-84)">
+            <div class="sample-name">Drill</div>
+            <div class="sample-desc">G81-G84</div>
+          </div>
+          <div class="sample-card" id="btn-load-multiaxis" title="Load Multi-Axis Demo">
+            <div class="sample-name">Multi-Axis</div>
+            <div class="sample-desc">A B C</div>
+          </div>
+          <div class="sample-card" id="btn-load-engrave" title="Load Text Engrave Demo" style="grid-column: 1 / -1;">
+            <div class="sample-name">Text Engrave</div>
+            <div class="sample-desc">2D toolpath</div>
+          </div>
+          <div class="sample-card" id="btn-load-contour-g41" title="Load 2&quot; × 2&quot; inside contour (G41 cutter comp left)">
+            <div class="sample-name">Inside Contour</div>
+            <div class="sample-desc">G41 · 2×2×0.5</div>
+          </div>
+          <div class="sample-card" id="btn-load-contour-g42" title="Load 2&quot; × 2&quot; outside contour (G42 cutter comp right)">
+            <div class="sample-name">Outside Contour</div>
+            <div class="sample-desc">G42 · 2×2×0.5</div>
+          </div>
+          <div class="sample-card" id="btn-load-pocket-g12" title="Load circular pocket demo (G12 Haas pocket milling)" style="grid-column: 1 / -1;">
+            <div class="sample-name">Pocket Mill</div>
+            <div class="sample-desc">G12 · 1.5″ circular pocket</div>
+          </div>
+        </div>
+
+        <div class="sub-head">Stats</div>
+        <div class="stat-grid">
+          <div class="stat-item"><div class="stat-label">Lines</div><div class="stat-value" id="stat-lines">—</div></div>
+          <div class="stat-item"><div class="stat-label">Moves</div><div class="stat-value" id="stat-moves">—</div></div>
+          <div class="stat-item"><div class="stat-label">X</div><div class="stat-value" id="stat-x">—</div></div>
+          <div class="stat-item"><div class="stat-label">Y</div><div class="stat-value" id="stat-y">—</div></div>
+          <div class="stat-item"><div class="stat-label">Z</div><div class="stat-value" id="stat-z">—</div></div>
+          <div class="stat-item"><div class="stat-label">Dist</div><div class="stat-value" id="stat-dist">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="display">
+        <span class="sec-name">Display</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="sub-head">Legend</div>
+        <div style="display:flex; align-items:center; margin-bottom:6px; gap:6px;">
+          <div style="width:14px; flex-shrink:0;"></div>
+          <div style="flex:1;"></div>
+          <div class="legend-col-hdr" style="width:28px;">VIS</div>
+          <div class="legend-col-hdr" style="width:28px;">SKIP</div>
+        </div>
+        <div id="legend-rows"></div>
+
+        <div class="sub-head">Toolpath Display</div>
+        <div class="toggle-row" id="focus-dim-label">
+          <span class="toggle-text">Focus dim on cursor line</span>
+          <span class="toggle-track" id="focus-dim-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;" id="show-centers-label">
+          <span class="toggle-text">Show arc centers</span>
+          <span class="toggle-track" id="show-centers-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;" id="show-all-paths-label">
+          <span class="toggle-text">Show full toolpath ahead</span>
+          <span class="toggle-track" id="show-all-paths-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+        <div id="show-all-paths-subopts" style="display:none; padding-left:10px; border-left:2px solid var(--border); margin-top:6px;">
+          <div class="toggle-row" id="dim-future-label">
+            <span class="toggle-text" style="color:var(--text-dim);">Dim future moves</span>
+            <span class="toggle-track on" id="dim-future-track">
+              <span class="toggle-thumb"></span>
+            </span>
+          </div>
+          <div class="hint">When ON, future moves draw at 20% opacity. When OFF, they draw at full brightness.</div>
+          <div class="toggle-row" style="margin-top:8px;" id="dim-comp-future-label">
+            <span class="toggle-text" style="color:var(--text-dim);">Dim future comp moves</span>
+            <span class="toggle-track on" id="dim-comp-future-track">
+              <span class="toggle-thumb"></span>
+            </span>
+          </div>
+          <div class="hint">The magenta compensated path follows the switch above by default.
+            Turn this off to keep the whole compensated path at full brightness.</div>
+        </div>
+        <!-- Optional stop is a playback control, not a display option, so it
+             now sits on the transport card beside Single Block. The switch it
+             is driven through lives in #legacy-state. -->
+
+        <div class="sub-head">Rotary Axes (A / B / C)</div>
+        <div class="pm-mini" id="rotary-mode">
+          <button data-rotary="tool" class="on">Tool moves</button>
+          <button data-rotary="part">Part rotates</button>
+        </div>
+        <div class="hint">
+          <strong>Tool moves</strong> — the path wraps around a billet that stands still.
+          <strong>Part rotates</strong> — a trunnion carries the work round under an upright spindle.
+          The choice is built into the toolpath, so changing it re-reads the program and rewinds to the first line.
+        </div>
+
+        <div class="sub-head">Center of Rotation</div>
+        <div class="pm-grid" id="rot-pivot-grid">
+          <label>X</label><input id="rot-pivot-x" type="number" step="0.05">
+          <label>Y</label><input id="rot-pivot-y" type="number" step="0.05">
+          <label>Z</label><input id="rot-pivot-z" type="number" step="0.05">
+        </div>
+        <div class="pm-mini" style="margin-top:6px;">
+          <button id="rot-pivot-follow" class="on">Follow work origin</button>
+        </div>
+        <div class="hint">
+          What A, B and C swing about, in program units. It tracks the selected
+          part's work origin until you type a value here — then it stays where you
+          put it, and <strong>Follow work origin</strong> hands it back.
+        </div>
+
+        <div class="sub-head">Linear Axes (X / Y)</div>
+        <div class="pm-mini" id="linear-mode">
+          <button data-linear="tool" class="on">Tool moves</button>
+          <button data-linear="table">Table moves</button>
+        </div>
+        <div class="hint">
+          <strong>Table moves</strong> — what a VF-1 actually does: the saddle carries
+          X and Y under a spindle that only goes up and down. Z always moves the head.
+          Display only; the cut is identical either way.
+        </div>
+
+        <div class="sub-head">Scene Visibility</div>
+        <div class="toggle-row" id="show-grid-label">
+          <span class="toggle-text">Show grid</span>
+
+          <span class="toggle-track" id="show-grid-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;" id="show-axes-label">
+          <span class="toggle-text">Show axes</span>
+          <span class="toggle-track on" id="show-axes-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+        <div class="toggle-row" style="margin-top:8px;" id="show-axis-labels-label">
+          <span class="toggle-text">Show axis letters (X Y Z)</span>
+          <span class="toggle-track on" id="show-axis-labels-track">
+            <span class="toggle-thumb"></span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="tools">
+        <span class="sec-name">Tool Table</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div id="tool-table-container">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+            <span style="font-size:9px; color:var(--text-dim); flex:1;">Diameter units</span>
+            <button id="tool-unit-btn-inch" class="tool-unit-btn" data-unit="inch" style="font-size:9px; padding:2px 8px; border:1px solid var(--accent); background:rgba(232,197,71,0.15); color:var(--accent); border-radius:3px; cursor:pointer; font-family:var(--font-mono);">in</button>
+            <button id="tool-unit-btn-mm"   class="tool-unit-btn" data-unit="mm"   style="font-size:9px; padding:2px 8px; border:1px solid var(--border); background:transparent; color:var(--text-dim); border-radius:3px; cursor:pointer; font-family:var(--font-mono);">mm</button>
+          </div>
+          <table class="tool-table" id="tool-table">
+            <thead><tr><th>Tool #</th><th id="tool-dia-header">Dia (in)</th></tr></thead>
+            <tbody id="tool-table-body"></tbody>
+          </table>
+          <div class="toggle-row" style="margin-top:10px;" id="show-tool-label">
+            <span class="toggle-text">Show tool cylinder</span>
+            <span class="toggle-track on" id="show-tool-track">
+              <span class="toggle-thumb"></span>
+            </span>
+          </div>
+          <div class="hint">Edits update tool cylinder</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="tool-models">
+        <span class="sec-name">Tool Models</span>
+        <span class="sec-chev">&#9654;</span>
+      </div>
+      <div class="sec-body">
+        <div class="pm-note" id="tm-howto">
+          To add the tool to the sim, just insert T# at the beginning, like
+          <b>"T1, 1/2 inch endmill, 4 flute"</b>.
+        </div>
+
+        <div class="sub-head">Samples</div>
+        <div id="tool-model-samples" class="pm-samples"></div>
+
+        <div class="sub-head">Tools imported:</div>
+        <div id="tool-model-list"></div>
+        <textarea id="tool-model-code" spellcheck="false" rows="3"
+                  placeholder="Paste a CT1.&hellip; code, then press Enter"></textarea>
+        <button id="tool-model-add" class="tm-add">Load model</button>
+        <div id="tool-model-msg"></div>
+        <div class="tm-spin">
+          <span class="tm-spin-title">Spindle</span>
+          <div class="tm-spin-btns" id="tool-spin-modes">
+            <button data-mode="off">Off</button>
+            <button data-mode="readable">Readable</button>
+            <button data-mode="true">True RPM</button>
+          </div>
+        </div>
+        <div class="tm-note" id="tool-spin-note"></div>
+        <div class="tm-note">Replaces the placeholder cylinder for that tool number. Codes also go in the TOOL_MODELS list at the bottom of this file.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="part-models">
+        <span class="sec-name">Library</span>
+        <span class="sec-chev">&#9654;</span>
+      </div>
+      <div class="sec-body">
+        <div class="pm-btns">
+          <button id="pm-import">Import file</button>
+        </div>
+
+        <div class="pm-cats" id="pm-cats">
+          <button class="pm-cat" data-cat="parts">Parts</button>
+          <button class="pm-cat" data-cat="stocks">Stocks</button>
+          <button class="pm-cat" data-cat="clamps">Clamps</button>
+          <button class="pm-cat" data-cat="scenarios">Scenarios</button>
+        </div>
+        <div id="pm-cat-note" class="pm-cat-note" hidden></div>
+        <div id="pm-browser" class="pm-samples" hidden></div>
+        <input type="file" id="pm-file" multiple hidden
+               accept=".step,.stp,.stl,.obj,.iges,.igs,.brep">
+
+        <div class="sub-head" id="pm-scene-head">In the scene <span id="pm-count">0</span></div>
+        <div id="pm-list" class="pm-list"></div>
+        <div class="pm-note" id="pm-scene-empty">
+          Nothing in the scene yet — pick a shelf above and click anything on it.
+        </div>
+        <div id="pm-msg" class="pm-msg"></div>
+
+        <div id="pm-edit" hidden>
+
+          <div class="pm-sub">
+            <div class="pm-sub-title">Placing <span class="pm-title-name" id="pm-title"></span></div>
+            <div class="pm-note" style="margin-top:0;">
+              X/Y/Z is where the <b>base point</b> sits, and rotation and
+              scale act about it. Set the base to a bore center and the part
+              spins about that bore.
+            </div>
+            <div class="pm-grid">
+              <label>X</label><input id="pm-px" type="number" step="0.1">
+              <label>Y</label><input id="pm-py" type="number" step="0.1">
+              <label>Z</label><input id="pm-pz" type="number" step="0.1">
+            </div>
+            <div class="pm-mini">
+              <button data-send="base">Base&nbsp;→&nbsp;0,0,0</button>
+              <button data-send="zero">Zero&nbsp;→&nbsp;0,0,0</button>
+              <button id="pm-drag">Drag in view</button>
+            </div>
+
+            <div class="pm-grid" style="margin-top:8px;">
+              <label>RX</label><input id="pm-rx" type="number" step="1">
+              <label>RY</label><input id="pm-ry" type="number" step="1">
+              <label>RZ</label><input id="pm-rz" type="number" step="1">
+            </div>
+            <div class="pm-mini">
+              <button data-rot="x:90">X +90°</button>
+              <button data-rot="y:90">Y +90°</button>
+              <button data-rot="z:90">Z +90°</button>
+              <button data-send="rot">Reset</button>
+            </div>
+
+            <div class="pm-line">
+              <span>Scale</span>
+              <input id="pm-scale" type="range" min="1" max="400" step="1">
+              <input id="pm-scale-num" class="pm-num" type="number" min="1" max="1000" step="0.1">
+              <span>%</span>
+            </div>
+            <div class="pm-line">
+              <span>File drawn in</span>
+              <button id="pm-src-unit" class="pm-chip" style="flex:0 0 42px;">mm</button>
+              <span style="flex:1;">values in <span class="pm-unit">mm</span></span>
+            </div>
+          </div>
+
+          <div class="pm-sub" id="pm-joint-wrap" hidden>
+            <div class="pm-sub-title">Moving parts</div>
+            <div id="pm-joints"></div>
+          </div>
+
+          <div class="pm-sub">
+            <div class="pm-sub-title">Base point &amp; work origin</div>
+            <div class="pm-mini" id="pm-targets">
+              <button data-target="both" class="on">Both</button>
+              <button data-target="base">Base only</button>
+              <button data-target="zero">Zero only</button>
+            </div>
+            <div id="pm-snap-modes">
+              <div class="pm-mini">
+                <button data-snap="vertex" class="on">Vertex</button>
+                <button data-snap="edge">Edge</button>
+                <button data-snap="edgemid">Edge mid</button>
+              </div>
+              <div class="pm-mini">
+                <button data-snap="face">Face center</button>
+                <button data-snap="body">Body center</button>
+              </div>
+            </div>
+            <button id="pm-pick" class="pm-wide">Pick a point on the model</button>
+            <div id="pm-snap-out" class="pm-out"></div>
+            <label class="pm-check">
+              <input type="checkbox" id="pm-zero-pick" checked>
+              Send the work zero to machine zero when a point is picked
+            </label>
+            <div class="pm-mini" style="margin-top:8px;">
+              <button data-quick="corner">Corner</button>
+              <button data-quick="center">Center</button>
+              <button data-quick="top">Top face</button>
+              <button data-quick="model">Model&nbsp;0</button>
+            </div>
+            <div class="pm-legend">
+              <span class="pm-key base">◎</span>base <span class="pm-key zero">⊕</span>work zero
+            </div>
+            <div id="pm-base-out" class="pm-out dim"></div>
+            <div id="pm-zero-out" class="pm-out"></div>
+            <div class="pm-note">
+              Shift-click keeps picking, Esc cancels, right-drag still orbits
+              while armed. Face mode floods the whole flat face, so a round
+              face gives you its center. Faces on a moving part can be picked
+              too — the point is taken where that part is standing.
+            </div>
+          </div>
+
+          <div class="pm-sub">
+            <div class="pm-sub-title">Display</div>
+            <div class="pm-line">
+              <span>Opacity</span>
+              <input id="pm-opacity" type="range" min="5" max="100" step="1">
+            </div>
+            <div class="pm-mini">
+              <button id="pm-wire">Wireframe</button>
+              <button id="pm-edges">Edges</button>
+              <button id="pm-fit">Fit view</button>
+            </div>
+            <button id="pm-clear" class="pm-wide danger">Remove all parts</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="d-offsets">
+        <span class="sec-name">Tool Offsets</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div id="d-offset-table-container">
+          <div class="pm-note">
+            These rows look after themselves. Every <b>D</b> word the parser finds
+            in the program gets a row here automatically, and the row disappears
+            again the moment that D word leaves the code. You only ever fill in
+            the diameter.
+          </div>
+          <table class="tool-table" id="d-offset-table">
+            <thead><tr><th>D #</th><th id="d-offset-dia-header">Dia (in)</th></tr></thead>
+            <tbody id="d-offset-table-body"></tbody>
+          </table>
+          <div id="d-offset-empty" class="pm-note">
+            Nothing to show — no D words in the program yet. Add
+            <code>D01</code> to a G41, G42, G12 or G13 line and a row turns up.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="setup-sheet">
+        <span class="sec-name">Setup Sheet</span>
+        <span class="sec-soon">Soon</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="pm-note">WIP — coming to next update.</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="sim-debug">
+        <span class="sec-name">Sim Debug</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div id="sim-debug-content" style="
+          font-family: var(--font-mono); font-size: 9px; line-height: 1.55;
+          color: var(--text-dim);
+          background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+          border-radius: 5px; padding: 7px 9px;
+          word-break: break-all;
+        ">(initializing…)</div>
+        <div class="hint">
+          Updates every frame. If single-block reads the wrong line right
+          after a paste, watch <span style="color:var(--accent)">parsePending</span>:
+          true means the parser hasn't run yet.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="view-stats">
+        <span class="sec-name">View Stats</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <!-- No switch: opening the section is the switch. -->
+        <div id="view-stats-content" style="
+          font-family: var(--font-mono); font-size: 9px; line-height: 1.55;
+          color: var(--text-dim);
+          background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+          border-radius: 5px; padding: 7px 9px;
+          word-break: break-all;
+        "></div>
+        <div class="hint">
+          Reads camera orbit (θ/φ), distance, zoom, pan target, and cursor
+          world XYZ. Updates while you orbit, pan, zoom, or move the mouse
+          over the viewport.
+        </div>
+      </div>
+    </div>
+
+    <!-- Playback and Camera live on the viewport now: the transport bar, the
+         view cube and the Follow Tool button cover everything they held. The
+         state these panels carried still has to exist for the modules that
+         read it, so it sits here, out of sight. -->
+    <div id="legacy-state" hidden>
+      <span id="sim-speed-val">1×</span>
+      <input type="range" id="sim-speed-slider" min="-2" max="3" value="0" step="1">
+      <span id="sim-elapsed">—</span>
+      <div id="iso-follow-label"><span class="toggle-track" id="iso-follow-track"></span></div>
+      <div id="iso-follow-subopts">
+        <div id="iso-rotate-label"><span class="toggle-track" id="iso-rotate-track"></span></div>
+      </div>
+      <!-- Cutter comp is driven from Settings ▸ Advanced and from the comp
+           button in the bottom-left dock. Both work by clicking these, which
+           is where comp-ui.js listens. They went missing with the sidebar
+           panel, and comp-ui.js bails out unless it finds cc-enable-label —
+           so even once its <script> tag was back there would have been
+           nothing for it to bind to. -->
+      <div id="cc-enable-label"><span class="toggle-track" id="cc-enable-track"></span></div>
+      <div id="cc-overlay-label"><span class="toggle-track" id="cc-overlay-track"></span></div>
+      <div id="cc-status"></div>
+      <div id="cc-diagnostics-wrap"><div id="cc-diagnostics-list"></div></div>
+      <!-- Optional stop moved to the transport card. The button there clicks
+           this, which is where viewport-toggles.js and Settings both listen. -->
+      <div id="optional-stop-label"><span class="toggle-track on" id="optional-stop-track"></span></div>
+      <span class="toggle-track" id="cc-showcode-track"></span>
+      <span class="toggle-track" id="cc-syncscroll-track"></span>
+    </div>
+
+    <div class="section">
+      <div class="sec-head" data-sec="grid">
+        <span class="sec-name">Grid Settings</span>
+        <span class="sec-chev">▶</span>
+      </div>
+      <div class="sec-body">
+        <div class="grid-field-row">
+          <label class="grid-label">Grid size</label>
+          <input class="grid-input" type="number" id="grid-size" value="20" min="1" max="500">
+          <span style="font-size:9px;color:var(--text-dim);white-space:nowrap">× <span id="grid-size-mirror">20</span></span>
+        </div>
+        <div class="grid-field-row">
+          <label class="grid-label">Unit</label>
+          <select class="grid-select" id="grid-unit" style="flex:1;">
+            <option value="inch" selected>inch (1 unit = 1 inch)</option>
+            <option value="mm">mm (1 unit = 1 mm)</option>
+          </select>
+        </div>
+        <div class="grid-field-row">
+          <label class="grid-label">Cell size</label>
+          <input class="grid-input" type="number" id="grid-cell" value="1" min="0.01" max="1000" step="0.1">
+          <span style="font-size:9px;color:var(--text-dim);white-space:nowrap">units</span>
+        </div>
+        <div class="grid-field-row" style="margin-bottom:2px">
+          <label class="grid-label">Total size</label>
+          <span id="grid-total" style="font-size:11px;font-family:var(--font-mono);color:var(--text)">20 × 20 units</span>
+        </div>
+        <button class="btn" id="btn-apply-grid" style="margin-top:6px">↻ Apply Grid</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="right-col">
+
+    <div id="viewport">
+      <canvas id="main-canvas"></canvas>
+      <div id="cube-wrap"><canvas id="cube-canvas" width="110" height="110"></canvas></div>
+
+      <div id="viewport-toolbar">
+        <div class="vt-row">
+          <button class="vt-btn" id="btn-guide" title="Open guide">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/><path d="M7 6.5v3"/><circle cx="7" cy="4.5" r="0.5" fill="currentColor"/></svg>
+            Guide
+          </button>
+          <button class="vt-btn" id="btn-settings" title="Open settings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1.05 1.05M10.15 10.15l1.05 1.05M2.8 11.2l1.05-1.05M10.15 3.85l1.05-1.05"/></svg>
+            Settings
+          </button>
+        </div>
+
+        <div class="vt-grid">
+          <button class="vt-btn vt-toggle on" id="btn-view-grid" title="Show or hide the floor grid">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><path d="M1.5 1.5h11v11h-11z"/><path d="M5.17 1.5v11M8.83 1.5v11M1.5 5.17h11M1.5 8.83h11"/></svg>
+            Grid
+          </button>
+          <button class="vt-btn vt-toggle on" id="btn-view-axes" title="Show or hide the X/Y/Z axis lines and their letters">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10V2M4 10h8M4 10 1 13"/></svg>
+            Axes
+          </button>
+          <button class="vt-btn vt-toggle on" id="btn-view-paths" title="Show or hide the toolpath lines, arc centers and cycle rings">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 10.5h3l2-7 2 7h3"/></svg>
+            Paths
+          </button>
+          <button class="vt-btn vt-toggle on" id="btn-view-tool" title="Show or hide the cutter">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 1.5h4v7l-2 4-2-4z"/><path d="M5 5.5h4"/></svg>
+            Tool
+          </button>
+        </div>
+
+        <div class="vt-slider" id="vt-tool-op-wrap">
+          <span class="vt-slider-label">Tool</span>
+          <input type="range" id="vt-tool-opacity" min="10" max="100" step="5" value="100"
+                 title="Cutter opacity">
+          <span class="vt-slider-val" id="vt-tool-opacity-val">100%</span>
+        </div>
+
+        <div class="vt-row" id="vt-quality" title="Graphics quality — Auto trades resolution for frame rate only when needed">
+          <span class="vt-slider-label">Graphics</span>
+          <button class="vt-btn vt-toggle on" data-quality="auto">Auto</button>
+          <button class="vt-btn vt-toggle" data-quality="high">High</button>
+          <button class="vt-btn vt-toggle" data-quality="low">Low</button>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="guide-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">Guide</span>
+            <button class="modal-close" data-close="guide-modal" title="Close">✕</button>
+          </div>
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-tab="guide-easy">Easy</button>
+            <button class="modal-tab" data-tab="guide-advanced">Advanced</button>
+          </div>
+          <div class="modal-body">
+            <div class="tab-pane active" id="guide-easy">
+
+              <h3>Hey — here's the short version</h3>
+              <p>A milling machine carves shapes out of a solid block of metal.
+                 It doesn't think; it just follows a list of instructions someone
+                 wrote for it. This page pretends to be that machine so you can
+                 watch the list happen before anyone runs it for real.</p>
+              <p>You can't break anything here. Poke at it.</p>
+
+              <h3>Where things are</h3>
+              <ul>
+                <li>Big dark area in the middle — that's the machine.</li>
+                <li>Strip down the left — that's where you change stuff. Each gray
+                    bar is a drawer; click one to open it.</li>
+                <li>Box along the bottom — the instructions themselves. Just text.</li>
+              </ul>
+
+              <h3>Do this first</h3>
+              <ol>
+                <li>Click <strong>Program</strong> on the left.</li>
+                <li>Click any card under it — <strong>Drill</strong> is a good one.</li>
+                <li>Hit the big yellow <strong>▶</strong> under the view.</li>
+              </ol>
+              <p>The tool comes down and starts cutting. That's the whole idea.</p>
+
+              <h3>Getting around</h3>
+              <ul>
+                <li><strong>Left-click and drag</strong> — slide everything around.</li>
+                <li><strong>Right-click and drag</strong> — spin around the part.</li>
+                <li><strong>Shift + right-click and drag</strong> — spin around
+                    whatever is under the cursor instead.</li>
+                <li><strong>Scroll wheel</strong> — closer or farther away.</li>
+                <li>Lost? <strong>Fit view</strong> — the ⛶ button, bottom left.
+                    It always works.</li>
+              </ul>
+              <p>Moving the view never changes the part. You're just walking
+                 around it.</p>
+
+              <h3>Those little buttons, bottom left</h3>
+              <p>They turn things on and off. Lit means you can see it. Hover one
+                 and it tells you what it is — and the thing it controls answers
+                 back in green so you know you've got the right one.</p>
+              <p>Hiding something doesn't delete it. The metal still gets cut.</p>
+
+              <h3>Two modes</h3>
+              <p>There's a switch on the message near the bottom of the view.</p>
+              <ul>
+                <li><strong>Sim</strong> — for watching. Play, pause, scrub.</li>
+                <li><strong>Model</strong> — for arranging. Click a thing to grab
+                    it, then drag the arrows.</li>
+              </ul>
+              <p>If clicking the metal does nothing, you're in Sim. Flip the switch.</p>
+
+              <h3>What the colors mean</h3>
+              <p>The thin lines are where the tool goes.
+                 <strong style="color:#2b6cff">Blue</strong> is slow and careful,
+                 <strong style="color:#ff3b30">red</strong> is fast, gray is the
+                 tool moving through air without cutting.</p>
+
+              <h3>When it goes sideways</h3>
+              <ul>
+                <li><strong>Can't see anything?</strong> Fit view — the ⛶ button
+                    in the bottom-left stack.</li>
+                <li><strong>Tool waving around in space?</strong> The block is
+                    parked wrong. Switch to Model and hit
+                    <strong>Auto align to vise and parallels</strong> up top.</li>
+                <li><strong>Want that change back?</strong> Undo and Redo sit near
+                    the bottom of the view in Model mode.</li>
+                <li><strong>Really made a mess?</strong> Settings ▸ Easy ▸
+                    <strong>Hold to reset</strong> — hold the left mouse button
+                    on it for three seconds.</li>
+              </ul>
+
+              <div class="hint">💡 Everything you do is saved on your own computer,
+                 so it's still here tomorrow. Settings ▸ Wipe all clears it if you
+                 want a clean slate.</div>
+            </div>
+
+            <div class="tab-pane" id="guide-advanced">
+
+              <h3>What it understands</h3>
+              <ul>
+                <li>Motion — <code>G00</code> <code>G01</code> <code>G02</code>
+                    <code>G03</code>, arcs by <code>I/J/K</code> or <code>R</code>,
+                    helical when there's a <code>Z</code> on the arc line.</li>
+                <li>Modes — <code>G90</code>/<code>G91</code>,
+                    <code>G20</code>/<code>G21</code>, <code>G17</code>,
+                    <code>G54</code>–<code>G59</code>, <code>G43</code>.</li>
+                <li>Canned cycles — <code>G81</code>, <code>G82</code>,
+                    <code>G83</code>, <code>G84</code>, with
+                    <code>G98</code>/<code>G99</code> and <code>G80</code>.</li>
+                <li>Haas pockets — <code>G12</code>/<code>G13</code>:
+                    <code>I</code> first-cut radius, <code>K</code> finish radius,
+                    <code>Q</code> stepover.</li>
+                <li>Engraving — <code>G47</code>, <code>I</code> angle,
+                    <code>J</code> height, text in parens.</li>
+                <li>Rotary <code>A</code> <code>B</code> <code>C</code>; stops and
+                    coolant <code>M00</code> <code>M01</code> <code>M03/4/5</code>
+                    <code>M07/8/9</code> <code>M06</code> <code>M30</code>.</li>
+              </ul>
+              <p>Heads up: cutter comp isn't applied. <code>G41</code>/<code>G42</code>
+                 parse and the <code>D</code> word lands in Tool Offsets, but the
+                 line you see is the programmed path, not the compensated
+                 centerline.</p>
+
+              <h3>Axes and zero</h3>
+              <p>Z up, X right, Y away from you. Every setup lands with work zero
+                 on the <strong>near-left corner of the top face</strong>, so X and
+                 Y run positive into the material and Z0 is the top. The vise goes
+                 in turned a quarter — jaws closing across Y, fixed jaw at the
+                 back. Before line one runs, the cutter sits on the origin.</p>
+
+              <h3>The drawers</h3>
+              <ul>
+                <li><strong>Stock</strong> — shape, material and size, all live.
+                    Change one and the blank re-skins itself a cell at a time and
+                    keeps the machining you've already done.</li>
+                <li><strong>Fixture</strong> — vise, parallels, table, each with
+                    its own show/hide. <em>Auto align parallels</em> re-cuts the
+                    pair to the jaws and banks one against each face.</li>
+                <li><strong>Tool Table</strong> — every <code>T</code> word found.
+                    You supply diameters; arrows step 0.025", typing applies live.</li>
+                <li><strong>Tool Offsets</strong> — same deal for <code>D</code>
+                    words. Rows appear and vanish with the program.</li>
+                <li><strong>Tool Models</strong> — real cutter geometry instead of
+                    a cylinder. Load a sample, then call it by its T number.</li>
+                <li><strong>Library</strong> — parts, stock, clamps, whole
+                    scenarios. Click a row to drop it in; the panel tracks what's
+                    loaded.</li>
+                <li><strong>Sim Debug</strong> — clock, current move, editor line,
+                    cutter tip.</li>
+              </ul>
+
+              <h3>How the cutting works</h3>
+              <p>The billet isn't a mesh or a voxel grid — it's an equation. Stock
+                 is one signed distance function, every pass adds another, and the
+                 part is the first minus the union of the rest, solved per pixel
+                 on the GPU:</p>
+              <p style="font-family:var(--font-mono);color:var(--accent);margin-left:8px;">
+                 part(p) = max( stock(p), −cuts(p) )</p>
+              <p>So a pocket wall is exact at any zoom and a 0.001" skim leaves a
+                 0.001" step. Scrubbing back is a truncation — drop the cuts made
+                 after that moment and the model is right again. No snapshots, no
+                 replay. Needs WebGL2. On <strong>High</strong> graphics, machined
+                 faces come up with a mirror finish.</p>
+
+              <h3>Playback</h3>
+              <ul>
+                <li><strong>Single Block</strong> pauses after every line.</li>
+                <li>Speed presets are a real multiplier, so Feed and RPM scale with
+                    them and get tagged <code>@2×</code>.</li>
+                <li>The two icons above the presets swap the path between feed-rate
+                    color and one color per kind of move.</li>
+                <li><strong>Follow Tool</strong> pins the camera to the tip.</li>
+              </ul>
+
+              <h3>Model mode</h3>
+              <p>Click a solid to select it. Position, Rotate and Scale are the
+                 three buttons beside the show/hide strip — arrows, rings, boxes.
+                 Undo and Redo sit above the mode banner and slide the part back
+                 rather than snapping it. Select the billet and a bar appears up
+                 top with auto-align and left / center / right along the jaws.</p>
+              <p>Hiding or showing anything disintegrates it corner to corner.</p>
+
+              <h3>Saving</h3>
+              <p>Program, tool diameters, offsets, tool models and your settings
+                 are kept in this browser on this computer. Nothing is uploaded and
+                 there's no account. Settings ▸ <strong>Wipe all</strong> clears
+                 the lot.</p>
+
+              <div class="hint">⚙ Editor colors and the hover style are yours to
+                 set in Settings ▸ Advanced.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-overlay" id="settings-modal">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-title">Settings</span>
+            <button class="modal-close" data-close="settings-modal" title="Close">✕</button>
+          </div>
+          <div class="modal-tabs">
+            <button class="modal-tab active" data-tab="settings-easy">Easy</button>
+            <button class="modal-tab" data-tab="settings-advanced">Advanced</button>
+          </div>
+          <div class="modal-body">
+            <div class="tab-pane active" id="settings-easy"></div>
+            <div class="tab-pane" id="settings-advanced"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vp-dock">
+
+      <div class="vp-coolant" id="vp-coolant">
+        <span class="cool" id="cool-flood" title="Flood coolant — lit while M08 is in effect"><i class="fa-solid fa-droplet"></i></span>
+        <span class="cool" id="cool-mist"  title="Mist coolant — lit while M07 is in effect"><i class="fa-solid fa-spray-can"></i></span>
+      </div>
+
+      <!-- The two camera commands, between the setup group above and the
+           show/hide grid below. They used to live in the sidebar. -->
+      <div id="vp-cam">
+        <button type="button" id="btn-fit" aria-label="Fit view"
+                title="Fit view — frame the whole setup, solids and toolpath together"><i class="fa-solid fa-expand"></i></button>
+        <button type="button" id="btn-reset-cam" aria-label="Reset camera"
+                title="Reset cam — swing back to the isometric corner and re-frame the scene"><i class="fa-solid fa-camera-rotate"></i></button>
+      </div>
+
+      <div id="vp-show">
+        <button class="on" data-show="tool"   aria-label="Cutter"    title="Cutter — show or hide the tool"><i class="fa-solid fa-screwdriver-wrench"></i></button>
+        <button class="on" data-show="paths"  aria-label="Toolpath"  title="Toolpath — show or hide the programmed path"><i class="fa-solid fa-route"></i></button>
+        <button class="on" data-show="grid"   aria-label="Grid"      title="Grid — show or hide the floor grid"><i class="fa-solid fa-border-all"></i></button>
+        <button class="on" data-show="wcs"    aria-label="Origin"    title="Origin — show or hide the yellow ball on the work zero"><i class="fa-solid fa-crosshairs"></i></button>
+        <button class="on" data-show="origin" aria-label="Axes"      title="Axes — show or hide the X/Y/Z arrows and their letters"><i class="fa-solid fa-ruler-combined"></i></button>
+        <button class="on" data-show="handles" aria-label="Drag handles" title="Drag handles — the arrows, rings or boxes for dragging the selection about. They stand on the work origin, so turn them off if they read as a second set of axes."><i class="fa-solid fa-hand-pointer"></i></button>
+        <button data-show="comp" aria-label="Compensated path" title="Compensated path — the magenta line the cutter's center actually walks once G41/G42 is worked out. Needs cutter comp switched on in Settings ▸ Advanced."><i class="fa-solid fa-bezier-curve"></i></button>
+      </div>
+
+      </div>
+
+      <div id="coords-hud">X <span id="hud-x">0.000</span> &nbsp; Y <span id="hud-y">0.000</span> &nbsp; Z <span id="hud-z">0.000</span> &nbsp; A <span id="hud-a">0.0°</span></div>
+      <div id="zoom-hud">zoom <span id="hud-zoom">1.0×</span></div>
+
+      <div id="fps-hud" title="Frame rate, and what the quality governor is doing to hold it">
+        <div class="fps-main"><span id="fps-val">—</span><span class="fps-unit">fps</span></div>
+        <div class="fps-sub" id="fps-sub">—</div>
+      </div>
+
+      <div id="stop-hud"></div>
+      <div id="program-complete-banner"><span>✔ Program complete</span><span class="banner-x" id="banner-close">✕</span></div>
+      <div id="toast"></div>
+
+      <div id="xyz-hud" class="v-hud">
+        <div class="v-hud-row"><span class="v-hud-label">X</span><span class="v-hud-val" id="xyz-hud-x">0.000</span></div>
+        <div class="v-hud-row"><span class="v-hud-label">Y</span><span class="v-hud-val" id="xyz-hud-y">0.000</span></div>
+        <div class="v-hud-row"><span class="v-hud-label">Z</span><span class="v-hud-val" id="xyz-hud-z">0.000</span></div>
+      </div>
+
+      <div id="machine-hud" class="v-hud">
+        <div class="v-hud-row"><span class="v-hud-label">Feed</span><span class="v-hud-val accent" id="hud-feed">—</span></div>
+        <div class="v-hud-row"><span class="v-hud-label">RPM</span><span class="v-hud-val" id="hud-rpm">—</span></div>
+        <div class="v-hud-row"><span class="v-hud-label">Tool</span><span class="v-hud-val" id="hud-tool">—</span></div>
+      </div>
+
+      <div id="mouse-hints">
+        <div class="mh-item">
+
+          <svg class="mh-mouse" viewBox="0 0 22 34" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="7" width="20" height="26" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="11" y1="7" x2="11" y2="20" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="1" y="7" width="10" height="10" rx="5" fill="currentColor" opacity="0.5"/>
+            <rect x="9" y="21" width="4" height="6" rx="2" fill="currentColor" opacity="0.6"/>
+          </svg>
+          <span class="mh-label">Pan</span>
+        </div>
+        <div class="mh-item">
+
+          <svg class="mh-mouse" viewBox="0 0 22 34" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="7" width="20" height="26" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <line x1="11" y1="7" x2="11" y2="20" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="11" y="7" width="10" height="10" rx="5" fill="currentColor" opacity="0.5"/>
+            <rect x="9" y="21" width="4" height="6" rx="2" fill="currentColor" opacity="0.6"/>
+          </svg>
+          <span class="mh-label">Rotate</span>
+        </div>
+        <div class="mh-item">
+
+          <svg class="mh-mouse" viewBox="0 0 22 34" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="7" width="20" height="26" rx="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="9" y="10" width="4" height="10" rx="2" fill="currentColor" opacity="0.7"/>
+          </svg>
+          <span class="mh-label">Zoom</span>
+        </div>
+      </div>
+
+      <div id="transport-bar">
+        <div id="transport-row">
+          <span class="tp-follow-pair">
+            <button class="tp-btn tp-toggle" id="btn-follow-tool" title="Follow Tool: lock the camera to the tool tip">Follow Tool</button>
+
+            <button class="tp-btn tp-toggle tp-icon" id="btn-rotate-path" title="Rotate with the path: swing the camera round so the cut always travels the same way on screen"><i class="fa-solid fa-arrows-rotate"></i></button>
+          </span>
+          <div class="tp-cluster">
+            <button class="tp-btn" id="btn-sim-reset" title="Reset to start">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="1.5" y="2" width="2.5" height="10" rx="0.5"/><path d="M12.5 2.5 5.5 7l7 4.5V2.5z"/></svg>
+            </button>
+            <button class="tp-btn" id="btn-sim-prev" title="Previous block">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M7.5 2.5 2 7l5.5 4.5V2.5z"/><path d="M13 2.5 7.5 7 13 11.5V2.5z"/></svg>
+            </button>
+            <button class="tp-btn tp-play" id="btn-sim-play" title="Play">
+
+              <svg id="play-pause-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 14 14" fill="currentColor"><path d="M3 2l10 5-10 5V2z"/></svg>
+            </button>
+            <button class="tp-btn" id="btn-sim-next" title="Next block">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M1 2.5l5.5 4.5L1 11.5V2.5z"/><path d="M6.5 2.5 12 7l-5.5 4.5V2.5z"/></svg>
+            </button>
+            <button class="tp-btn" id="btn-sim-end" title="Skip to end">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M1.5 2.5 8.5 7l-7 4.5V2.5z"/><rect x="10" y="2" width="2.5" height="10" rx="0.5"/></svg>
+            </button>
+          </div>
+          <span class="tp-right-pair">
+            <button class="tp-btn tp-toggle active" id="btn-optional-stop" title="Optional stop: when on, an M01 in the program pauses the run the way the button on the machine does. When off, M01 is ignored.">M01 Stop</button>
+            <button class="tp-btn tp-toggle" id="btn-single-block" title="Single Block: step every line one at a time">Single Block</button>
+          </span>
+        </div>
+        <div id="progress-row">
+          <span class="progress-label progress-time" id="viewport-progress-val">0:00.0</span>
+          <input type="range" id="viewport-progress-slider" min="0" max="100" value="0" step="0.1">
+          <span class="progress-label progress-time progress-time-total" id="viewport-progress-total">—</span>
+        </div>
+        <div id="tp-bottom-row">
+          <div id="color-mode" role="group" aria-label="Toolpath coloring">
+            <button class="cm-btn" data-colormode="feed" title="Feed rate — the cutter travels at its programmed speed and every cutting move is ramped blue to red by its F word">
+              <i class="fa-solid fa-gauge-high"></i>
+              <span class="cm-label">Feed</span>
+            </button>
+            <button class="cm-btn" data-colormode="type" title="Toolpath — each kind of move in its own color, and the cutter jumps block to block from the first line to the last">
+              <i class="fa-solid fa-route"></i>
+              <span class="cm-label">Path</span>
+            </button>
+          </div>
+
+          <div id="speed-presets">
+            <button class="speed-preset" data-speed="0.5">0.5×</button>
+            <button class="speed-preset active" data-speed="1">1×</button>
+            <button class="speed-preset" data-speed="2">2×</button>
+            <button class="speed-preset" data-speed="5">5×</button>
+            <button class="speed-preset" data-speed="10">10×</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="editor-resize-handle"></div>
+
+    <div id="editor-panel">
+      <div id="editor-header">
+        <div id="editor-header-left">
+          <span id="editor-title">GCode Editor</span>
+          <span id="editor-status">ready</span>
+        </div>
+        <span id="editor-hint">Drop a file anywhere on the page — .nc .gcode .tap .step .stp .txt</span>
+      </div>
+
+      <div id="editor-split">
+        <div id="gcode-editor-wrap" style="position:relative;overflow:hidden;">
+          <div id="gcode-highlight" aria-hidden="true"></div>
+          <textarea id="gcode-input" spellcheck="false" placeholder="; Type or paste GCode here — viewport updates as you type
+; Left drag = pan  |  Right drag = rotate  |  Scroll = zoom
+;
+; Supports G0, G1, G2, G3, G90/G91, G20/G21
+; G2/G3 with I,J or R format
+; Canned cycles: G81 (drill), G82 (dwell), G83 (peck), G84 (tap)
+; Tool numbers (T1, T2…) appear in tool table"></textarea>
+          <div id="dropzone-editor">⬇ Drop to replace program</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer id="site-footer">
+  <div class="footer-mark">&copy; 2026 <span class="footer-owner">kevmcg1</span> &mdash; GCode Toolpath Visualizer&trade;</div>
+  <div class="footer-license">
+    Released under the <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html" target="_blank" rel="noopener">GNU General Public License v2.0 (GPL-2.0)</a>.
+    Source code and full license text on GitHub under
+    <a href="https://github.com/kevmcg1" target="_blank" rel="noopener">github.com/kevmcg1</a>.
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/devtools-guard.js"></script>
+<script src="js/toast.js"></script>
+<script src="js/comp-engine.js"></script>
+<script src="js/syntax-highlight.js"></script>
+<script src="js/tool-state.js"></script>
+<script src="js/scene-setup.js"></script>
+<script src="js/gcode-parser.js"></script>
+<script src="js/engraving.js"></script>
+<script src="js/comp-integration.js"></script>
+<script src="js/tool-table-ui.js"></script>
+<script src="js/legend.js"></script>
+<script src="js/toolpath-render.js"></script>
+<script src="js/viewport-toggles.js"></script>
+<script src="js/demo-programs.js"></script>
+<script src="js/camera-controls.js"></script>
+<script src="js/single-block.js"></script>
+<script src="js/file-drop.js"></script>
+<script src="js/iso-follow.js"></script>
+<script src="js/playback-ui.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/global-reset.js"></script>
+<script src="js/sim-debug-panel.js"></script>
+<script src="js/view-stats-panel.js"></script>
+<script src="js/tool-model-list.js"></script>
+<script src="js/tool-io.js"></script>
+<script src="js/tool-model.js"></script>
+<script src="js/tool-library-adapter.js"></script>
+<script src="js/tool-model-codes.js"></script>
+<script src="js/part-models.js"></script>
+<script src="js/fixture-panel.js"></script>
+<script src="js/session.js"></script>
+<!-- The cutter-comp controller. It was dropped from this list when the comp
+     panel came out of the sidebar, so nothing was left that could set
+     compEnabled — the engine, the parser and the overlay were all still there
+     and simply never got switched on. It loads late because its click handler
+     reaches for compOverlayGroup, which toolpath-render.js creates. -->
+<script src="js/comp-ui.js"></script>
+<!-- Loads after part-models.js so every control it forwards to is already
+     bound by the time it can be pressed. -->
+<script src="js/model-sidebar.js"></script>
+<!-- Rebuilds the build panel as a checklist. Loads after part-models.js so
+     every control it moves into the new shell is already bound. -->
+<script src="js/guide.js"></script>
+<script src="js/settings-panel.js"></script>
+<script src="js/ui-extras.js"></script>
+</body>
+</html>
