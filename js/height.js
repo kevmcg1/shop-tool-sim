@@ -49,7 +49,11 @@ const UNDER = [
 /* ---------- renderer ---------- */
 const wrap = $('view');
 const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+// render scale: starts at the screen's (at most 2x) and steps down on its own when frames run slow,
+// so a weak laptop trades a little sharpness for smooth movement
+const DPR_MAX = Math.min(window.devicePixelRatio || 1, 2), DPR_MIN = Math.min(0.75, DPR_MAX);
+let dprCur = DPR_MAX, dprCeil = DPR_MAX;
+renderer.setPixelRatio(dprCur);
 renderer.setClearColor(0x000000, 0);
 renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
@@ -1149,7 +1153,7 @@ function checkPractice(){
     : 'Every expert has made this exact slip while learning. The colored lines on the gage show the right marks — press <b>Next</b> when you feel ready.') + '</span></div>';
   fb.className = '';
   fb.innerHTML = '<div class="fx">' + hero + cmp + missBox + notes + eq + steps + goodRow + foot + '</div>';
-  fb.scrollTop = 0;
+  (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
 /* ---------- examination: labels on every part ---------- */
@@ -1715,6 +1719,7 @@ function bindUI(){
     if (e.key === 'Escape'){ closeTut(); if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
       const s = e.key === 'ArrowUp' ? 1 : -1;
       state.seq = null;
@@ -1830,9 +1835,12 @@ function setFlatMax(on){
   b.dataset.tip = t + (on ? '\nBack to its corner size.' : '\nStretches it to the full height of the 3D view.');
   document.body.classList.toggle('flat-max', on);
   try { localStorage.setItem('pt-flat-max', on ? '1' : '0'); } catch (e) {}
-  if (on && !flatOpen) $('flatBtn').click();
+  // from hidden, opening it lays it out already maximized, in one glide; laying out again
+  // mid-glide would measure the half-open panel and snap it to the wrong size
+  const opening = on && !flatOpen;
+  if (opening) $('flatBtn').click();
   flatKey = '';
-  flipLayout(() => placeFlat()); drawFlatHG();
+  if (!opening) flipLayout(() => placeFlat()); drawFlatHG();
 }
 // Corner text in the flat view: a see-through halo in the colour of whatever is behind it, and a spot
 // that keeps clear of the marks and numbers already drawn. The asked-for spot is tried first, then
@@ -1978,6 +1986,7 @@ function drawLoupeHG(R, I, Mm, show, C){
 function resize(){
   placeFlat();
   const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
+  renderer.setPixelRatio(dprCur);
   renderer.setSize(w, h, false);
   const a = w/h; camera.left = -VIEW_H/2*a; camera.right = VIEW_H/2*a; camera.top = VIEW_H/2; camera.bottom = -VIEW_H/2;
   camera.updateProjectionMatrix();
@@ -1986,6 +1995,24 @@ function resize(){
 }
 new ResizeObserver(resize).observe(wrap);
 let prev = performance.now();
+// The 3D view is drawn only when something in it can have changed, so a still gage costs next to
+// nothing: when a part or the scriber moves, the camera moves or eases, and for a moment after any
+// input (clicks, keys, the wheel, typing) since those can change colors and what shows. A slow
+// heartbeat catches anything that lands later on its own.
+let drawUntil = 0, lastDraw = 0, lastSig = '', lastRenderT = 0;
+const perf = [];
+function invalidate(ms){ drawUntil = Math.max(drawUntil, performance.now() + (ms || 350)); }
+['pointerdown', 'pointermove', 'pointerup', 'wheel', 'keydown', 'keyup', 'input', 'change', 'click'].forEach(t => window.addEventListener(t, () => invalidate(), { capture: true, passive: true }));
+// steps the render scale down when drawing runs under ~48 fps, and back up when there is room
+function adaptResolution(now){
+  const dt = now - lastRenderT; lastRenderT = now;
+  if (dt > 120){ perf.length = 0; return; }
+  perf.push(dt);
+  if (perf.length < 40) return;
+  const avg = perf.reduce((a, b) => a + b, 0)/perf.length; perf.length = 0;
+  if (avg > 21 && dprCur > DPR_MIN + 0.01){ dprCeil = dprCur*0.95; dprCur = Math.max(DPR_MIN, dprCur*0.85); resize(); }
+  else if (avg < 17.4 && dprCur < Math.min(dprCeil, DPR_MAX) - 0.01){ dprCur = Math.min(dprCeil, DPR_MAX, dprCur*1.08); resize(); }
+}
 function tick(now){
   requestAnimationFrame(tick);
   const dt = Math.min(0.05, (now - prev)/1000); prev = now;
@@ -2040,11 +2067,16 @@ function tick(now){
     camera.zoom = flight.z0*Math.pow(flight.z1/flight.z0, e); camera.updateProjectionMatrix();
     if (k >= 1) flight = null;
   }
-  controls.update();
+  const camMoved = controls.update() || !!flight;
   updateUI();
+  const sig = [state.px, state.pz, state.hs, state.eps, state.g, state.delta, state.sliderLocked, state.unitLocked, state.contact, !!partG].join('|');
+  const changed = sig !== lastSig; lastSig = sig;
+  if (!(changed || camMoved || now < drawUntil || now - lastDraw > 1000)) return;
+  lastDraw = now;
   updateExam();
   shopFinish(scene);
   renderer.render(scene, camera);
+  adaptResolution(now);
 }
 
 async function start(){
