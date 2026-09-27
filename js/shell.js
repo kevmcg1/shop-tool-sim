@@ -184,3 +184,37 @@ lockDown(window);
   b.addEventListener('mouseleave', () => { if (!t0) show(false); });
   b.addEventListener('focus', () => { if (b.matches(':focus-visible')) show(true); });
 })();
+// The settings cog: for now one setting, the interface tilt (css/hud.css), Tilted or Flat. It applies to the top
+// bar and to every tool at once, and is remembered (pt-hud, so Reset all puts it back to Tilted).
+(function(){
+  const b = document.getElementById('setBtn'), pop = document.getElementById('setPop');
+  if (!b || !pop) return;
+  const read = () => { try { return localStorage.getItem('pt-hud') !== 'flat'; } catch (e) { return true; } };
+  function apply(on){
+    document.documentElement.classList.toggle('hud-flat', !on);
+    document.querySelectorAll('#stage iframe').forEach(f => { try { if (f.contentWindow.__hudTilt) f.contentWindow.__hudTilt(on); } catch (e) {} });
+    pop.querySelectorAll('[data-hud-set]').forEach(x => x.setAttribute('aria-checked', String((x.dataset.hudSet === 'tilt') === on)));
+    // the tool tabs' underline is placed by layout, so let it settle again
+    window.dispatchEvent(new Event('resize'));
+  }
+  apply(read());
+  const open = on => {
+    pop.hidden = !on; b.setAttribute('aria-expanded', String(on));
+    if (on){ const c = pop.querySelector('[aria-checked="true"]'); if (c) c.focus({ preventScroll: true }); }
+  };
+  b.addEventListener('click', () => open(pop.hidden));
+  pop.addEventListener('click', e => {
+    const x = e.target.closest('[data-hud-set]'); if (!x) return;
+    const on = x.dataset.hudSet === 'tilt';
+    try { localStorage.setItem('pt-hud', on ? 'tilt' : 'flat'); } catch (err) {}
+    apply(on);
+  });
+  // arrow keys move between the two choices, like any radio group
+  pop.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ open(false); b.focus(); return; }
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+    const c = pop.querySelector('[aria-checked="false"]'); if (c){ c.click(); c.focus(); e.preventDefault(); }
+  });
+  document.addEventListener('pointerdown', e => { if (!pop.hidden && !pop.contains(e.target) && !b.contains(e.target)) open(false); }, true);
+  window.addEventListener('blur', () => open(false));   // a click inside a tool's frame
+})();

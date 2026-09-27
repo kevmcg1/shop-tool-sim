@@ -9,15 +9,24 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;600&display=swap" rel="stylesheet">
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
-     raise N everywhere (find and replace "?v=4") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=4">
-<link rel="stylesheet" href="css/hud.css?v=4">
+     raise N everywhere (find and replace "?v=5") whenever anything in css/ or js/ changes -->
+<link rel="stylesheet" href="css/shell.css?v=5">
+<link rel="stylesheet" href="css/hud.css?v=5">
+<script>try { if (localStorage.getItem('pt-hud') === 'flat') document.documentElement.classList.add('hud-flat'); } catch (e) {}</script>
 </head>
 <body>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio.html" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
 <header class="bar">
   <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
+  <div class="set-wrap">
+    <button type="button" class="set-btn" id="setBtn" aria-label="Settings" aria-haspopup="dialog" aria-expanded="false" aria-controls="setPop"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></g></svg></button>
+    <div class="set-pop" id="setPop" role="dialog" aria-label="Settings" hidden>
+      <b class="set-t">Settings</b>
+      <div class="set-row"><span id="hudLbl">Interface tilt</span><div class="set-seg" role="radiogroup" aria-labelledby="hudLbl"><button type="button" role="radio" data-hud-set="tilt" aria-checked="true">Tilted</button><button type="button" role="radio" data-hud-set="flat" aria-checked="false">Flat</button></div></div>
+      <p class="set-note">Tilted leans every panel, card and button a little toward the middle of the screen, like a game HUD. Flat keeps them all square.</p>
+    </div>
+  </div>
   <div class="reset-wrap">
     <button type="button" class="reset-all" id="resetAll" aria-describedby="resetPop"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg><span class="ra-t">Reset all</span></button>
     <div class="reset-pop" id="resetPop" role="tooltip"><b>Hold for 3 seconds to reset everything.</b> Every tool, part and setting goes back to how it started. Use it if you’re stuck and there’s no way out.</div>
@@ -36,8 +45,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/caliper.css?v=4">
-<link rel="stylesheet" href="css/hud.css?v=4">
+<link rel="stylesheet" href="css/caliper.css?v=5">
+<link rel="stylesheet" href="css/hud.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -165,7 +174,7 @@
   <main>
     <div id="view">
       <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=4"><\/script>
+      <script src="js/loading.js?v=5"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Opens the jaws, then closes them gently on the part."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -282,15 +291,16 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 } }
 <\/script>
-<script src="js/dissolve.js?v=4"><\/script>
-<script src="js/pivot.js?v=4"><\/script>
-<script src="js/caliper.js?v=4"><\/script>
-<script src="js/color-dots.js?v=4"><\/script>
-<script src="js/dropdowns.js?v=4"><\/script>
-<script src="js/range-fill.js?v=4"><\/script>
-<script src="js/guide.js?v=4"><\/script>
-<script src="js/tips.js?v=4"><\/script>
-<script src="js/flat-units.js?v=4"><\/script>
+<script src="js/dissolve.js?v=5"><\/script>
+<script src="js/pivot.js?v=5"><\/script>
+<script src="js/caliper.js?v=5"><\/script>
+<script src="js/color-dots.js?v=5"><\/script>
+<script src="js/dropdowns.js?v=5"><\/script>
+<script src="js/range-fill.js?v=5"><\/script>
+<script src="js/guide.js?v=5"><\/script>
+<script src="js/tips.js?v=5"><\/script>
+<script src="js/hud.js?v=5"><\/script>
+<script src="js/flat-units.js?v=5"><\/script>
 </body>
 </html>
 </script>
@@ -304,8 +314,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/micrometer.css?v=4">
-<link rel="stylesheet" href="css/hud.css?v=4">
+<link rel="stylesheet" href="css/micrometer.css?v=5">
+<link rel="stylesheet" href="css/hud.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -405,7 +415,7 @@
   <main>
     <div id="view">
       <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=4"><\/script>
+      <script src="js/loading.js?v=5"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Slides the selected feature between the faces, then closes with the ratchet."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -508,14 +518,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
-<script src="js/dissolve.js?v=4"><\/script>
-<script src="js/pivot.js?v=4"><\/script>
-<script src="js/micrometer.js?v=4"><\/script>
-<script src="js/color-dots.js?v=4"><\/script>
-<script src="js/dropdowns.js?v=4"><\/script>
-<script src="js/range-fill.js?v=4"><\/script>
-<script src="js/guide.js?v=4"><\/script>
-<script src="js/tips.js?v=4"><\/script>
+<script src="js/dissolve.js?v=5"><\/script>
+<script src="js/pivot.js?v=5"><\/script>
+<script src="js/micrometer.js?v=5"><\/script>
+<script src="js/color-dots.js?v=5"><\/script>
+<script src="js/dropdowns.js?v=5"><\/script>
+<script src="js/range-fill.js?v=5"><\/script>
+<script src="js/guide.js?v=5"><\/script>
+<script src="js/tips.js?v=5"><\/script>
+<script src="js/hud.js?v=5"><\/script>
 </body>
 </html>
 </script>
@@ -529,8 +540,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/depth.css?v=4">
-<link rel="stylesheet" href="css/hud.css?v=4">
+<link rel="stylesheet" href="css/depth.css?v=5">
+<link rel="stylesheet" href="css/hud.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -643,7 +654,7 @@
   <main>
     <div id="view">
       <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=4"><\/script>
+      <script src="js/loading.js?v=5"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Backs the rod off, lifts, slides the part under the base and runs the rod down with the ratchet."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -755,14 +766,15 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.js"><\/script>
-<script src="js/dissolve.js?v=4"><\/script>
-<script src="js/pivot.js?v=4"><\/script>
-<script src="js/depth.js?v=4"><\/script>
-<script src="js/color-dots.js?v=4"><\/script>
-<script src="js/dropdowns.js?v=4"><\/script>
-<script src="js/range-fill.js?v=4"><\/script>
-<script src="js/guide.js?v=4"><\/script>
-<script src="js/tips.js?v=4"><\/script>
+<script src="js/dissolve.js?v=5"><\/script>
+<script src="js/pivot.js?v=5"><\/script>
+<script src="js/depth.js?v=5"><\/script>
+<script src="js/color-dots.js?v=5"><\/script>
+<script src="js/dropdowns.js?v=5"><\/script>
+<script src="js/range-fill.js?v=5"><\/script>
+<script src="js/guide.js?v=5"><\/script>
+<script src="js/tips.js?v=5"><\/script>
+<script src="js/hud.js?v=5"><\/script>
 </body>
 </html>
 </script>
@@ -776,8 +788,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/height.css?v=4">
-<link rel="stylesheet" href="css/hud.css?v=4">
+<link rel="stylesheet" href="css/height.css?v=5">
+<link rel="stylesheet" href="css/hud.css?v=5">
 </head>
 <body>
 <div class="app">
@@ -866,7 +878,7 @@
   <main>
     <div id="view">
       <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=4"><\/script>
+      <script src="js/loading.js?v=5"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="pbtn" id="examBtn" data-tip="Examination&#10;Cinematic tour with labels on every part. Rotate, pan and zoom freely."><i class="fa-solid fa-binoculars"></i><span>Examine</span></button>
@@ -964,18 +976,19 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
 } }
 <\/script>
-<script src="js/dissolve.js?v=4"><\/script>
-<script src="js/pivot.js?v=4"><\/script>
-<script src="js/height.js?v=4"><\/script>
-<script src="js/color-dots.js?v=4"><\/script>
-<script src="js/dropdowns.js?v=4"><\/script>
-<script src="js/range-fill.js?v=4"><\/script>
-<script src="js/guide.js?v=4"><\/script>
-<script src="js/tips.js?v=4"><\/script>
+<script src="js/dissolve.js?v=5"><\/script>
+<script src="js/pivot.js?v=5"><\/script>
+<script src="js/height.js?v=5"><\/script>
+<script src="js/color-dots.js?v=5"><\/script>
+<script src="js/dropdowns.js?v=5"><\/script>
+<script src="js/range-fill.js?v=5"><\/script>
+<script src="js/guide.js?v=5"><\/script>
+<script src="js/tips.js?v=5"><\/script>
+<script src="js/hud.js?v=5"><\/script>
 
 </body>
 </html>
 </script>
-<script src="js/shell.js?v=4"></script>
+<script src="js/shell.js?v=5"></script>
 </body>
 </html>

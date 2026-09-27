@@ -675,7 +675,10 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     else { const dx = cx - shown.cx, dy = cy - shown.cy; shown.cx = Math.abs(dx) < 0.25 ? cx : shown.cx + dx * k; shown.cy = Math.abs(dy) < 0.25 ? cy : shown.cy + dy * k; }
     cx = shown.cx; cy = shown.cy;
     lastCard = { x: cx, y: cy };
-    put(card, 'transform', tr(cx, cy));
+    // the card leans with the rest of the interface (css/hud.css), toward the middle of the screen: the further
+    // to one side it sits the more it leans, square in the middle, so it never flips as it glides across
+    const lean = document.documentElement.classList.contains('hud-flat') ? 0 : Math.max(-1, Math.min(1, (W/2 - (cx + cw/2))/(W/2)))*7;
+    put(card, 'transform', tr(cx, cy) + (Math.abs(lean) > 0.05 ? ` perspective(900px) rotateY(${lean.toFixed(2)}deg)` : ''));
     // the arrow runs from the card's nearest edge to the window's nearest edge
     let d = '', pts = '';
     r = hr.w >= 4 && hr.h >= 4 ? hr : null;
