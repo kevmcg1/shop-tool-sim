@@ -227,6 +227,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
 
   /* ---------- the overlay ---------- */
   let root = null, hole, dim, svg, dirEl, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '', lastDir = '';
+  const CARD_GAP = 46;   // room between the card and the window it points at, for the arrow
   let lastR = null, lastSide = -1, lastCard = null, lastSvg = '', arrowPath = null, arrowHead = null, cardW = 0, cardH = 0;
   // what is on screen now, easing toward where things belong: the window (x, y, w, h) and the card (x, y)
   let shown = null, lastPlaceT = 0;
@@ -419,7 +420,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     // only this step's highlight is lit, and the camera flies to where the step looks
     if (saved) saved.forEach(([c]) => setHl(c.dataset.hl, c.dataset.hl === s.hl));
     const vb = s.view && document.querySelector(`#view [data-view="${s.view}"]`);
-    if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame)) && vb) vb.click();
+    // a step whose card must sit on one side has the marks framed clear of a strip wide enough for it there
+    const side = fn(s.side, s), keep = side && { side, w: (cardW || 330) + CARD_GAP + 24 };
+    if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame, keep)) && vb) vb.click();
     const t = targetOf(s);
     if (!s.spot) reveal(t);
     // a flat-view step opens the flat view if it was shut, and it is shut again when the walkthrough ends
@@ -519,9 +522,10 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       put(dim, 'clipPath', cut); put(dim, 'webkitClipPath', cut);
     } else { put(dim, 'clipPath', 'none'); put(dim, 'webkitClipPath', 'none'); }
     // the card never covers what the step shows: it goes on a side of the window (and of every mark the step
-    // frames on the tool) that has room, the step's own side first where it asks for one, and never off screen
+    // frames on the tool) that has room, and never off screen. A step that names a side (the height gage's
+    // scales) only ever puts it there: over the other scale, never over the one being read
     if (!cardW) measureCard();
-    const cw = cardW, ch = cardH, g = 46;   // g: room for the arrow between them
+    const cw = cardW, ch = cardH, g = CARD_GAP;   // g: room for the arrow between them
     let cx, cy;
     if (!r){ cx = (W - cw) / 2; cy = (H - ch) / 2; lastSide = -1; }
     else {
@@ -530,15 +534,23 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
         : side === 'left' ? { side, x: A.x - gap - cw, y: r.y + r.h / 2 - ch / 2, room: A.x - gap - cw - 12 }
         : side === 'below' ? { side, x: r.x + r.w / 2 - cw / 2, y: A.y + A.h + gap, room: H - (A.y + A.h) - gap - ch - 12 }
         : { side, x: r.x + r.w / 2 - cw / 2, y: A.y - gap - ch, room: A.y - gap - ch - 12 };
-      const order = [fn(s.side, s), 'right', 'left', 'below', 'above'].filter((x, i, a) => x && a.indexOf(x) === i);
+      const only = fn(s.side, s);
+      const order = only ? [only] : ['right', 'left', 'below', 'above'];
       const opts = order.map(x => at(x, g));
       // it keeps its side while that side still has room, instead of hopping as the window moves
       const kept = opts.find(o => o.side === lastSide && o.room >= 0);
       let fit = kept || opts.find(o => o.room >= 0);
+      // its own side, closer in (the arrow is short then); with no room even for that (a phone, or while the
+      // camera is still flying over), it goes on that side of the page, right at the edge, rather than across
+      if (!fit && only){
+        const near = at(only, 12), edge = only === 'left' ? 12 : W - cw - 12;
+        if (near.room >= 0) fit = near;
+        else if (only === 'left' ? edge + cw <= A.x : edge >= A.x + A.w) fit = { side: only, x: edge, y: near.y };
+      }
       if (!fit){
-        // no side has room for the card and its arrow: the place that covers least of what is shown, with only a
-        // small gap (the window is big enough to need no arrow then), else a corner of the page
-        const cands = order.map(x => at(x, 12)).concat([[12, 12], [W - cw - 12, 12], [12, H - ch - 12], [W - cw - 12, H - ch - 12]].map(([x, y]) => ({ side: 'corner', x, y })));
+        // no side has room for the card and its arrow (the window takes up the view, or the page is as narrow as a
+        // phone): the place that covers least of what is shown, with only a small gap, else a corner of the page
+        const cands = ['left', 'right', 'below', 'above'].map(x => at(x, 12)).concat([[12, 12], [W - cw - 12, 12], [12, H - ch - 12], [W - cw - 12, H - ch - 12]].map(([x, y]) => ({ side: 'corner', x, y })));
         const cover = o => {
           const x = Math.max(12, Math.min(W - cw - 12, o.x)), y = Math.max(12, Math.min(H - ch - 12, o.y));
           const hit = q => Math.max(0, Math.min(x + cw, q.x + q.w) - Math.max(x, q.x)) * Math.max(0, Math.min(y + ch, q.y + q.h) - Math.max(y, q.y));

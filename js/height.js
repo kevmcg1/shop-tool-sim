@@ -1348,10 +1348,16 @@ function freeRects(W, H){
   return out.length ? out : [{ x: 8, y: 8, w: W - 16, h: H - 16 }];
 }
 // find the camera spot (and zoom) that fits the box into the free area, looking along dir
-// try each open area and keep whichever shows the model biggest
-function fitIso(dir, target, dist, box){
+// try each open area and keep whichever shows the model biggest; band ({ x0, x1 }, optional) keeps the fit
+// between those two x positions on the canvas, so something can sit beside it without covering it
+function fitIso(dir, target, dist, box, band){
   const c = el; let best = null;
-  for (const free of freeRects(c.clientWidth, c.clientHeight)){
+  for (let free of freeRects(c.clientWidth, c.clientHeight)){
+    if (band){
+      const x0 = Math.max(free.x, band.x0), x1 = Math.min(free.x + free.w, band.x1);
+      if (x1 - x0 < 40) continue;
+      free = { x: x0, y: free.y, w: x1 - x0, h: free.h };
+    }
     const f = fitIsoIn(dir, target, dist, box, free);
     const score = camera.isOrthographicCamera ? f.zoom : 1/Math.max(1e-6, f.pos.distanceTo(f.target));
     if (!best || score > best.score) best = Object.assign(f, { score });
@@ -2162,13 +2168,21 @@ function guideWorld(name){
   if (name === 'vernEnd') return HL.ivern.at(50);
   return null;
 }
-// fly the camera in, square to the scales, so the named marks fill the view with a little scale round them
-window.__guideFrame = names => {
+// fly the camera in, square to the scales, so the named marks fill the view with a little scale round them.
+// keep ({ side: 'left' or 'right', w }, optional) leaves a strip that wide (page pixels) clear at that side of
+// the page for the walkthrough's card, so the card sits beside the marks, on the other scale's side of the beam
+window.__guideFrame = (names, keep) => {
   const box = new T.Box3();
   for (const n of names){ const p = guideWorld(n); if (p) box.expandByPoint(p); }
   if (box.isEmpty()) return false;
   box.expandByScalar(9);
-  const fb = fitIso(new T.Vector3(0.08, 0.05, 1).normalize(), box.getCenter(new T.Vector3()), CAM_BACK, box);
+  let band = null;
+  if (keep && keep.w > 0){
+    const vr = el.getBoundingClientRect(), W = el.clientWidth;
+    band = keep.side === 'left' ? { x0: Math.max(0, keep.w - vr.left), x1: W } : { x0: 0, x1: Math.min(W, innerWidth - keep.w - vr.left) };
+  }
+  const dir = new T.Vector3(0.08, 0.05, 1).normalize(), c = box.getCenter(new T.Vector3());
+  const fb = fitIso(dir, c, CAM_BACK, box, band) || fitIso(dir, c, CAM_BACK, box);
   flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900 };
   return true;
 };
