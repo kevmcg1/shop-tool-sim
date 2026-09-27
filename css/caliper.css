@@ -674,3 +674,28 @@ input[type=range]:disabled::-moz-range-thumb{transform:none}
    off the top), with no height cap or scroll box of its own */
 .tut{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;align-items:flex-start}
 .tut .tut-card{max-height:none;overflow:visible;margin:auto;flex:0 0 auto;min-width:0;overflow-wrap:break-word}
+/* nothing on the page can be selected, so a click or drag never highlights text; typing into a box still works */
+html,body{-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
+/* buttons side by side in a row are all the same height, even when one label wraps to two lines */
+.row{align-items:stretch}
+/* anything that locks reads red while it is locked: the lock and clamp buttons in the sidebar and over the 3D view */
+:root{--lock:#f04a45}
+aside #lockBtn[aria-pressed="true"],aside #bezelLockBtn[aria-pressed="true"],aside button.lock[aria-pressed="true"],#view #lockQuick[aria-pressed="true"],#view .ib.lock[aria-pressed="true"]{border-color:var(--lock)!important;color:var(--lock)!important;background:color-mix(in srgb,var(--lock) 16%,transparent)!important}
+aside #lockBtn[aria-pressed="true"]:hover,aside #bezelLockBtn[aria-pressed="true"]:hover,aside button.lock[aria-pressed="true"]:hover,#view #lockQuick[aria-pressed="true"]:hover,#view .ib.lock[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--lock) 26%,transparent)!important;border-color:var(--lock)!important}
+
+/* the buttons over the 3D view are solid, never see-through: every state mixes onto a solid dark base
+   instead of onto transparent, and a disabled one dims its icon rather than fading */
+#view .ib,#view .pbtn,#view button,.cine .pbtn{background:#0e1013!important;opacity:1!important}
+#view .ib:hover,#view .ib:focus-visible,#view .pbtn:hover,#view .pbtn:focus-visible,#view button:hover,.cine .pbtn:hover{background:#26292e!important}
+#view .ib[aria-pressed="true"],#view .pbtn[aria-pressed="true"],#view button[aria-pressed="true"],.cine .pbtn[aria-pressed="true"]{background:color-mix(in srgb,var(--accent) 16%,#0e1013)!important}
+#view .ib[aria-pressed="true"]:hover,#view .pbtn[aria-pressed="true"]:hover,#view button[aria-pressed="true"]:hover,.cine .pbtn[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--accent) 26%,#0e1013)!important}
+#view #lockQuick[aria-pressed="true"],#view .ib.lock[aria-pressed="true"]{background:color-mix(in srgb,var(--lock,var(--warn)) 16%,#0e1013)!important}
+#view #lockQuick[aria-pressed="true"]:hover,#view .ib.lock[aria-pressed="true"]:hover{background:color-mix(in srgb,var(--lock,var(--warn)) 26%,#0e1013)!important}
+#view .ib:disabled,#view button:disabled{opacity:1!important;color:#5b6068!important}
+#view .hlsw{background:#0e1013!important}
+#view .hlsw:hover,#view .hlsw:focus-visible{background:#26292e!important}
+#view .hlsw[aria-pressed="true"]{background:color-mix(in srgb,var(--c) 16%,#0e1013)!important}
+#view .hlsw[aria-pressed="false"] i{opacity:1}
+#view button.primary{background:color-mix(in srgb,var(--accent) 14%,#0e1013)!important}
+#view button.primary:hover{background:color-mix(in srgb,var(--accent) 24%,#0e1013)!important}

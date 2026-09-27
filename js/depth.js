@@ -162,6 +162,7 @@ const CORE = (function(){
 (function(){
 "use strict";
 const T = THREE, TAU = Math.PI*2;
+const Dissolve = window.__dissolveFx(T);   // parts and the table dissolve in and out (js/dissolve.js)
 const IN = 1/25.4;
 const TPI = 40, DIV = TAU/25;
 // analog depth micrometer proportions: base 2.5" x .63",
@@ -273,7 +274,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent) continue;
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -747,9 +748,14 @@ function basePath(){
 // the table button: shows or hides the granite table, remembered between visits
 let tableOff = false;
 try { tableOff = localStorage.getItem('pt-table-off') === '1'; } catch (e) {}
-function setTable(off){
-  tableOff = off;
-  if (plateMesh) plateMesh.visible = !off;
+function setTable(off, instant){
+  const was = tableOff; tableOff = off;
+  if (plateMesh){
+    const fx = { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, cells: 60 };
+    if (instant || was === off) plateMesh.visible = !off;
+    else if (off) Dissolve.out(plateMesh, Object.assign(fx, { done: () => { if (tableOff) plateMesh.visible = false; } }));
+    else { plateMesh.visible = true; Dissolve.in(plateMesh, fx); }
+  }
   const b = $('tableBtn'), t = off ? 'Show the table' : 'Hide the table';
   b.setAttribute('aria-pressed', String(off)); b.setAttribute('aria-label', t);
   b.dataset.tip = t + (off ? '\nPuts the granite table back under the micrometer.' : '\nTakes the granite table out of the picture.');
@@ -1250,7 +1256,9 @@ function removeSample(){
   if (!partG) return;
   const set = new Set(); partG.traverse(o => set.add(o));
   const keep = pickables.filter(p => !set.has(p)); pickables.length = 0; pickables.push(...keep);
-  disposeTree(partG); root.remove(partG);
+  // the old part dissolves out where it was, then goes
+  const old = partG;
+  Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: () => { disposeTree(old); if (old.parent) old.parent.remove(old); } });
   partG = null; partMesh = null; capMesh = null; floorHL = {};
   gbKey = '*';
 }
@@ -1308,6 +1316,7 @@ function newSample(key, keepSel){
   renderFeats();
   renderer.shadowMap.needsUpdate = true;
   syncReveal();
+  Dissolve.in(partG, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });
 }
 /* ---------- gage blocks under an overhanging base ----------
    With only one end of the base on the part it would tip, so, as in the shop, a stack of gage blocks is
@@ -1528,6 +1537,27 @@ function goTo(v, quiet){
   }
   state.anim = { type: 'to', target: v };
 }
+// Changing the part: the rod goes all the way back in first, the way you would before lifting the micrometer
+// off, then the old part dissolves away and the new one comes in. Asking again while the rod is on its way back
+// just changes which part comes next.
+let partSwap = null;
+function changePart(key, keepSel){
+  if (!state.sample || state.reading < 1e-7 || matchMedia('(prefers-reduced-motion: reduce)').matches){ partSwap = null; newSample(key, keepSel); return; }
+  if (partSwap){ partSwap.key = key; partSwap.keepSel = keepSel; return; }
+  if (state.locked) setLock(false);
+  state.seq = null; endCoach();
+  goTo(0, true);
+  const swap = partSwap = { key, keepSel }, t0 = performance.now();
+  const go = () => {
+    if (partSwap !== swap) return; partSwap = null;
+    // if the frames stalled before the rod got home, run it the rest of the way in now so it never sits in the new part
+    if (state.reading > 1e-7){ state.anim = null; if (state.locked) setLock(false); tryTurn(-state.reading, 'auto'); }
+    newSample(swap.key, swap.keepSel);
+  };
+  const wait = () => { if (partSwap !== swap) return; if ((state.reading > 1e-7 || state.anim) && performance.now() - t0 < 3000) requestAnimationFrame(wait); else go(); };
+  requestAnimationFrame(wait);
+  setTimeout(go, 3100);   // a timer backs up the frame callbacks, which stop while the page is not being painted
+}
 function ratchetClose(){
   if (state.locked){ flashLocked(); return; }
   endCoach(); state.clicks = 0; state.slipAcc = 0;
@@ -1603,10 +1633,13 @@ function stepSeq(){
       if (!q.quiet) toast(`The ${B}–${B + 1}″ rod is longer than that depth — fit a shorter rod`);
       state.seq = null; return;
     }
+    // 'near': run the rod down to just short of the floor (under one turn, 0.025″), so closing by hand is quick
+    if (q.close === 'near'){ goTo(Math.max(0, Math.min(1, lim) - 0.02), true); q.stage = 'near'; return; }
     q.stage = 'close';
     if (q.close) ratchetClose(); else { state.seq = null; autoFrame(); return; }
     return;
   }
+  if (q.stage === 'near'){ if (!state.anim){ state.seq = null; autoFrame(); } return; }
   if (q.stage === 'close' && !state.anim){
     state.seq = null;
     autoFrame();
@@ -2462,6 +2495,8 @@ function checkPractice(){
   const ex = ok ? { A: splitReading(ans), Y: null, notes: [], why: {} } : explainReading(you, ans);
   const A = ex.A, Y = ex.decimal ? null : ex.Y;
   const miss = ok || ex.decimal ? null : findMissing(you, ans, A, ex.Y);
+  // praise the rest only when nothing else was flagged wrong
+  const onlyMiss = !!miss && STEP_KEYS.every(k => miss.keys.includes(k) || !ex.why[k]);
   if (miss) miss.keys.forEach(k => {
     const src = miss.type === 'missing' ? A : ex.Y, v = (STEP_DEF[k].val(src)/1000).toFixed(3);
     const where = {
@@ -2477,8 +2512,10 @@ function checkPractice(){
       c: 'The index line sits on thimble line 0, so the thimble adds nothing here.'
     }[k];
     ex.why[k] = miss.type === 'missing'
-      ? `You did everything else right — this value just never made it into the total. It’s worth <b>+${v}″</b>. ${where}`
-      : `Nearly perfect! This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`;
+      ? (onlyMiss ? `You did everything else right — this value just never made it into the total. It’s worth <b>+${v}″</b>. ${where}`
+                  : `This value never made it into the total. It’s worth <b>+${v}″</b>. ${where}`)
+      : (onlyMiss ? `Nearly perfect! This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`
+                  : `This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`);
   });
   const wrong = ok ? [] : STEP_KEYS.filter(k => ex.why[k]);
   state.pRevealed = true;
@@ -2515,7 +2552,7 @@ function checkPractice(){
     missBox = `<div class="fx-miss" style="--c:${STEP_DEF[k0].css}">
       <div class="fx-miss-ic"><i class="fa-solid ${miss.type === 'missing' ? 'fa-puzzle-piece' : 'fa-scissors'}"></i></div>
       <div><h5>${miss.type === 'missing' ? `The ${words} wasn’t added` : `An extra ${words} was added`}</h5>
-      <p>${miss.type === 'missing' ? 'Everything else lines up perfectly — adding this one value back in gives the exact answer:' : 'Everything else lines up perfectly — taking this value out gives the exact answer:'}</p>
+      <p>${!onlyMiss ? (miss.type === 'missing' ? 'Adding this value back in gives the exact answer:' : 'Taking this value out gives the exact answer:') : miss.type === 'missing' ? 'Everything else lines up perfectly — adding this one value back in gives the exact answer:' : 'Everything else lines up perfectly — taking this value out gives the exact answer:'}</p>
       <div class="fx-sum"><span>${esc(fmt(you/1000))}″</span><span class="op">${miss.type === 'missing' ? '+' : '−'}</span><span class="add">${parts}</span><span class="op">=</span><span class="res">${fmt(ans/1000)}″</span></div></div></div>`;
   }
   const chips = STEP_KEYS.map(k => {
@@ -2552,7 +2589,7 @@ function checkPractice(){
 }
 
 /* ---------- flat (unrolled) sleeve view ---------- */
-let flatOpen = true, flatKey = '';
+let flatOpen = true, flatKey = '', flatSpots = {};
 // glide the flat view between its open and folded sizes instead of snapping
 function animateFlat(apply, done){
   const el = $('flat'), cv = $('flatCv');
@@ -2717,6 +2754,12 @@ function drawFlat(){
   g.fillStyle = 'rgba(0,0,0,.6)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textAlign = 'left';
   g.fillText('Sleeve — numbers run toward the base ↓', 5, H - 7);
   const topBox = cornerText(g, 'Thimble — covers the reading', 5, 8, { size: 9.5, col: 'rgba(0,0,0,.6)' });
+  // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units. The first
+  // number still showing sits just below the thimble edge, and the open lines run between the two.
+  {
+    const xn = ix - 58 - 13, yn = Y((a + 1)*0.1);
+    flatSpots = { nextNum: [xn - 18, ey - 8, ix + 6, yn + 14], openLines: [ix - 62, ey - 8, ix + 6, yn + 8], c: [ix - 18, ey - 62, ix + 18, ey + 6] };
+  }
   // arrows to whatever was misread
   const placed = [topBox];
   const arrow = (tx, ty, dx, dy, col, lab) => flatArrow(g, W, H, tx, ty, dx, dy, col, lab, placed, { x: 2, y: 12, w: W - 4, h: H - 14 });
@@ -2767,9 +2810,9 @@ function freeRects(W, H){
 }
 // find the camera spot (and zoom) that fits the box into the free area, looking along dir
 // try each open area and keep whichever shows the model biggest
-function fitIso(dir, target, dist, box){
+function fitIso(dir, target, dist, box, frees){
   const c = el; let best = null;
-  for (const free of freeRects(c.clientWidth, c.clientHeight)){
+  for (const free of frees || freeRects(c.clientWidth, c.clientHeight)){
     const f = fitIsoIn(dir, target, dist, box, free);
     const score = camera.isOrthographicCamera ? f.zoom : 1/Math.max(1e-6, f.pos.distanceTo(f.target));
     if (!best || score > best.score) best = Object.assign(f, { score });
@@ -2805,6 +2848,22 @@ function fitIsoIn(dir, target, dist, box, free){
   place();
   return { target: tg, zoom: cam.zoom, pos: cam.position.clone() };
 }
+// iso frames the tool itself, standing up: the ratchet at the top and the depth it measures (the rod tip,
+// or the floor under it when the rod is up) at the bottom. Only the height sets the fit, so the base and the
+// part run off the sides and the tool is as big as the view allows.
+function isoBox(){
+  const mb = fitBox(micG), ev = state.ev || CORE.evalAt(null);
+  const bottom = Math.min(seatY() - ext(), ev.hr) - 0.08;
+  return new T.Box3(new T.Vector3(-0.3, bottom, -0.3), new T.Vector3(0.3, mb.max.y + 0.04, 0.3));
+}
+// the standing tool is tall and narrow, so it gets the view's full height, top to bottom; only the flat view
+// down the right side is kept clear. The small corner buttons may sit over its edges, as they are see-through.
+function isoColumn(){
+  const W = el.clientWidth, H = el.clientHeight;
+  let rr = W - 8;
+  for (const r of labelObstacles()) if (r.h > H*0.4 && r.x > W*0.5) rr = Math.min(rr, r.x - 10);
+  return [{ x: 8, y: 8, w: rr - 8, h: H - 16 }];
+}
 let camUser = false;
 // re-fit whichever fitted view is showing (iso or front) as things change size; a close-up is left where it is
 let viewName = 'iso';
@@ -2825,9 +2884,9 @@ function setView(name, instant){
     if (state.sample && !state.cut){ state.cut = true; applyCut(); }
     if (state.sample && state.secT < 0.2) setCutT(0.45);
   }
-  else dir = new T.Vector3(0.55, 0.42, 1).normalize();
+  else dir = new T.Vector3(0.22, 0.36, 1).normalize();       // iso: nearly square-on, a little from above and to the right
   if (name === 'iso' || name === 'front' || !['scale', 'vernier', 'tip'].includes(name)){ const my = micG.position.y; micG.position.y = seatY();               // frame it seated, even mid-move
-    const fb = fitIso(dir, target, 40, fitBox(scene)); micG.position.y = my; micG.updateMatrixWorld(true); target = fb.target; zoom = fb.zoom; }
+    const fb = name === 'front' ? fitIso(dir, target, 40, fitBox(scene)) : fitIso(dir, target, 40, isoBox(), isoColumn()); micG.position.y = my; micG.updateMatrixWorld(true); target = fb.target; zoom = fb.zoom; }
   if (instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
     camera.position.copy(target).add(dir.clone().multiplyScalar(40)); controls.target.copy(target); camera.zoom = zoom;
     camera.updateProjectionMatrix(); controls.update(); camTween = null; invalidate(); return;
@@ -2842,14 +2901,31 @@ function showMe(k){
   camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom, toDir: dir, toTarget: an.p.clone(), toZoom: zf*2.1 };
   invalidate();
 }
+// Camera moves glide around what the camera looks at instead of cutting straight through space: the point
+// it looks at slides across, the view turns along the shortest arc, and the distance (or zoom) changes by the
+// same ratio every moment, so zooming in 4x feels as even as zooming in 2x. Bigger moves get a little more
+// time, so every move reads at the same easy pace, and it starts and lands gently (smootherstep). Any drag
+// momentum left over is settled first, so it can't pull against the glide.
+const _glideQ = new T.Quaternion();
 function stepCam(dt){
   if (!camTween) return false;
-  const c = camTween; c.t = Math.min(1, c.t + dt/0.6);
-  const e = c.t < 0.5 ? 2*c.t*c.t : 1 - Math.pow(-2*c.t + 2, 2)/2;
-  const d = c.fromDir.clone().lerp(c.toDir, e); if (d.lengthSq() < 1e-6) d.set(0, 0, 1);
-  controls.target.copy(c.fromTarget.clone().lerp(c.toTarget, e));
-  camera.position.copy(controls.target).add(d.normalize().multiplyScalar(40));
-  camera.zoom = c.fromZoom + (c.toZoom - c.fromZoom)*e;
+  const c = camTween;
+  if (!c.dur){
+    controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+    c.fromTarget = controls.target.clone(); c.fromZoom = camera.zoom;
+    c.fromDir = camera.position.clone().sub(controls.target).normalize();
+    c.toDir = c.toDir.clone().normalize();
+    c.turn = new T.Quaternion().setFromUnitVectors(c.fromDir, c.toDir);
+    const seen = (camera.top - camera.bottom)/Math.max(c.fromZoom, c.toZoom);   // the most zoomed-in view's height
+    const ang = c.fromDir.angleTo(c.toDir), zoom = Math.abs(Math.log(c.toZoom/c.fromZoom)), slide = c.fromTarget.distanceTo(c.toTarget)/Math.max(1e-6, seen);
+    c.dur = Math.min(1.8, 0.8 + ang*0.35 + zoom*0.35 + Math.min(slide, 3)*0.25);
+  }
+  c.t = Math.min(1, c.t + dt/c.dur);
+  const e = c.t*c.t*c.t*(c.t*(c.t*6 - 15) + 10);
+  controls.target.lerpVectors(c.fromTarget, c.toTarget, e);
+  _glideQ.identity().slerp(c.turn, e);
+  camera.position.copy(c.fromDir).applyQuaternion(_glideQ).multiplyScalar(40).add(controls.target);
+  camera.zoom = c.fromZoom*Math.pow(c.toZoom/c.fromZoom, e);
   camera.updateProjectionMatrix();
   if (c.t >= 1) camTween = null;
   return true;
@@ -2949,6 +3025,31 @@ function planePoint(e){
   return ray.ray.intersectPlane(dragPlane, _hit) ? _hit.clone() : null;
 }
 function toScreen(v){ const p = v.clone().project(camera), r = el.getBoundingClientRect(); return new T.Vector2((p.x + 1)/2*r.width, (1 - p.y)/2*r.height); }
+// Turning the ratchet or thimble by hand works like a real knob: circle the pointer around it and it turns
+// with you. The pointer is traced onto the plane the knob turns in (through the point grabbed, square to the
+// spindle (+y)), and the change in its angle round the axis is the turn, whichever way the camera looks.
+// Seen nearly side-on that plane is edge-on and a circle can't be read from it, so there it falls back to
+// dragging along the knob's surface (up and down across it).
+const _knobHit = new T.Vector3(), _knobView = new T.Vector3();
+function knobGrab(d, p, axis){
+  if (Math.abs(camera.getWorldDirection(_knobView).dot(axis)) < 0.3) return;
+  d.plane = new T.Plane().setFromNormalAndCoplanarPoint(axis, p);
+  d.ang = knobAngle(d);
+}
+function knobAngle(d){
+  ray.setFromCamera(ndc, camera);
+  if (!ray.ray.intersectPlane(d.plane, _knobHit)) return null;
+  return Math.atan2(_knobHit.x, _knobHit.z)   // radians about +y;
+}
+function knobTurn(e, d){
+  const r = el.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left)/r.width)*2 - 1, -((e.clientY - r.top)/r.height)*2 + 1);
+  const a = knobAngle(d);
+  if (a == null || d.ang == null){ d.ang = a; return 0; }
+  let da = a - d.ang; d.ang = a;
+  da = ((da + Math.PI) % TAU + TAU) % TAU - Math.PI;   // the short way round
+  return da;
+}
 // which way a clicked face points, snapped to the nearest square direction
 el.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
@@ -2973,6 +3074,7 @@ el.addEventListener('pointerdown', e => {
     const dirW = new T.Vector3(p.z, 0, -p.x);
     const sd = toScreen(p.clone().add(dirW.clone().multiplyScalar(0.01))).sub(toScreen(p)).divideScalar(0.01);
     drag = { kind, x: e.clientX, y: e.clientY, sd };
+    if (kind === 'ratchet' || kind === 'thimble') knobGrab(drag, p, new T.Vector3(0, 1, 0));
     stopAnim();
     if (kind === 'ratchet'){ endCoach(); state.slipAcc = 0; }
   }
@@ -2995,7 +3097,7 @@ el.addEventListener('pointermove', e => {
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.x = e.clientX; drag.y = e.clientY;
   const l2 = drag.sd.lengthSq();
-  let du = l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dx*0.01;
+  let du = drag.plane ? knobTurn(e, drag) : l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dx*0.01;
   if (e.shiftKey) du *= 0.2;
   if (fineOn) du *= FINE_K;
   tryTurn(-du/(TPI*TAU), drag.kind);
@@ -3128,7 +3230,7 @@ function bindUI(){
   $('openQuick').addEventListener('click', () => { state.seq = null; ratchetClose(); });
   $('cutBtn').addEventListener('click', () => { state.cut = !state.cut; applyCut(); });
   $('tableBtn').addEventListener('click', () => setTable(!tableOff));
-  setTable(tableOff);
+  setTable(tableOff, true);
   $('faceBtn').addEventListener('click', () => setFaceMode(!faceMode));
   el.addEventListener('pointerleave', () => { if (faceHL.visible){ hideFaceHL(); invalidate(); } });
   $('sectionChk').addEventListener('change', e => { state.cut = e.target.checked; applyCut(); });
@@ -3152,8 +3254,8 @@ function bindUI(){
   document.querySelectorAll('[data-units]').forEach(b => b.addEventListener('click', () => setUnits(b.dataset.units)));
   setUnits(units);
   bindFolds();
-  $('sampleSel').addEventListener('change', e => newSample(e.target.value));
-  $('newVals').addEventListener('click', () => { if (state.sampleKey !== 'none') newSample(state.sampleKey, true); });
+  $('sampleSel').addEventListener('change', e => changePart(e.target.value));
+  $('newVals').addEventListener('click', () => { if (state.sampleKey !== 'none') changePart(state.sampleKey, true); });
   $('revealBtn').addEventListener('click', () => { if (state.sample){ state.sample.revealed = !state.sample.revealed; renderFeats(); } });
   $('feats').addEventListener('click', e => { const sel = e.target.closest('[data-select]'); if (sel) goToFeature(sel.dataset.select, true); });
   $('practiceBtn').addEventListener('click', () => setPractice(!state.practice));
@@ -3232,6 +3334,7 @@ let leverAngle = 0, dim = 0, time = 0, lastSig = '', shadowPending = true, frame
 const perf = [];
 function adaptResolution(now){
   const dt = now - lastRenderT; lastRenderT = now;
+  if (camTween){ perf.length = 0; return; }   // never resize mid-glide
   if (dt > 120){ perf.length = 0; return; }
   perf.push(dt);
   if (perf.length < 60) return;
@@ -3340,11 +3443,106 @@ function tick(now){
   adaptResolution(now || performance.now());
 }
 
+// "Show me" marks the ratchet stop while it has you close the tool by hand: the ratchet breathes blue, and a
+// thin 270° band with a flat head circles just outside it, turning slowly the way the ratchet tightens
+// (it turns negative about +y, running the rod down). The band is depth-tested like the rest of the tool,
+// so it passes behind the ratchet on the far side, and both follow the ratchet as the thimble travels.
+let guideArrow = null, guideGlow = [], guideArrowOn = false;
+window.__guideArrow = on => {
+  guideArrowOn = !!on;
+  if (!on){
+    if (guideArrow) guideArrow.visible = false;
+    guideGlow.forEach(g => { g.visible = false; });
+    dirty = true; return;
+  }
+  // the tool is rebuilt when the frame or rod size changes: build the band and glow again for the new ratchet
+  if (guideArrow && guideArrow.userData.for !== ratchetG){ scene.remove(guideArrow); guideArrow = null; guideGlow = []; }
+  if (!guideArrow){
+    const box = new T.Box3();
+    ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) box.expandByObject(o); });
+    const sz = box.getSize(new T.Vector3()), rr = Math.max(sz.x, sz.z) / 2;
+    const r = rr * 1.12, tube = rr * 0.045;               // just clear of the knurl, as thin as the ratchet reminder's rings
+    const mat = new T.MeshBasicMaterial({ color: 0x5b93ea, toneMapped: false });
+    const spin = new T.Group();
+    spin.add(new T.Mesh(new T.TorusGeometry(r, tube, 8, 96, Math.PI * 1.5), mat));
+    // the head sits at the start of the band and points the way the band turns; flattened to lie along the band
+    const head = new T.Mesh(new T.ConeGeometry(tube * 3.2, tube * 9, 16), mat);
+    head.position.set(r, -tube * 4.5, 0); head.rotation.z = Math.PI; head.scale.z = 0.45;
+    spin.add(head);
+    spin.traverse(o => { o.userData.noShadow = true; o.raycast = () => {}; });
+    guideArrow = new T.Group(); guideArrow.add(spin);
+    guideArrow.rotation.x = -Math.PI / 2;   // the band's own axis (z) along the spindle
+    guideArrow.userData.spin = spin; guideArrow.userData.for = ratchetG;
+    scene.add(guideArrow);
+    // the breathing blue: a see-through shell on each piece of the ratchet, added on top of its own color
+    const glowMat = new T.MeshBasicMaterial({ color: 0x5b93ea, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, toneMapped: false });
+    ratchetG.children.forEach(o => {
+      if (!o.isMesh || o.userData.ownMat) return;
+      const g = new T.Mesh(o.geometry, glowMat);
+      g.userData.noShadow = true; g.userData.ownMat = true; g.raycast = () => {};
+      o.add(g); guideGlow.push(g);
+    });
+    guideGlow.mat = glowMat;
+  }
+  guideArrow.visible = true;
+  guideGlow.forEach(g => { g.visible = true; });
+  let last = performance.now();
+  const step = t => {
+    if (!guideArrowOn || !guideArrow.visible) return;
+    const dt = Math.min(0.05, (t - last) / 1000); last = t;
+    guideArrow.position.copy(guideRatchetCenter());
+    guideArrow.userData.spin.rotation.z -= dt * 1.4;   // negative about the spindle axis: the tightening way
+    guideGlow.mat.opacity = 0.12 + 0.3 * (0.5 + 0.5 * Math.sin(t / 1000 * 2.6));
+    dirty = true;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+};
+// the middle of the ratchet itself (not the band or the glow on it)
+function guideRatchetCenter(){
+  const b = new T.Box3();
+  ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) b.expandByObject(o); });
+  return b.getCenter(new T.Vector3());
+}
+// "Show me" has the tool put the part in place by itself (the first feature slid under the base and the
+// base seated, the rod run down to just short of the floor), so the person only has to finish it by hand
+window.__guidePlacePart = () => {
+  const S = state.sample, f = S && S.feats.find(x => x.valid);
+  if (!f) return false;
+  goToFeature(f.id, 'near');   // the rod stops just short, so it's less than a turn to run it down by hand
+  return true;
+};
+// "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
+// reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
+window.__guideSpot = name => {
+  let p = null;
+  // what can still be seen below the thimble: the first number showing, and the gap of lines between it and the edge
+  if (name === 'nextNum' || name === 'openLines'){
+    const a = Math.floor(Math.round(state.reading*1000)/100), Rr = SLV_R + 0.004, yN = Y_ZERO - (a + 1)*0.1;
+    p = name === 'nextNum' ? cylAnchor(yN, Rr, -(0.098 + 0.03)/Rr).p : cylAnchor((yN + edgeY())/2, Rr, -(0.055*0.7)/Rr).p;
+  }
+  const e = p ? null : (typeof examList === 'function' ? examList() : EXAM).find(x => x[0] === name);
+  if (e) p = e[2]().p;
+  else if (!p && typeof errAnchor === 'function') { try { p = errAnchor(name).p; } catch (err) {} }
+  if (!p) return null;
+  const v = p.clone().project(camera), r = renderer.domElement.getBoundingClientRect();
+  if (v.z > 1 || v.z < -1) return null;
+  return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+};
+// and where a reading mark sits on the flat view: a box in page coordinates, or null while it is shut
+window.__guideFlatSpot = name => {
+  const b = flatOpen && flatSpots[name], cv = $('flatCv');
+  if (!b || !cv || !cv.clientWidth) return null;
+  const r = cv.getBoundingClientRect(), sx = r.width/260, sy = r.height/280;
+  return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
+};
 function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   atlas = makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
   controls = new T.OrbitControls(camera, el);
   controls.enableDamping = true; controls.dampingFactor = 0.14;
+  if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, el);   // turn round what is under the pointer (js/pivot.js)
   controls.screenSpacePanning = true;
   controls.minZoom = 0.3; controls.maxZoom = 60; controls.zoomSpeed = 1.3;
   controls.addEventListener('start', () => { camTween = null; camUser = true; if (state.exam && controls.autoRotate) setSpin(false); });

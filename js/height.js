@@ -11,6 +11,7 @@ if (document.readyState === 'loading') await new Promise(r => document.addEventL
 window.__load && window.__load.set(0.55, 'Building the height gage…');
 
 const T = THREE, TAU = Math.PI*2, IN = 25.4;
+const Dissolve = window.__dissolveFx(T);   // parts and the table dissolve in and out (js/dissolve.js)
 const $ = id => document.getElementById(id);
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
@@ -93,7 +94,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent) continue;
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -120,6 +121,7 @@ const VIEW_H = 700, CAM_BACK = 4000;
 const camera = new T.OrthographicCamera(-1, 1, 1, -1, 1, 20000);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true; controls.dampingFactor = 0.1;
+if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, renderer.domElement);   // turn round what is under the pointer (js/pivot.js)
 controls.screenSpacePanning = true;
 controls.minZoom = 0.25; controls.maxZoom = 40;
 
@@ -371,8 +373,13 @@ const HL = {};
 
 let tableMesh = null;
 // the table button: shows or hides the granite table, remembered between visits
-function setTable(off){
-  if (tableMesh) tableMesh.visible = !off;
+function setTable(off, instant){
+  if (tableMesh){
+    const was = !tableMesh.visible, fx = { frame: () => invalidate(120), cells: 60 };
+    if (instant || was === off) tableMesh.visible = !off;
+    else if (off) Dissolve.out(tableMesh, Object.assign(fx, { done: () => { if ($('tableBtn').getAttribute('aria-pressed') === 'true') tableMesh.visible = false; } }));
+    else { tableMesh.visible = true; Dissolve.in(tableMesh, fx); }
+  }
   const b = $('tableBtn'), t = off ? 'Show the table' : 'Hide the table';
   b.setAttribute('aria-pressed', String(off)); b.setAttribute('aria-label', t);
   b.dataset.tip = t + (off ? '\nPuts the granite table back under the gage.' : '\nTakes the granite table out of the picture.');
@@ -548,7 +555,11 @@ function hlOn(parent, color, geos){
   const m = new T.Mesh(geos[0], hlMat(color));
   m.visible = false; m.renderOrder = 5;
   parent.add(m);
-  return { set(i){ if (i < 0 || i >= geos.length){ m.visible = false; return; } m.geometry = geos[i]; m.visible = true; } };
+  return {
+    set(i){ if (i < 0 || i >= geos.length){ m.visible = false; return; } m.geometry = geos[i]; m.visible = true; },
+    // where line i sits, in the page's 3D space (for "Show me" to point at)
+    at(i){ const g = geos[i]; if (!g) return null; if (!g.boundingBox) g.computeBoundingBox(); parent.updateWorldMatrix(true, false); return parent.localToWorld(g.boundingBox.getCenter(new T.Vector3())); }
+  };
 }
 
 /* ---------- parts on the plate: boxes and cylinders standing on y = 0 ---------- */
@@ -683,7 +694,12 @@ function partMeshes(P, mat){
   return S.map(s => ({ mesh: s.t === 'box' ? rbox(s.x0, s.x1, 0, s.y1, s.z0, s.z1, 0.6, mat) : cyl(s.r, 0, s.y1, 'y', [s.cx, s.cz], mat, 64), solids: [s] }));
 }
 function newPart(key, keepSel){
-  if (partG){ root.remove(partG); partG.traverse(o => { if (o.geometry) o.geometry.dispose(); }); partG = null; }
+  if (partG){
+    // the old part dissolves out where it was, then goes
+    const old = partG;
+    Dissolve.out(old, { frame: () => invalidate(120), done: () => { if (old.parent) old.parent.remove(old); old.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } });
+    partG = null;
+  }
   pickables.splice(0, pickables.length, ...pickables.filter(p => p.userData.kind !== 'part'));
   const D = PARTS[key], P = D.make();
   const prevSel = state.part && state.part.sel;
@@ -721,6 +737,7 @@ function newPart(key, keepSel){
   partG.position.set(state.px, 0, state.pz);
   renderFeats();
   liftForMove();
+  Dissolve.in(partG, { frame: () => invalidate(120) });
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // top of a solid if it reaches under a footprint (in part coordinates), else 0
@@ -856,7 +873,7 @@ function stepSeq(dt){
     if (faceH() < q.clear){ moveSlider(Math.min(q.clear - faceH(), Math.max(60, (q.clear - faceH())*6)*dt), true); return; }
     state.partTarget = { x: q.x, z: q.z }; q.stage = 'slide'; return;
   }
-  if (q.stage === 'slide'){ if (state.partTarget) return; q.stage = 'lower'; }
+  if (q.stage === 'slide'){ if (state.partTarget) return; if (q.hold){ state.seq = null; return; } q.stage = 'lower'; }
   if (q.stage === 'lower'){
     const before = state.hs;
     moveSlider(-Math.max(20, (state.hs - minHs())*5)*dt, true);
@@ -1279,7 +1296,7 @@ function orthoFor(pos, target){
 }
 function flyTo(pos, target, ms){
   const o = orthoFor(pos, target);
-  flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: o.p, t1: o.t, z1: o.z, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : (ms || 800) };
+  flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: o.p, t1: o.t, z1: o.z, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : (ms || 900) };
 }
 controls.addEventListener('start', () => { flight = null; if (state.exam && controls.autoRotate) setSpin(false); });
 // "Show me": a tight close-up on the exact line a practice step is about
@@ -1375,15 +1392,18 @@ function setView(name){
   // front and iso are both fitted to the gage and part, so neither backs off to take in the whole table
   if (name === 'front'){
     const fb = fitIso(new T.Vector3(0, 18, 1120).normalize(), new T.Vector3(10, 262, 0), CAM_BACK, fitBox(root));
-    flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 800 };
+    flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900 };
   }
   else if (name === 'vernier') flyTo([18, sy + 28, 215], [16, sy + 30, 6]);
   else if (name === 'scriber'){ const f = faceH(); flyTo([TIP_X0 - 70, f + 60, 190], [TIP_X0 + 10, f + 4, 5]); }
   else {
-    const box = fitBox(root), nutTop = state.hs + SCRIBE_DROP + SL_H + state.g + UNIT_H + 14;
-    box.max.y = Math.min(box.max.y, nutTop);          // iso frames the part and the gage up to the top of the nut
+    // iso frames the measuring: from the top of the slider's reading plates down to the scriber tip on the
+    // face it measures, with a little of the part around it; the beam above and the rest of the table run off
+    const box = fitBox(sliderG);
+    box.max.y = Math.min(box.max.y, state.hs + SCRIBE_DROP + SL_H + 4);   // the top of the slider, not the fine-feed screw above it
+    box.min.y = Math.min(box.min.y, (state.part ? tallest() : 0)) - 14; box.min.x -= 24;   // down to the part the scriber comes down onto
     const dir = new T.Vector3(660, 350, 1000).normalize(), fb = fitIso(dir, new T.Vector3(-20, 210, 0), CAM_BACK, box);
-    flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 800 };
+    flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900 };
   }
 }
 
@@ -1672,7 +1692,7 @@ function bindUI(){
   document.querySelectorAll('[data-move]').forEach(b => b.addEventListener('click', () => glide(parseFloat(b.dataset.move))));
   $('goBtn').addEventListener('click', goToReading);
   $('tableBtn').addEventListener('click', () => setTable($('tableBtn').getAttribute('aria-pressed') !== 'true'));
-  { let off = false; try { off = localStorage.getItem('pt-table-off') === '1'; } catch (e) {} setTable(off); }
+  { let off = false; try { off = localStorage.getItem('pt-table-off') === '1'; } catch (e) {} setTable(off, true); }
   $('setTo').addEventListener('keydown', e => { if (e.key === 'Enter') goToReading(); });
   document.querySelectorAll('[data-units]').forEach(b => b.addEventListener('click', () => setUnits(b.dataset.units)));
   setUnits(units);
@@ -1804,7 +1824,7 @@ function placeFlat(){
   el.classList.toggle('min', z.h < 96);
   if (z.h >= 96) apply(z);
 }
-let flatKey = '';
+let flatKey = '', flatSpots = {};
 // maximize: the flat view stretches to the full height of the 3D view (keeping its shape), and the
 // buttons in the top right move over so none of them sit on it
 let flatMax = false;
@@ -1930,6 +1950,13 @@ function drawFlatHG(){
     if (yi >= 20){ seg(X0 - (v % 5 === 0 ? 20 : 12), yi, X0, hi ? 3 : 1.1, hi ? C.ivern : '#111'); if (v % 5 === 0) txt(String(v), X0 - 32, yi, 10, hi ? '#0b5a2a' : '#1a1a1a'); }
     if (ym >= 20){ seg(X1, ym, X1 + (v % 5 === 0 ? 20 : 12), hm ? 3 : 1.1, hm ? C.mvern : '#111'); if (v % 5 === 0) txt(String(v/5), X1 + 32, ym, 10, hm ? '#0b2f66' : '#1a1a1a'); }
   }
+  // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units
+  {
+    const yi = Y(Math.floor(I.mainIdx/20)*20*IN_MAIN), yl = Y(I.mainIdx*IN_MAIN), yv = y0 - I.k*IN_VDIV*K;
+    const ym = Y(Math.floor(Mm.mainIdx/10)*10), yml = Y(Mm.mainIdx), ymv = y0 - Mm.k*MM_VDIV*K;
+    flatSpots = { inchNum: [X0 + 22, yi - 13, X0 + 58, yi + 13], mainLine: [X0 - 4, yl - 10, X0 + 38, yl + 10], vernLine: [X0 - 44, yv - 10, X0 + 38, yv + 10],
+      mmNum: [X1 - 58, ym - 13, X1 - 22, ym + 13], mmLine: [X1 - 38, yml - 10, X1 + 4, yml + 10], mvernLine: [X1 - 38, ymv - 10, X1 + 44, ymv + 10] };
+  }
   cornerText(g, 'Inch', 6, 9, { size: 10, col: '#c9ccd1' });
   cornerText(g, 'Metric', W - 6, 9, { size: 10, col: '#c9ccd1', align: 'right' });
   cornerText(g, 'Beam', (X0 + X1)/2, 9, { size: 10, col: '#8a8f97', align: 'center' });
@@ -1995,6 +2022,11 @@ function resize(){
 }
 new ResizeObserver(resize).observe(wrap);
 let prev = performance.now();
+// glideFlight: camera flights glide around what the camera looks at instead of cutting straight through
+// space: the point it looks at slides across, the view turns along the shortest arc, and the zoom changes by
+// the same ratio every moment. Bigger flights get a little more time, and any drag momentum left over is
+// settled first, so it can't pull against the glide.
+const _glideQ = new T.Quaternion();
 // The 3D view is drawn only when something in it can have changed, so a still gage costs next to
 // nothing: when a part or the scriber moves, the camera moves or eases, and for a moment after any
 // input (clicks, keys, the wheel, typing) since those can change colors and what shows. A slow
@@ -2006,6 +2038,7 @@ function invalidate(ms){ drawUntil = Math.max(drawUntil, performance.now() + (ms
 // steps the render scale down when drawing runs under ~48 fps, and back up when there is room
 function adaptResolution(now){
   const dt = now - lastRenderT; lastRenderT = now;
+  if (flight){ perf.length = 0; return; }   // never resize mid-glide
   if (dt > 120){ perf.length = 0; return; }
   perf.push(dt);
   if (perf.length < 40) return;
@@ -2062,9 +2095,26 @@ function tick(now){
   clampSliderG.rotation.x = state.sliderLocked ? 0.9 : 0;
   clampUnitG.rotation.x = state.unitLocked ? 0.9 : 0;
   if (flight){
-    const k = Math.min(1, (now - flight.start)/flight.ms), e = k < 0.5 ? 4*k*k*k : 1 - Math.pow(-2*k + 2, 3)/2;
-    camera.position.lerpVectors(flight.p0, flight.p1, e); controls.target.lerpVectors(flight.t0, flight.t1, e);
-    camera.zoom = flight.z0*Math.pow(flight.z1/flight.z0, e); camera.updateProjectionMatrix();
+    const f = flight;
+    if (!f.turn){
+      // a flight glides around what the camera looks at (see the note on glideFlight), timed to its size
+      controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+      f.t0 = controls.target.clone(); f.z0 = camera.zoom;
+      f.u0 = camera.position.clone().sub(f.t0); f.d0 = f.u0.length() || 1; f.u0.divideScalar(f.d0);
+      f.u1 = f.p1.clone().sub(f.t1); f.d1 = f.u1.length() || 1; f.u1.divideScalar(f.d1);
+      f.turn = new T.Quaternion().setFromUnitVectors(f.u0, f.u1);
+      if (f.ms > 1){
+        const seen = (camera.top - camera.bottom)/Math.max(f.z0, f.z1);
+        const ang = f.u0.angleTo(f.u1), zoom = Math.abs(Math.log(f.z1/f.z0)), slide = f.t0.distanceTo(f.t1)/Math.max(1e-6, seen);
+        f.ms = Math.min(1800, 800 + (ang*0.35 + zoom*0.35 + Math.min(slide, 3)*0.25)*1000);
+      }
+      f.start = now;
+    }
+    const k = Math.min(1, (now - f.start)/f.ms), e = k*k*k*(k*(k*6 - 15) + 10);   // smootherstep: a gentle start and landing
+    controls.target.lerpVectors(f.t0, f.t1, e);
+    _glideQ.identity().slerp(f.turn, e);
+    camera.position.copy(f.u0).applyQuaternion(_glideQ).multiplyScalar(f.d0*Math.pow(f.d1/f.d0, e)).add(controls.target);
+    camera.zoom = f.z0*Math.pow(f.z1/f.z0, e); camera.updateProjectionMatrix();
     if (k >= 1) flight = null;
   }
   const camMoved = controls.update() || !!flight;
@@ -2079,6 +2129,77 @@ function tick(now){
   adaptResolution(now);
 }
 
+// "Show me" has the tool put the part in place by itself (slid under the scriber with the scriber held up
+// clear of it), so the person only has to bring the slider down onto it by hand
+window.__guidePlacePart = () => {
+  const P = state.part;
+  if (!P) return false;
+  measureFeature(P.sel);
+  if (state.seq) state.seq.hold = true;
+  return true;
+};
+// "Show me" reads the inch scale the way a machinist does: the inch number, the main-scale line at or below
+// the vernier's 0, then the vernier line that lines up. These are where those marks sit right now.
+function guideWorld(name){
+  const I = splitIn(readingMM());
+  if (name === 'inchNum' || name === 'mainLine'){
+    const j = name === 'inchNum' ? Math.floor(I.mainIdx/20)*20 : I.mainIdx;
+    if (j < 0 || j > 240) return null;
+    scaleG.updateWorldMatrix(true, false);
+    return scaleG.localToWorld(new T.Vector3(name === 'inchNum' ? 10.6 : 3, SCALE_Y0 + j*IN_MAIN, BEAM_Z1 + 0.03));
+  }
+  if (name === 'mmNum' || name === 'mmLine'){
+    const M = splitMM(readingMM()), m = name === 'mmNum' ? Math.floor(M.mainIdx/10)*10 : M.mainIdx;
+    if (m < 0 || m > RANGE) return null;
+    scaleG.updateWorldMatrix(true, false);
+    return scaleG.localToWorld(new T.Vector3(name === 'mmNum' ? 19.2 : BEAM_X1 - 2, SCALE_Y0 + m, BEAM_Z1 + 0.03));
+  }
+  if (name === 'mvernLine') return HL.mvern.at(splitMM(readingMM()).k);
+  if (name === 'mvernZero') return HL.mvern.at(0);
+  if (name === 'mvernEnd') return HL.mvern.at(50);
+  if (name === 'vernLine') return HL.ivern.at(I.k);
+  if (name === 'vernZero') return HL.ivern.at(0);
+  if (name === 'vernEnd') return HL.ivern.at(50);
+  return null;
+}
+// fly the camera in, square to the scales, so the named marks fill the view with a little scale round them
+window.__guideFrame = names => {
+  const box = new T.Box3();
+  for (const n of names){ const p = guideWorld(n); if (p) box.expandByPoint(p); }
+  if (box.isEmpty()) return false;
+  box.expandByScalar(9);
+  const fb = fitIso(new T.Vector3(0.08, 0.05, 1).normalize(), box.getCenter(new T.Vector3()), CAM_BACK, box);
+  flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900 };
+  return true;
+};
+// while the scriber is being brought down by hand, the view keeps the slider and the part in frame: it fits
+// again after the slider has moved a fair way, but never mid-drag, so the gage never slides out from under the pointer
+let guideFitKey = '';
+window.__guideRefit = () => {
+  if (drag || flight) return;
+  const k = Math.round(state.hs/8) + ':' + Math.round(state.px) + ':' + Math.round(state.pz);
+  if (k === guideFitKey) return;
+  guideFitKey = k; setView('iso');
+};
+// "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
+// reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
+window.__guideSpot = name => {
+  let p = guideWorld(name);
+  const e = p ? null : (typeof examList === 'function' ? examList() : EXAM).find(x => x[0] === name);
+  if (e) p = e[2]().p;
+  else if (typeof errAnchor === 'function') { try { p = errAnchor(name).p; } catch (err) {} }
+  if (!p) return null;
+  const v = p.clone().project(camera), r = renderer.domElement.getBoundingClientRect();
+  if (v.z > 1 || v.z < -1) return null;
+  return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+};
+// and where a reading mark sits on the flat view: a box in page coordinates, or null while it is shut
+window.__guideFlatSpot = name => {
+  const b = flatOpen && flatSpots[name], cv = $('flatCv');
+  if (!b || !cv || !cv.clientWidth) return null;
+  const r = cv.getBoundingClientRect(), sx = r.width/260, sy = r.height/280;
+  return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
+};
 async function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   buildGage();

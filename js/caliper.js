@@ -11,6 +11,7 @@ if (document.readyState === 'loading') await new Promise(r => document.addEventL
 window.__load && window.__load.set(0.55, 'Building the caliper…');
 
 const T = THREE;
+const Dissolve = window.__dissolveFx(T);   // parts dissolve in and out (js/dissolve.js)
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const TAU = Math.PI * 2;
@@ -85,7 +86,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent) continue;
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -1157,7 +1158,7 @@ function outlineGeo(w, h, t) {
   return new T.ShapeGeometry(s);
 }
 const HL3 = {
-  inchBox: new T.Mesh(outlineGeo(0.12, 0.17, 0.014), hlMat(HLC.inch)),
+  inchBox: new T.Mesh(outlineGeo(0.13, 0.14, 0.014), hlMat(HLC.inch)),   // round the big inch number
   tenthTick: new T.Mesh(new T.PlaneGeometry(0.02, 0.2), hlMat(HLC.tenth)),
   tenthBox: new T.Mesh(outlineGeo(0.085, 0.13, 0.011), hlMat(HLC.tenth)),
   dialTick: new T.Mesh(new T.PlaneGeometry(0.016, 0.13), hlMat(HLC.dial)),
@@ -1236,7 +1237,7 @@ function updateHighlights() {
   Object.values(HLM).forEach(m => { m.visible = false; });
   const z = BT + 0.003;
   HL3.inchBox.visible = show && hl.inch;
-  HL3.inchBox.position.set(A.inch - 0.05, -0.2, z);
+  HL3.inchBox.position.set(A.inch - 0.05, -0.037, z);   // on the inch number itself (it ends just left of its line)
   const tx = A.inch + A.tenth / 10;
   HL3.tenthTick.visible = show && hl.tenth;
   HL3.tenthTick.position.set(tx, -0.197, z);
@@ -1264,7 +1265,11 @@ function hullMat(tool) {
   }));
 }
 function buildSample(type) {
-  if (sample.obj) { cal.remove(sample.obj); sample.obj.traverse(o => o.geometry && o.geometry.dispose()); }
+  if (sample.obj) {
+    // the old part dissolves out where it was (one still waiting off the caliper just goes)
+    const old = sample.obj, gone = () => { if (old.parent) old.parent.remove(old); old.traverse(o => o.geometry && o.geometry.dispose()); };
+    if (old.parent) Dissolve.out(old, { frame: () => invalidate(120), done: gone }); else gone();
+  }
   sample = { type, tool: null, size: 0, obj: null };
   const def = PARTS[type];
   if (!def) { refreshPartCard(); return; }
@@ -1594,7 +1599,7 @@ const MM_STEPS = [-1,-0.1,-0.02,1,0.1,0.02];
 const HL_TEXT = {
   inch: [['Inch number', 'Last whole inch the slider edge has passed'], ['Centimeter number', 'Last centimeter number the vernier zero has passed']],
   tenth: [null, ['Millimeter line', 'Last millimeter line left of the vernier zero']],
-  vern: [['Vernier line', 'The vernier line that meets a beam line, in thousandths'], ['Vernier line', 'The top-plate line that meets a beam line, in 0.05 mm']]
+  vern: [['Vernier line', 'The vernier line that meets a beam line, one thou (0.001″) per line'], ['Vernier line', 'The top-plate line that meets a beam line, in 0.05 mm']]
 };
 function syncHlCards() {
   const met = metric();
@@ -1708,9 +1713,10 @@ function autoMeasure() {
   if (!def) { toast('Choose a part first'); return; }
   if (state.sliderLocked) setSliderLock(false);
   const s = sample.size;
-  state.animQ = def.tool === 'od'
-    ? [{ to: Math.max(state.pos, s + 0.25), speed: 6 }, { to: s, speed: 2.5 }]
-    : [{ to: Math.min(state.pos, Math.max(0, s - 0.25)), speed: 6 }, { to: s, speed: 2.5 }];
+  // a part still waiting off the caliper goes on at the park position first, then the jaws or rod run in
+  const first = sample.staged ? clearTarget()
+    : def.tool === 'od' ? Math.max(state.pos, s + 0.25) : Math.min(state.pos, Math.max(0, s - 0.25));
+  state.animQ = [{ to: first, speed: 6 }, { to: s, speed: 2.5 }];
 }
 function stepAnim(dt) {
   if (sample.staged) {
@@ -1760,17 +1766,17 @@ function updateUI() {
   $('lcd').textContent = f3(n / 1000);
   $('lcdmm').textContent = (n / 1000 * 25.4).toFixed(2) + ' mm';
   $('vA').textContent = A.inch.toFixed(3); $('hA').textContent = `number “${A.inch}”`;
-  $('vB').textContent = (A.tenth / 10).toFixed(3); $('hB').textContent = `${A.tenth} line${A.tenth === 1 ? '' : 's'} × 0.100″`;
-  $('vC').textContent = (A.dial / 1000).toFixed(3); $('hC').textContent = `mark ${A.dial} × 0.001″`;
+  $('vB').textContent = (A.tenth / 10).toFixed(3); $('hB').textContent = `${A.tenth} line${A.tenth === 1 ? '' : 's'} × 100 thou`;
+  $('vC').textContent = (A.dial / 1000).toFixed(3); $('hC').textContent = `mark ${A.dial} = ${A.dial} thou`;
   // the vernier row has two more cells, so its hints are kept short enough not to truncate
-  if (isVern()) $('hB').textContent = `${A.tenth} × 0.100″`;
-  $('vS').textContent = (A.sub * 25 / 1000).toFixed(3); $('hS').textContent = `${A.sub} × 0.025″`;
-  $('vV').textContent = (A.vern / 1000).toFixed(3); $('hV').textContent = `line ${A.vern}`;
+  if (isVern()) $('hB').textContent = `${A.tenth} × 100 thou`;
+  $('vS').textContent = (A.sub * 25 / 1000).toFixed(3); $('hS').textContent = `${A.sub} × 25 thou`;
+  $('vV').textContent = (A.vern / 1000).toFixed(3); $('hV').textContent = `line ${A.vern} × 1 thou`;
   $('vT').textContent = f3(n / 1000);
   // metric on the vernier: centimeters + millimeter lines + vernier line, all in mm
   const met = metric(), cellOf = id => $(id).closest('.cell');
   cellOf('vA').querySelector('.k').textContent = met ? 'Centimeters' : 'Inches';
-  cellOf('vB').querySelector('.k').textContent = met ? 'Millimeters' : 'Tenths';
+  cellOf('vB').querySelector('.k').textContent = met ? 'Millimeters' : 'Hundred thou';
   cellOf('vS').style.display = cellOf('vS').previousElementSibling.style.display = met ? 'none' : '';
   cellOf('vT').querySelector('.h').textContent = met ? 'millimeters' : 'inches';
   document.querySelector('#reading .answer .unit').textContent = met ? 'mm' : 'in';
@@ -1923,21 +1929,66 @@ function fitIsoIn(dir, target, dist, box, free){
   place();
   return { target: tg, zoom: cam.zoom, pos: cam.position.clone() };
 }
+// iso with a part in the jaws frames the measuring: from the jaw tips to just past the slider (the dial or
+// the vernier plate and thumb wheel), part included, and the rest of the beam runs off the side. With no
+// part, a part still waiting off the caliper, or a depth part (the rod is out at the far end): the whole tool.
+const depthPart = () => !!sample.obj && !sample.staged && sample.tool === 'depth';
+function isoBox(){
+  const whole = fitBox(cal);
+  // a depth part: the far end of the beam, where the rod comes out, and the part it's measuring
+  if (depthPart()) {
+    // the end of the beam (just its bar, not the jaws hanging below the slider) and the whole part it sits on
+    const b = new T.Box3().setFromObject(sample.obj);
+    b.expandByPoint(new T.Vector3(XR - 1.8, 0.35, BT)); b.expandByPoint(new T.Vector3(XR - 1.8, -0.35, -BT));
+    return b;
+  }
+  if (!sample.obj || sample.staged) return whole;
+  // the thumb wheel is the slider's far end (its box would run on with the depth rod, out to the beam end)
+  const b = whole.clone(); b.max.x = Math.min(whole.max.x, state.pos + 3.15);
+  return b;
+}
+let curView = 'iso';   // the view last asked for; cleared once the user moves the camera themselves
+// the view after the part changes, while the camera is still following the part: the depth rod works at the far
+// end of the beam, so a depth part turns the camera round to the rod and the part there; anything else gets the
+// fitted iso view (the jaws and reading, or the whole tool when there's no part)
+function frameForPart() {
+  if (curView !== 'iso') return;
+  setView('iso');
+}
 function setView(name, instant) {
   const v = viewFor(name);
+  curView = name;
   let toPos = v.target.clone().add(v.dir.clone().normalize().multiplyScalar(v.dist));
-  if (name === 'iso' || name === 'front'){ const f = fitIso(v.dir.clone().normalize(), v.target, v.dist, fitBox(cal)); toPos = f.pos; v.target = f.target; }
+  if (name === 'iso' && depthPart()) v.dir = new T.Vector3(-0.35, 0.6, 1);   // in front of the beam end, a little behind it and about 30° up: the rod runs into the part in plain sight
+  if (name === 'iso' || name === 'front'){ const f = fitIso(v.dir.clone().normalize(), v.target, v.dist, name === 'iso' ? isoBox() : fitBox(cal)); toPos = f.pos; v.target = f.target; }
   if (instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     camera.position.copy(toPos); controls.target.copy(v.target); controls.update(); camTween = null; return;
   }
   camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget: v.target };
 }
+// Camera moves glide around what the camera looks at instead of cutting straight through space: the point
+// it looks at slides across, the view turns along the shortest arc, and the distance (or zoom) changes by the
+// same ratio every moment, so zooming in 4x feels as even as zooming in 2x. Bigger moves get a little more
+// time, so every move reads at the same easy pace, and it starts and lands gently (smootherstep). Any drag
+// momentum left over is settled first, so it can't pull against the glide.
+const _glideQ = new T.Quaternion();
 function stepCam(dt) {
   if (!camTween) return;
-  const c = camTween; c.t = Math.min(1, c.t + dt / 0.6);
-  const e = c.t < 0.5 ? 2 * c.t * c.t : 1 - Math.pow(-2 * c.t + 2, 2) / 2;
+  const c = camTween;
+  if (!c.dur) {
+    controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+    c.fromPos = camera.position.clone(); c.fromTarget = controls.target.clone();
+    c.u0 = c.fromPos.clone().sub(c.fromTarget); c.d0 = c.u0.length() || 1; c.u0.divideScalar(c.d0);
+    c.u1 = c.toPos.clone().sub(c.toTarget); c.d1 = c.u1.length() || 1; c.u1.divideScalar(c.d1);
+    c.turn = new T.Quaternion().setFromUnitVectors(c.u0, c.u1);
+    const ang = c.u0.angleTo(c.u1), zoom = Math.abs(Math.log(c.d1 / c.d0)), slide = c.fromTarget.distanceTo(c.toTarget) / Math.min(c.d0, c.d1);
+    c.dur = Math.min(1.8, 0.8 + ang * 0.35 + zoom * 0.35 + slide * 0.25);
+  }
+  c.t = Math.min(1, c.t + dt / c.dur);
+  const e = c.t * c.t * c.t * (c.t * (c.t * 6 - 15) + 10);
   controls.target.lerpVectors(c.fromTarget, c.toTarget, e);
-  camera.position.lerpVectors(c.fromPos, c.toPos, e);
+  _glideQ.identity().slerp(c.turn, e);
+  camera.position.copy(c.u0).applyQuaternion(_glideQ).multiplyScalar(c.d0 * Math.pow(c.d1 / c.d0, e)).add(controls.target);
   if (c.t >= 1) camTween = null;
 }
 
@@ -1946,12 +1997,12 @@ const V3 = (x, y, z) => new T.Vector3(x, y, z);
 const N3 = (x, y, z) => new T.Vector3(x, y, z).normalize();
 const EXAM = [
   ['Beam', 'Hardened stainless bar', () => ({ p: V3(6.6, 0.28, BT), n: N3(0.2, 1, 0.6) })],
-  ['Main scale', 'Numbers are inches, lines are 0.100″', () => ({ p: V3(Math.max(0.3, state.pos - 0.45), -0.2, BT), n: N3(-0.3, -1, 0.7) })],
+  ['Main scale', 'Numbers are inches, lines are 100 thou', () => ({ p: V3(Math.max(0.3, state.pos - 0.45), -0.2, BT), n: N3(-0.3, -1, 0.7) })],
   ['Reading edge', 'Read the beam at this edge', () => ({ p: V3(state.pos, -0.12, 0.18), n: N3(0.2, -1, 0.6) })],
   ['Fixed outside jaw', 'Stationary measuring face', () => ({ p: V3(-0.3, -1.3, BT), n: N3(-1, -0.2, 0.6) })],
   ['Moving outside jaw', 'Travels with the slider', () => ({ p: V3(state.pos + 0.3, -1.5, BT), n: N3(1, -0.4, 0.6) })],
   ['Inside jaws', 'Measure bores and slot widths', () => ({ p: V3(-0.45, 0.78, 0.05), n: N3(-0.6, 1, 0.4) })],
-  ['Dial', '0.001″ per mark · 0.100″ per turn', () => ({ p: V3(state.pos + 1.4, 0.55, 0.47), n: N3(1, 0.8, 0.8) })],
+  ['Dial', 'One thou per mark · 100 thou per turn', () => ({ p: V3(state.pos + 1.4, 0.55, 0.47), n: N3(1, 0.8, 0.8) })],
   ['Bezel', 'Turn it to zero the dial', () => ({ p: V3(state.pos + 0.4, 0.78, 0.45), n: N3(-0.6, 1, 0.5) })],
   ['Slider lock screw', 'Holds the slider in place', () => ({ p: V3(state.pos + 1.45, 0.66, 0), n: N3(0.3, 1, 0.2) })],
   ['Bezel lock screw', 'Holds the dial face in place', () => ({ p: V3(state.pos + 1.2, -0.86, 0.27), n: N3(0, -1, 0.4) })],
@@ -1961,8 +2012,8 @@ const EXAM = [
 ];
 const EXAM_V = [
   ['Beam', 'Hardened stainless bar', () => ({ p: V3(6.9, 0.29, BT), n: N3(0.2, 1, 0.6) })],
-  ['Main scale', 'Inches along the bottom edge: digits are 0.100″, lines are 0.025″', () => ({ p: V3(Math.max(0.3, state.pos - 0.3), -0.1, BT), n: N3(-0.3, -1, 0.7) })],
-  ['Vernier scale', '25 lines, 0.001″ each', () => ({ p: V3(state.pos + VZ0 + 0.45, -0.33, VPZ), n: N3(0.3, -1, 0.7) })],
+  ['Main scale', 'Inches along the bottom edge: digits are 100 thou, lines are 25 thou', () => ({ p: V3(Math.max(0.3, state.pos - 0.3), -0.1, BT), n: N3(-0.3, -1, 0.7) })],
+  ['Vernier scale', '25 lines, one thou each', () => ({ p: V3(state.pos + VZ0 + 0.45, -0.33, VPZ), n: N3(0.3, -1, 0.7) })],
   ['Vernier zero', 'Read the beam at this line', () => ({ p: V3(state.pos + VZ0, VEDGE - 0.03, VPZ), n: N3(-0.5, -1, 0.6) })],
   ['Metric scale', 'Millimeters along the top edge', () => ({ p: V3(Math.max(0.3, state.pos - 0.4), 0.12, BT), n: N3(-0.3, 1, 0.7) })],
   ['Metric vernier', '20 lines, 0.05 mm each', () => ({ p: V3(state.pos + VZ0 + 0.9, 0.285, VPZ), n: N3(0.3, 1, 0.7) })],
@@ -1993,7 +2044,7 @@ function setSpin(on) { controls.autoRotate = on; controls.autoRotateSpeed = 0.8;
 function setLabels(on) { examLabels = on; $('labelsBtn').setAttribute('aria-pressed', String(on)); examTags.forEach(t => { t.dot.hidden = t.box.hidden = !on; t.ln.style.display = on ? '' : 'none'; }); }
 
 // practice mistakes: tags pointing at the marks that were misread
-const ERR_INFO = { inch: ['Inch number', HLC.inch], tenth: ['Tenth line', HLC.tenth], dial: ['Dial mark', HLC.dial], sub: ['0.025″ lines', HLC.sub], vern: ['Vernier line', HLC.vern] };
+const ERR_INFO = { inch: ['Inch number', HLC.inch], tenth: ['Hundred thou line', HLC.tenth], dial: ['Dial mark', HLC.dial], sub: ['25-thou lines', HLC.sub], vern: ['Vernier line', HLC.vern] };
 function dialMarkWorld(mark, r) {
   const a = mark / 100 * TAU, lx = r * Math.sin(a), ly = r * Math.cos(a), c = Math.cos(state.bezel), s = Math.sin(state.bezel);
   return V3(state.pos + 0.95 + lx * c - ly * s, 0.22 + lx * s + ly * c, 0.47);
@@ -2013,7 +2064,7 @@ function errAnchor(k) {
     if (k === 'sub') return { p: V3(xt + A.sub * VDIV, -0.16, BT), n: N3(0.2, 1, 0.8), label: `${A.sub} small line${A.sub === 1 ? '' : 's'} past the digit` };
     return { p: V3(state.pos + VZ0 + A.vern * VSTEP, VEDGE - 0.07, VPZ), n: N3(0.2, -1, 0.8), label: `Line ${A.vern} lines up` };
   }
-  if (k === 'inch') return { p: V3(A.inch - 0.05, -0.2, BT), n: N3(-0.4, -1, 0.8), label: `“${A.inch}” is the last inch number passed` };
+  if (k === 'inch') return { p: V3(A.inch - 0.05, -0.037, BT), n: N3(-0.4, 1, 0.8), label: `“${A.inch}” is the last inch number passed` };
   if (k === 'tenth') return { p: V3(A.inch + A.tenth / 10, -0.28, BT), n: N3(0.1, -1, 0.8), label: `${A.tenth} line${A.tenth === 1 ? '' : 's'} past “${A.inch}”` };
   const p = dialMarkWorld(A.dial, 0.6);
   return { p, n: V3(p.x - state.pos - 0.95, p.y - 0.22, 0.9).normalize(), label: `Needle on mark ${A.dial}` };
@@ -2051,7 +2102,7 @@ function updateOverlays() {
 }
 
 /* ================================================================== flat view: beam at the slider edge + dial face */
-let flatOpen = true, flatKey = '';
+let flatOpen = true, flatKey = '', flatSpots = {};
 // glide the flat view between its open and folded sizes instead of snapping
 function animateFlat(apply, done){
   const el = $('flat'), cv = $('flatCv');
@@ -2138,6 +2189,12 @@ function drawFlat() {
   g.fillStyle = 'rgba(255,255,255,.55)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textAlign = 'left';
   g.fillText('Dial', 6, bt + bh + 16);
 
+  // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units
+  {
+    const xi = clamp(X(A.inch) - 15, 14, ex - 10), xt = X(A.inch + A.tenth / 10), [dx, dy] = at(A.dial, R - 10);
+    flatSpots = { inch: hintBox ? [2, bt + 2, 204, bt + 24] : [xi - 18, base - 76, xi + 18, base - 44],
+      tenth: [xt - 26, base - 82, xt + 8, base + 6], dial: [dx - 22, dy - 22, dx + 22, dy + 22] };
+  }
   // arrows at the marks that were misread
   // the printed BEAM / SLIDER / DIAL words count as taken, so no callout covers them
   const placed = [{ x: 4, y: bt + bh - 14, w: 34, h: 12 }, { x: ex + 4, y: bt + bh - 14, w: 44, h: 12 }, { x: 4, y: bt + bh + 9, w: 28, h: 12 }];
@@ -2147,7 +2204,7 @@ function drawFlat() {
   const onSlider = { x: ex + 6, y: bt + 4, w: W - ex - 10, h: bh - 22 };
   for (const kk of ['tenth', 'inch', 'dial'].filter(q => state.pErr.includes(q))) {
     if (kk === 'inch') arrow(clamp(X(A.inch) - 15, 14, ex - 10), base - 74, 0.2, -0.98, HLC.inch, 'Inch ' + A.inch);
-    else if (kk === 'tenth') arrow(X(A.inch + A.tenth / 10), base - 20, 1, 0, HLC.tenth, 'Tenth line', onSlider);
+    else if (kk === 'tenth') arrow(X(A.inch + A.tenth / 10), base - 20, 1, 0, HLC.tenth, 'Hundred thou line', onSlider);
     else if (kk === 'dial') {
       // the arrow stops at the rim, pointing in at the mark, and its label sits outside the dial
       const [x, y] = at(A.dial, R + 6);
@@ -2285,6 +2342,8 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
     txt(s, vx, yE - 44.5, 10, '#fff');
     seg(vx, yE - 12, vx, yE - 38, 1.4, HLC.vern);
   }
+  { const xc = clamp(Xm(M.cm * 10), 14, W - 14), xm = Xm(M.whole);   // for "Show me": boxes round each reading mark
+    flatSpots = { inch: [xc - 16, yE + 42, xc + 16, yE + 76], tenth: [xm - 10, yE - 4, xm + 10, yE + 34], vern: [vx - 14, yE - 52, vx + 14, yE + 26] }; }
   if (show && hl.inch && Xm(M.cm * 10) < -6) cornerText(g, `← “${M.cm}” is ${(P - M.cm * 10).toFixed(1)} mm left`, 6, bot - 9, { size: 11, col: '#6b5300', up: true, region: { x: 0, y: yE, w: W, h: bot - yE } });
   g.fillStyle = 'rgba(0,0,0,.55)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textBaseline = 'alphabetic';
   const labRight = !tagV || vx < W / 2;
@@ -2300,10 +2359,12 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   g.fillStyle = '#aab0b6'; g.fillRect(0, L0, W, lm - L0);
   g.fillStyle = '#dfe2e5'; g.fillRect(0, lm, W, L1 - lm);
   g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, lm - 1.5, W, 1.5);
+  // beam millimeter lines below the edge, each with its millimeter number; the vernier above has its own
   for (let m = Math.floor(vC - 4); m <= Math.ceil(vC + 4); m++) {
     if (m < 0) continue;
     const x = Lx(m), hot = show && hl.vern && m === jm;
-    seg(x, lm, x, L1 - 6, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm + 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    txt(String(m), x, lm + 40, hot ? 13 : m % 10 === 0 ? 12 : 10.5, hot ? HLC.vern : '#111');
   }
   for (let q = 0; q <= 20; q++) {
     const x = Lx(P + q * 1.95);
@@ -2366,6 +2427,8 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   }
   // the aligned line's number sits on its own row below, so it never crowds the 0/5/10… labels
   const vx = ex + A.vern * VSTEP * k, tagV = show && hl.vern && A.vern % 5 !== 0;
+  { const xi = clamp(Xv(A.inch), 14, W - 14), xt = Xv(tenthV), xs = Xv(subV);   // for "Show me": boxes round each reading mark
+    flatSpots = { inch: [xi - 16, yE - 76, xi + 16, yE - 42], tenth: [xt - 12, yE - 54, xt + 12, yE + 4], sub: [xs - 12, yE - 38, xs + 12, yE + 4], vern: [vx - 16, yE - 34, vx + 16, yE + 26] }; }
   if (tagV) {
     g.font = '700 10.5px Inter, Arial, sans-serif'; const w = g.measureText(String(A.vern)).width + 8;
     g.fillStyle = HLC.vern; g.fillRect(vx - w / 2, yE + 38, w, 13);
@@ -2388,10 +2451,14 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   g.fillStyle = '#dfe2e5'; g.fillRect(0, L0, W, lm - L0);
   g.fillStyle = '#aab0b6'; g.fillRect(0, lm, W, L1 - lm);
   g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, lm, W, 1.5);
+  // beam lines above the edge, labeled as the beam reads: the inch number, the hundred-thou digit,
+  // and how many thou the short lines between digits add; the vernier lines below carry their own numbers
   for (let i = Math.floor((vC - 0.05) / VDIV); i <= Math.ceil((vC + 0.05) / VDIV); i++) {
     if (i < 0) continue;
     const x = Lx(i * VDIV), hot = show && hl.vern && i === j;
-    seg(x, lm, x, L0 + 6, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm - 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    const lab = i % 40 === 0 ? i / 40 + '″' : i % 4 === 0 ? String((i / 4) % 10) : '+' + (i % 4) * 25;
+    txt(lab, x, lm - 40, hot ? 13 : i % 4 === 0 ? 12 : 10.5, hot ? HLC.vern : '#111');
   }
   for (let m = 0; m <= 25; m++) {
     const x = Lx(pos + m * VSTEP);
@@ -2406,7 +2473,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
     g.fillStyle = 'rgba(11,12,14,.82)'; g.fillRect(x0, y - 7, w, 14);
     g.fillStyle = '#e4e6ea'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(s, x0 + 5, y + 0.5);
   };
-  pill('Magnified ×10', 10, L0 + 12);
+  pill('Magnified ×10', 10, L0 + 9);
   pill(show ? 'Blue line meets a beam line' : 'Which line meets a beam line?', W - 10, L1 - 11, 'right');
   g.restore();
   g.strokeStyle = '#3a3e44'; g.lineWidth = 1;
@@ -2415,24 +2482,26 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   const placed = [];
   for (const kk of state.pErr) {
     if (kk === 'inch') flatArrow(g, W, H, clamp(Xv(A.inch), 14, W - 14), yE - 72, 0.3, -0.95, HLC.inch, 'Inch ' + A.inch, placed);
-    else if (kk === 'tenth') flatArrow(g, W, H, Xv(tenthV), yE - 52, -0.5, -0.86, HLC.tenth, 'Tenth ' + A.tenth, placed);
-    else if (kk === 'sub') flatArrow(g, W, H, Xv(subV), yE - 18, 0.55, -0.83, HLC.sub, A.sub + ' × .025', placed);
+    else if (kk === 'tenth') flatArrow(g, W, H, Xv(tenthV), yE - 52, -0.5, -0.86, HLC.tenth, A.tenth + ' × 100 thou', placed);
+    else if (kk === 'sub') flatArrow(g, W, H, Xv(subV), yE - 18, 0.55, -0.83, HLC.sub, A.sub + ' × 25 thou', placed);
     else if (kk === 'vern') flatArrow(g, W, H, ex + A.vern * VSTEP * k, yE + 20, 0.3, 0.95, HLC.vern, 'Line ' + A.vern, placed);
   }
 }
 
 /* ================================================================== parts from the sidebar */
-/* A new part never appears inside the jaws or the rod: it waits off the caliper ("staged") while the
-   slider moves somewhere the part will fit, and only then is put in place. */
-const CLEAR_GAP = 0.02;
+/* A new part never appears inside or against the jaws or the rod: it waits off the caliper ("staged") while
+   the slider parks well clear of it (outside jaws a quarter inch open past it, inside jaws a quarter inch
+   in from its walls, the depth rod all the way home), and only then is put in place. */
+const PARK_GAP = 0.25;
 function partClear() {
-  if (sample.tool === 'od') return state.pos >= sample.size + CLEAR_GAP;
-  if (sample.tool === 'id' || sample.tool === 'depth') return state.pos <= sample.size - CLEAR_GAP;
+  if (sample.tool === 'od') return state.pos >= sample.size + PARK_GAP - 1e-6;
+  if (sample.tool === 'id') return state.pos <= Math.max(0, sample.size - PARK_GAP) + 1e-6;
+  if (sample.tool === 'depth') return state.pos <= 1e-6;
   return true;
 }
 function clearTarget() {
-  if (sample.tool === 'od') return Math.max(state.pos, sample.size + 0.25);
-  if (sample.tool === 'id') return Math.min(state.pos, Math.max(0, sample.size - 0.25));
+  if (sample.tool === 'od') return Math.max(state.pos, sample.size + PARK_GAP);
+  if (sample.tool === 'id') return Math.min(state.pos, Math.max(0, sample.size - PARK_GAP));
   if (sample.tool === 'depth') return 0;
   return state.pos;
 }
@@ -2440,8 +2509,10 @@ function unstagePart() {
   if (!sample.staged) return;
   sample.staged = false;
   cal.add(sample.obj);
+  Dissolve.in(sample.obj, { frame: () => invalidate(120) });
   updateOutline();
   lastKey = ''; hlKey = ''; flatKey = '';
+  frameForPart();   // the part is on the caliper now: frame the measuring
 }
 function newSample(type) {
   if (state.sliderLocked) setSliderLock(false);
@@ -2455,8 +2526,27 @@ function newSample(type) {
   else setPos(state.pos, true);
   lastKey = ''; hlKey = ''; flatKey = '';
   if (def) toast(def.hint);
+  if (def && !sample.staged) Dissolve.in(sample.obj, { frame: () => invalidate(120) });   // already clear of the jaws: in it comes
+  if (!def || !sample.staged) frameForPart();   // no part: back to the whole tool
 }
-function removePart() { $('sampleSel').value = 'none'; newSample('none'); }
+function removePart() { $('sampleSel').value = 'none'; changePart('none'); }
+// Changing the part: the caliper lets go of the old one first, the way you would by hand: outside jaws open a
+// little, inside jaws close a little, and the depth rod goes all the way back in. Then the old part dissolves
+// away and the new one comes in. Asking again while it is letting go just changes which part comes next.
+let partSwap = null;
+function changePart(type) {
+  const holding = sample.obj && !sample.staged && sample.tool;
+  if (!holding || matchMedia('(prefers-reduced-motion: reduce)').matches) { partSwap = null; newSample(type); return; }
+  if (partSwap) { partSwap.type = type; return; }
+  if (state.sliderLocked) setSliderLock(false);
+  const to = sample.tool === 'od' ? Math.min(TRAVEL, state.pos + 0.15) : sample.tool === 'id' ? Math.max(0, state.pos - 0.15) : 0;
+  state.animQ = [{ to, speed: sample.tool === 'depth' ? 5 : 4 }];
+  const swap = partSwap = { type }, t0 = performance.now();
+  const go = () => { if (partSwap !== swap) return; partSwap = null; newSample(swap.type); };
+  const wait = () => { if (partSwap !== swap) return; if (state.animQ.length && performance.now() - t0 < 2500) requestAnimationFrame(wait); else go(); };
+  requestAnimationFrame(wait);
+  setTimeout(go, 2600);   // a timer backs up the frame callbacks, which stop while the page is not being painted
+}
 
 /* ================================================================== practice */
 let rhPracticeSet = false, lastPracticeKey = '';
@@ -2511,10 +2601,10 @@ const parseIn = s => parseFloat(String(s).replace(/[″"in\s]/g, ''));
 const pickOne = a => a[Math.floor(Math.random() * a.length)];
 const STEP_DEF = {
   inch:  { name: 'Inch number', css: 'var(--hl-inch)', hex: () => HLC.inch, val: A => A.inch * 1000, det: A => `number “${A.inch}”`, view: 'scale' },
-  tenth: { get name() { return isVern() ? 'Tenth digits' : 'Tenth lines'; }, css: 'var(--hl-tenth)', hex: () => HLC.tenth, val: A => A.tenth * 100, det: A => `${A.tenth} × 0.100″`, view: 'scale' },
-  dial:  { name: 'Dial', css: 'var(--hl-dial)', hex: () => HLC.dial, val: A => A.dial, det: A => `mark ${A.dial}`, view: 'dial' },
-  sub:   { name: '0.025″ lines', css: 'var(--hl-sub)', hex: () => HLC.sub, val: A => A.sub * 25, det: A => `${A.sub} × 0.025″`, view: 'scale' },
-  vern:  { name: 'Vernier', css: 'var(--hl-vern)', hex: () => HLC.vern, val: A => A.vern, det: A => `line ${A.vern}`, view: 'dial' }
+  tenth: { get name() { return isVern() ? 'Hundred thou digits' : 'Hundred thou lines'; }, css: 'var(--hl-tenth)', hex: () => HLC.tenth, val: A => A.tenth * 100, det: A => `${A.tenth} × 100 thou`, view: 'scale' },
+  dial:  { name: 'Dial', css: 'var(--hl-dial)', hex: () => HLC.dial, val: A => A.dial, det: A => `mark ${A.dial} = ${A.dial} thou`, view: 'dial' },
+  sub:   { name: '25-thou lines', css: 'var(--hl-sub)', hex: () => HLC.sub, val: A => A.sub * 25, det: A => `${A.sub} × 25 thou`, view: 'scale' },
+  vern:  { name: 'Vernier', css: 'var(--hl-vern)', hex: () => HLC.vern, val: A => A.vern, det: A => `line ${A.vern} = ${A.vern} thou`, view: 'dial' }
 };
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 // how a step's value is described in the "yours → correct" header
@@ -2530,7 +2620,7 @@ function explain(you, ans) {
   const A = split(ans), Y = split(you), why = {}, notes = [];
   const ratio = ans ? you / ans : 0, lg = ratio > 0 ? Math.log10(ratio) : NaN;
   if (Number.isFinite(lg) && Math.round(lg) !== 0 && Math.abs(lg - Math.round(lg)) < 1e-9) {
-    notes.push({ icon: 'fa-heart', title: 'Every digit is right — only the decimal point moved', text: `Inch readings on this caliper have three decimal places, so this one is ${(ans / 1000).toFixed(3)}″.` });
+    notes.push({ icon: 'fa-heart', title: 'Every digit is right — only the decimal point moved', text: `Inch readings on this caliper go to the thou, three places after the point, so this one is ${(ans / 1000).toFixed(3)}″.` });
     return { A, Y, why, notes, decimal: true };
   }
   if (isVern()) return explainVern(A, Y, you, ans);
@@ -2545,17 +2635,17 @@ function explain(you, ans) {
       ? `The slider edge is right next to a line, which makes this tricky. Let the dial decide: it reads ${A.dial}, so ${A.dial >= 90 ? `the next line hasn't been reached yet and the count is ${A.tenth}` : `line ${A.tenth} has just been passed`}.`
       : Y.tenth > A.tenth
         ? `Only lines left of the slider edge count. Counting from “${A.inch}”, the edge has passed ${A.tenth} line${A.tenth === 1 ? '' : 's'}.`
-        : `Every line after “${A.inch}” is worth 0.100″. The slider edge has passed ${A.tenth} of them.`;
+        : `Every line after “${A.inch}” is a hundred thou (0.100″). The slider edge has passed ${A.tenth} of them: ${A.tenth * 100} thou.`;
   }
   if (Y.dial !== A.dial) {
     why.dial = Y.dial === 100 - A.dial && A.dial !== 50
       ? `The dial counts clockwise from 0. Reading it the other way gives ${Y.dial} instead of ${A.dial}.`
       : Math.abs(Y.dial - A.dial) <= 2
         ? `So close — the needle sits on mark ${A.dial}, just ${Math.abs(Y.dial - A.dial)} mark${Math.abs(Y.dial - A.dial) === 1 ? '' : 's'} from your value.`
-        : `Each small mark is 0.001″. The needle points at mark ${A.dial}, which adds ${(A.dial / 1000).toFixed(3)}″.`;
+        : `Each small mark is one thou (0.001″). The needle points at mark ${A.dial}, which adds ${A.dial} thou.`;
   }
   if (Math.abs(you - ans) < 100 && (Y.tenth !== A.tenth || Y.inch !== A.inch) && near)
-    notes.push({ icon: 'fa-rotate', title: 'You were very close', text: `Only ${(Math.abs(you - ans) / 1000).toFixed(3)}″ away. The needle was near 0, which is exactly where the beam moves on to the next tenth line.` });
+    notes.push({ icon: 'fa-rotate', title: 'You were very close', text: `Only ${(Math.abs(you - ans) / 1000).toFixed(3)}″ away. The needle was near 0, which is exactly where the beam moves on to the next hundred-thou line.` });
   return { A, Y, why, notes };
 }
 
@@ -2688,23 +2778,23 @@ function explainVern(A, Y, you, ans) {
   if (Y.tenth !== A.tenth) {
     why.tenth = Y.tenth > A.tenth
       ? `Only digits left of the vernier zero count. Counting from “${A.inch}”, the zero has passed ${plural(A.tenth, 'digit')}.`
-      : `Each small digit on the beam is 0.100″. The vernier zero has passed ${A.tenth} of them after “${A.inch}”, adding ${(A.tenth / 10).toFixed(3)}″.`;
+      : `Each small digit on the beam is a hundred thou (0.100″). The vernier zero has passed ${A.tenth} of them after “${A.inch}”, adding ${A.tenth * 100} thou.`;
   }
   if (Y.sub !== A.sub) {
     why.sub = Y.sub === 0
-      ? `Don't skip the short lines. Between digit ${A.tenth} and the vernier zero there ${A.sub === 1 ? 'is 1 more line, worth 0.025″' : `are ${A.sub} more lines, each worth 0.025″`} — that adds ${(A.sub * 0.025).toFixed(3)}″.`
+      ? `Don't skip the short lines. Between digit ${A.tenth} and the vernier zero there ${A.sub === 1 ? 'is 1 more line, worth 25 thou' : `are ${A.sub} more lines, each worth 25 thou`} — that adds ${A.sub * 25} thou.`
       : Y.sub > A.sub
         ? `Only beam lines left of the vernier zero count. Past digit ${A.tenth} it has passed ${plural(A.sub, 'short line')}, not ${Y.sub}.`
-        : `Each short beam line is 0.025″. Past digit ${A.tenth} the vernier zero has passed ${A.sub} of them, adding ${(A.sub * 0.025).toFixed(3)}″.`;
+        : `Each short beam line is 25 thou (0.025″). Past digit ${A.tenth} the vernier zero has passed ${A.sub} of them, adding ${A.sub * 25} thou.`;
   }
   if (Y.vern !== A.vern) {
     const d = Math.abs(Y.vern - A.vern);
     why.vern = d <= 2
-      ? `So close — line ${A.vern} is the one that meets a beam line exactly. Its neighbors are each 0.001″ out, so they miss by a hair.`
-      : `Run your eye along the vernier and find the one line that meets a beam line exactly. It's line ${A.vern}, which adds ${(A.vern / 1000).toFixed(3)}″.`;
+      ? `So close — line ${A.vern} is the one that meets a beam line exactly. Its neighbors are each a thou out, so they miss by a hair.`
+      : `Run your eye along the vernier and find the one line that meets a beam line exactly. It's line ${A.vern}, which adds ${A.vern} thou.`;
   }
   if (why.sub && !why.vern && !why.inch && !why.tenth && Math.abs(you - ans) % 25 === 0)
-    notes.push({ icon: 'fa-lightbulb', title: 'Your vernier reading was right', text: `Only the 0.025″ count was off — that's the step people most often forget on an inch vernier.` });
+    notes.push({ icon: 'fa-lightbulb', title: 'Your vernier reading was right', text: `Only the 25-thou count was off — that's the step people most often forget on an inch vernier.` });
   return { A, Y, why, notes };
 }
 // the short 0.025″ lines between one beam digit and the next
@@ -3090,8 +3180,8 @@ function bindUI() {
     const t = (5 + Math.floor(Math.random() * 36)) * (Math.random() < 0.5 ? -1 : 1);
     state.bezel = t / 100 * TAU; toast('Bezel knocked off zero — close the jaws and zero it');
   });
-  $('sampleSel').addEventListener('change', e => newSample(e.target.value));
-  $('newVals').addEventListener('click', () => newSample(sample.type));
+  $('sampleSel').addEventListener('change', e => changePart(e.target.value));
+  $('newVals').addEventListener('click', () => changePart(sample.type));
   $('revealBtn').addEventListener('click', () => { state.revealed = !state.revealed; refreshPartCard(); });
   document.querySelectorAll('[data-hl]').forEach(c => c.addEventListener('change', () => { state.hl[c.dataset.hl] = c.checked; hlKey = ''; flatKey = ''; updateOutline(); }));
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
@@ -3162,6 +3252,7 @@ const clock = new T.Clock(), perf = [];
 let lastRenderT = 0;
 function adaptResolution(now) {
   const dt = now - lastRenderT; lastRenderT = now;
+  if (camTween) { perf.length = 0; return; }   // never resize mid-glide
   if (dt > 120) { perf.length = 0; return; }
   perf.push(dt);
   if (perf.length < 60) return;
@@ -3207,13 +3298,33 @@ function loop(now) {
   adaptResolution(now);
 }
 
+// "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
+// reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
+window.__guideSpot = name => {
+  let p = null;
+  const e = (typeof examList === 'function' ? examList() : EXAM).find(x => x[0] === name);
+  if (e) p = e[2]().p;
+  else if (typeof errAnchor === 'function') { try { p = errAnchor(name).p; } catch (err) {} }
+  if (!p) return null;
+  const v = p.clone().project(camera), r = renderer.domElement.getBoundingClientRect();
+  if (v.z > 1 || v.z < -1) return null;
+  return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+};
+// and where a reading mark sits on the flat view: a box in page coordinates, or null while it is shut
+window.__guideFlatSpot = name => {
+  const b = flatOpen && flatSpots[name], cv = $('flatCv');
+  if (!b || !cv || !cv.clientWidth) return null;
+  const r = cv.getBoundingClientRect(), sx = r.width / 260, sy = r.height / 280;
+  return { left: r.left + b[0] * sx, top: r.top + b[1] * sy, right: r.left + b[2] * sx, bottom: r.top + b[3] * sy };
+};
 async function start() {
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   bindPointer();
   controls = new OrbitControls(camera, canvas);
   controls.enableDamping = true; controls.dampingFactor = 0.12;
+  if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, canvas);   // turn round what is under the pointer (js/pivot.js)
   controls.minDistance = 1; controls.maxDistance = 60;
-  controls.addEventListener('start', () => { camTween = null; if (state.exam && controls.autoRotate) setSpin(false); });
+  controls.addEventListener('start', () => { camTween = null; curView = null; if (state.exam && controls.autoRotate) setSpin(false); });
   bindUI();
   { const g = autoGfx(); $('gfxSel').value = g; applyGfx(g); }
   // the host tab opens this page as the dial or the vernier caliper (caliper.html?inst=vern)

@@ -235,6 +235,7 @@ const CORE = (function(){
 (function(){
 "use strict";
 const T = THREE, TAU = Math.PI*2;
+const Dissolve = window.__dissolveFx(T);   // parts dissolve in and out (js/dissolve.js)
 const DIV = TAU/25, VSTEP = DIV*0.9, VERN0 = DIV*3, TPI = 40;
 // inches: 0.256" carbide faces (Fowler spec), 18 mm scale diameter typical of 0–1" heads
 const SP_R = CORE.RHO, SLV_R = 0.29, TH_EDGE_R = 0.305, TH_R = 0.3545, KN_R = 0.395;
@@ -332,7 +333,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent) continue;
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -1040,7 +1041,9 @@ function removeSample(){
   if (!partG) return;
   const set = new Set(); partG.traverse(o => set.add(o));
   const keep = pickables.filter(p => !set.has(p)); pickables.length = 0; pickables.push(...keep);
-  disposeTree(partG); root.remove(partG);
+  // the old part dissolves out where it was, then goes
+  const old = partG;
+  Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: () => { disposeTree(old); if (old.parent) old.parent.remove(old); } });
   partG = setupG = flipG = null; primMeshes = []; hullMeshes = []; hullFeat = '';
 }
 function newSample(key, keepSel){
@@ -1076,6 +1079,7 @@ function newSample(key, keepSel){
   const t = S.targets[S.sel];
   setSetup(t.s, -1, true);
   renderFeats();
+  Dissolve.in(partG, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });
 }
 function setSetup(id, side, atRest){
   const S = state.sample, s = S.setups[id];
@@ -1220,9 +1224,12 @@ function stepSeq(){
   if (q.stage === 'slide'){
     if (state.partTarget !== null) return;
     if (Math.abs(state.partZ - q.z) > 0.003){ state.seq = null; return; }
+    // 'near': run the spindle down to just short of the part (under one turn, 0.025″), so closing by hand is quick
+    if (q.close === 'near'){ goTo(Math.min(1, minReading() + 0.02), true); q.stage = 'near'; return; }
     if (q.close){ ratchetClose(); q.stage = 'close'; } else state.seq = null;
     return;
   }
+  if (q.stage === 'near'){ if (!state.anim) state.seq = null; return; }
   if (q.stage === 'close' && !state.anim){
     state.seq = null;
     if (!state.practice && state.ev && state.ev.eff) toast(`Measured ${(B + state.reading).toFixed(4)}″`);
@@ -1794,7 +1801,10 @@ function explainReading(you, ans){
       : `Follow the index line straight across onto the thimble — it lands on line ${A.c}. The arrow points right at it.`;
   }
   if (Y.d !== A.d){
-    why.d = Y.d === 0 && A.d !== 0 ? `You read everything else — only the vernier is missing, and it’s the trickiest part! Line ${A.d} lines up here, adding 0.000${A.d}″.`
+    const restRight = Y.inch === A.inch && Y.a === A.a && Y.b === A.b && Y.c === A.c;
+    why.d = Y.d === 0 && A.d !== 0 ? (restRight
+        ? `You read everything else — only the vernier is missing, and it’s the trickiest part! Line ${A.d} lines up here, adding 0.000${A.d}″.`
+        : `The vernier was left out, and it’s the trickiest part! Line ${A.d} lines up here, adding 0.000${A.d}″.`)
       : Math.abs(Y.d - A.d) === 1 ? `This one is genuinely hard: lines ${Y.d} and ${A.d} both look close. Only line ${A.d} is perfectly straight with a thimble line, like in the picture.`
       : `Scan the vernier lines for the one that makes a perfectly straight line with a thimble line. Here it’s line ${A.d}.`;
   }
@@ -1992,6 +2002,8 @@ function checkPractice(){
   const ex = ok ? { A: splitReading(ans), Y: null, notes: [], why: {} } : explainReading(you, ans);
   const A = ex.A, Y = ex.decimal ? null : ex.Y;
   const miss = ok || ex.decimal ? null : findMissing(you, ans, A, ex.Y);
+  // praise the rest only when nothing else was flagged wrong
+  const onlyMiss = !!miss && STEP_KEYS.every(k => miss.keys.includes(k) || !ex.why[k]);
   if (miss) miss.keys.forEach(k => {
     const src = miss.type === 'missing' ? A : ex.Y, v = (STEP_DEF[k].val(src)/1e4).toFixed(4);
     const where = {
@@ -2009,8 +2021,10 @@ function checkPractice(){
       d: 'Vernier line 0 is the one that lines up, so the vernier adds nothing here.'
     }[k];
     ex.why[k] = miss.type === 'missing'
-      ? `You did everything else right — this value just never made it into the total. It’s worth <b>+${v}″</b>. ${where}`
-      : `Nearly perfect! This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`;
+      ? (onlyMiss ? `You did everything else right — this value just never made it into the total. It’s worth <b>+${v}″</b>. ${where}`
+                  : `This value never made it into the total. It’s worth <b>+${v}″</b>. ${where}`)
+      : (onlyMiss ? `Nearly perfect! This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`
+                  : `This <b>${v}″</b> was added, but it doesn’t belong in this reading. ${none}`);
   });
   const wrong = ok ? [] : STEP_KEYS.filter(k => ex.why[k]);
   state.pRevealed = true;
@@ -2047,7 +2061,7 @@ function checkPractice(){
     missBox = `<div class="fx-miss" style="--c:${STEP_DEF[k0].css}">
       <div class="fx-miss-ic"><i class="fa-solid ${miss.type === 'missing' ? 'fa-puzzle-piece' : 'fa-scissors'}"></i></div>
       <div><h5>${miss.type === 'missing' ? `The ${words} wasn’t added` : `An extra ${words} was added`}</h5>
-      <p>${miss.type === 'missing' ? 'Everything else lines up perfectly — adding this one value back in gives the exact answer:' : 'Everything else lines up perfectly — taking this value out gives the exact answer:'}</p>
+      <p>${!onlyMiss ? (miss.type === 'missing' ? 'Adding this value back in gives the exact answer:' : 'Taking this value out gives the exact answer:') : miss.type === 'missing' ? 'Everything else lines up perfectly — adding this one value back in gives the exact answer:' : 'Everything else lines up perfectly — taking this value out gives the exact answer:'}</p>
       <div class="fx-sum"><span>${esc(fmt(you/1e4))}″</span><span class="op">${miss.type === 'missing' ? '+' : '−'}</span><span class="add">${parts}</span><span class="op">=</span><span class="res">${fmt(ans/1e4)}″</span></div></div></div>`;
   }
   const chips = STEP_KEYS.map(k => {
@@ -2092,7 +2106,7 @@ function closeTut(){
 }
 
 /* ---------- flat (unrolled) sleeve view ---------- */
-let flatOpen = true, flatKey = '';
+let flatOpen = true, flatKey = '', flatSpots = {};
 // glide the flat view between its open and folded sizes instead of snapping
 function animateFlat(apply, done){
   const el = $('flat'), cv = $('flatCv');
@@ -2261,6 +2275,13 @@ function drawFlat(){
   }
   cornerText(g, 'Sleeve', 4, 6, { size: 9.5, weight: 500, col: 'rgba(0,0,0,.6)', region: { x: 0, y: 0, w: ex, h: H } });
   cornerText(g, 'Thimble', ex + 6, 6, { size: 9.5, weight: 500, col: 'rgba(0,0,0,.6)', region: { x: ex, y: 0, w: W - ex, h: H } });
+  // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units
+  {
+    const xa = X(a*0.1 - r), ya = Y(0.125/R), xb = X(li*0.025 - r), Lb = li % 4 === 0 ? 0.085 : li % 2 === 0 ? 0.055 : 0.04;
+    const yc = Y((c - tm)*DIV), y0 = Y(0), yd = Y(VERN0 + d*VSTEP);
+    flatSpots = { a: [xa - 20, ya - 16, xa + 20, ya + 16], b: [xb - 16, Y(Lb/R) - 10, xb + 16, y0 + 10],
+      c: [ex - 40, Math.min(yc, y0) - 15, W - 2, Math.max(yc, y0) + 15], d: [2, yd - 13, W - 2, yd + 13] };
+  }
   // arrows to the markings that were misread
   const placed = [];
   const arrow = (tx, ty, dx, dy, col, lab) => flatArrow(g, W, H, tx, ty, dx, dy, col, lab, placed, { x: 2, y: 12, w: W - 4, h: H - 14 });
@@ -2439,17 +2460,19 @@ function freeRects(W, H){
 }
 // find the camera spot (and zoom) that fits the box into the free area, looking along dir
 // try each open area and keep whichever shows the model biggest
-function fitIso(dir, target, dist, box){
+// fitted level (world up) unless a view asks for a rolled camera (only the vernier close-up does)
+function fitIso(dir, target, dist, box, up){
   const c = el; let best = null;
   for (const free of freeRects(c.clientWidth, c.clientHeight)){
-    const f = fitIsoIn(dir, target, dist, box, free);
+    const f = fitIsoIn(dir, target, dist, box, free, up);
     const score = camera.isOrthographicCamera ? f.zoom : 1/Math.max(1e-6, f.pos.distanceTo(f.target));
     if (!best || score > best.score) best = Object.assign(f, { score });
   }
   return best;
 }
-function fitIsoIn(dir, target, dist, box, free){
+function fitIsoIn(dir, target, dist, box, free, upDir){
   const cam = camera.clone(), cv = el, W = cv.clientWidth, H = cv.clientHeight;
+  cam.up.copy(upDir || _worldUp);
   if (cam.isOrthographicCamera) cam.zoom = 1;
   if (box.isEmpty() || W < 2 || H < 2) return { target: target.clone(), zoom: cam.zoom, pos: target.clone().addScaledVector(dir, dist) };
   const pts = [];
@@ -2479,8 +2502,10 @@ function fitIsoIn(dir, target, dist, box, free){
 }
 // what the overview frames: the micrometer, and the part only once it is between the faces, so a part
 // waiting off to the side doesn't make the view back away from the tool
-function toolBox(){
-  const hide = partG && partG.visible && !between();
+// iso fits the micrometer itself, from the ratchet to the anvil, so a tall part runs off the edge instead of
+// shrinking the tool; front still takes in the part between the faces
+function toolBox(iso){
+  const hide = partG && partG.visible && (iso || !between());
   if (hide) partG.visible = false;
   const box = fitBox(scene);
   if (hide) partG.visible = true;
@@ -2493,8 +2518,9 @@ function setView(name, instant){
   else if (name === 'scale'){ dir = new T.Vector3(0, 0.22, 1).normalize(); target = new T.Vector3(edge - 0.05, 0.06, 0); zoom = zf; }
   else if (name === 'vernier'){ dir = new T.Vector3(0, 1, 0.12).normalize(); target = new T.Vector3(edge - 0.08, 0, -0.1); zoom = zf; }
   else dir = new T.Vector3(0.42, 0.52, 1).normalize();
-  if (name === 'iso' || name === 'front' || !['scale', 'vernier', 'tip'].includes(name)){ const fb = fitIso(dir, target, 40, toolBox()); target = fb.target; zoom = fb.zoom; }
+  if (name === 'iso' || name === 'front' || !['scale', 'vernier', 'tip'].includes(name)){ const fb = fitIso(dir, target, 40, toolBox(name !== 'front')); target = fb.target; zoom = fb.zoom; }
   if (instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    camera.up.set(0, 1, 0);
     camera.position.copy(target).add(dir.clone().multiplyScalar(40)); controls.target.copy(target); camera.zoom = zoom;
     camera.updateProjectionMatrix(); controls.update(); camTween = null; invalidate(); return;
   }
@@ -2508,16 +2534,43 @@ function showMe(k){
   camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom, toDir: dir, toTarget: an.p.clone(), toZoom: zf*2.1 };
   invalidate();
 }
+// Camera moves glide around what the camera looks at instead of cutting straight through space: the point
+// it looks at slides across, the view turns along the shortest arc, and the distance (or zoom) changes by the
+// same ratio every moment, so zooming in 4x feels as even as zooming in 2x. Bigger moves get a little more
+// time, so every move reads at the same easy pace, and it starts and lands gently (smootherstep). Any drag
+// momentum left over is settled first, so it can't pull against the glide.
+const _glideQ = new T.Quaternion(), _glideR = new T.Quaternion(), _worldUp = new T.Vector3(0, 1, 0);
 function stepCam(dt){
   if (!camTween) return false;
-  const c = camTween; c.t = Math.min(1, c.t + dt/0.6);
-  const e = c.t < 0.5 ? 2*c.t*c.t : 1 - Math.pow(-2*c.t + 2, 2)/2;
-  const d = c.fromDir.clone().lerp(c.toDir, e); if (d.lengthSq() < 1e-6) d.set(0, 0, 1);
-  controls.target.copy(c.fromTarget.clone().lerp(c.toTarget, e));
-  camera.position.copy(controls.target).add(d.normalize().multiplyScalar(40));
-  camera.zoom = c.fromZoom + (c.toZoom - c.fromZoom)*e;
+  const c = camTween;
+  if (!c.dur){
+    controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+    c.fromTarget = controls.target.clone(); c.fromZoom = camera.zoom;
+    c.fromDir = camera.position.clone().sub(controls.target).normalize();
+    c.toDir = c.toDir.clone().normalize();
+    c.turn = new T.Quaternion().setFromUnitVectors(c.fromDir, c.toDir);
+    // a view can roll the camera (only the vernier close-up does); any other view rolls it back level. The whole
+    // turn is eased as one, so the roll and the swing happen together without a lurch
+    c.toUp = c.toUp || _worldUp;
+    c.rolls = camera.up.distanceTo(c.toUp) > 1e-6;
+    if (c.rolls){
+      c.fromQ = camera.quaternion.clone();
+      const m = new T.Matrix4().lookAt(c.toDir, new T.Vector3(), c.toUp);
+      c.toQ = new T.Quaternion().setFromRotationMatrix(m);
+    }
+    const seen = (camera.top - camera.bottom)/Math.max(c.fromZoom, c.toZoom);   // the most zoomed-in view's height
+    const ang = c.fromDir.angleTo(c.toDir), zoom = Math.abs(Math.log(c.toZoom/c.fromZoom)), slide = c.fromTarget.distanceTo(c.toTarget)/Math.max(1e-6, seen);
+    c.dur = Math.min(1.8, 0.8 + ang*0.35 + zoom*0.35 + Math.min(slide, 3)*0.25);
+  }
+  c.t = Math.min(1, c.t + dt/c.dur);
+  const e = c.t*c.t*c.t*(c.t*(c.t*6 - 15) + 10);
+  controls.target.lerpVectors(c.fromTarget, c.toTarget, e);
+  _glideQ.identity().slerp(c.turn, e);
+  camera.position.copy(c.fromDir).applyQuaternion(_glideQ).multiplyScalar(40).add(controls.target);
+  camera.zoom = c.fromZoom*Math.pow(c.toZoom/c.fromZoom, e);
   camera.updateProjectionMatrix();
-  if (c.t >= 1) camTween = null;
+  if (c.rolls) camera.up.set(0, 1, 0).applyQuaternion(_glideR.copy(c.fromQ).slerp(c.toQ, e));
+  if (c.t >= 1){ camera.up.copy(c.toUp); camTween = null; }
   return true;
 }
 
@@ -2533,6 +2586,31 @@ function pick(e){
   return h.length ? h[0] : null;
 }
 function toScreen(v){ const p = v.clone().project(camera), r = el.getBoundingClientRect(); return new T.Vector2((p.x + 1)/2*r.width, (1 - p.y)/2*r.height); }
+// Turning the ratchet or thimble by hand works like a real knob: circle the pointer around it and it turns
+// with you. The pointer is traced onto the plane the knob turns in (through the point grabbed, square to the
+// spindle (+x)), and the change in its angle round the axis is the turn, whichever way the camera looks.
+// Seen nearly side-on that plane is edge-on and a circle can't be read from it, so there it falls back to
+// dragging along the knob's surface (up and down across it).
+const _knobHit = new T.Vector3(), _knobView = new T.Vector3();
+function knobGrab(d, p, axis){
+  if (Math.abs(camera.getWorldDirection(_knobView).dot(axis)) < 0.3) return;
+  d.plane = new T.Plane().setFromNormalAndCoplanarPoint(axis, p);
+  d.ang = knobAngle(d);
+}
+function knobAngle(d){
+  ray.setFromCamera(ndc, camera);
+  if (!ray.ray.intersectPlane(d.plane, _knobHit)) return null;
+  return Math.atan2(_knobHit.z, _knobHit.y)   // radians about +x, the way the thimble turns as it opens;
+}
+function knobTurn(e, d){
+  const r = el.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left)/r.width)*2 - 1, -((e.clientY - r.top)/r.height)*2 + 1);
+  const a = knobAngle(d);
+  if (a == null || d.ang == null){ d.ang = a; return 0; }
+  let da = a - d.ang; d.ang = a;
+  da = ((da + Math.PI) % TAU + TAU) % TAU - Math.PI;   // the short way round
+  return da;
+}
 el.addEventListener('pointerdown', e => {
   if (e.button !== 0) return;
   const h = pick(e), kind = h && h.object.userData.kind;
@@ -2549,6 +2627,7 @@ el.addEventListener('pointerdown', e => {
     sd = new T.Vector2(xs.y, -xs.x);
   }
   drag = { kind, x: e.clientX, y: e.clientY, sd };
+  if (kind === 'ratchet' || kind === 'thimble') knobGrab(drag, p, new T.Vector3(1, 0, 0));
   state.seq = null;
   if (kind === 'ratchet'){ endCoach(); state.slipAcc = 0; }
   if (kind !== 'part') stopAnim(); else { state.partTarget = null; openForMove(); }
@@ -2560,7 +2639,7 @@ el.addEventListener('pointermove', e => {
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.x = e.clientX; drag.y = e.clientY;
   const l2 = drag.sd.lengthSq();
-  let du = l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dy*0.01;
+  let du = drag.plane ? knobTurn(e, drag) : l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dy*0.01;
   if (e.shiftKey) du *= 0.2;
   if (fineOn) du *= FINE_K;
   if (drag.kind === 'part'){ openForMove(); movePartTo(state.partZ + du); }
@@ -2755,6 +2834,7 @@ let leverAngle = -1.1, dim = 0, time = 0, lastSig = '', shadowPending = true, fr
 const perf = [];
 function adaptResolution(now){
   const dt = now - lastRenderT; lastRenderT = now;
+  if (camTween){ perf.length = 0; return; }   // never resize mid-glide
   if (dt > 120){ perf.length = 0; return; }
   perf.push(dt);
   if (perf.length < 60) return;
@@ -2847,11 +2927,132 @@ function tick(now){
   adaptResolution(now || performance.now());
 }
 
+// "Show me" marks the ratchet stop while it has you close the tool by hand: the ratchet breathes blue, and a
+// thin 270° band with a flat head circles just outside it, turning slowly the way the ratchet tightens
+// (it turns negative about +x, closing the spindle on the anvil). The band is depth-tested like the rest of the tool,
+// so it passes behind the ratchet on the far side, and both follow the ratchet as the thimble travels.
+let guideArrow = null, guideGlow = [], guideArrowOn = false;
+window.__guideArrow = on => {
+  guideArrowOn = !!on;
+  if (!on){
+    if (guideArrow) guideArrow.visible = false;
+    guideGlow.forEach(g => { g.visible = false; });
+    dirty = true; return;
+  }
+  // the tool is rebuilt when the frame or rod size changes: build the band and glow again for the new ratchet
+  if (guideArrow && guideArrow.userData.for !== ratchetG){ scene.remove(guideArrow); guideArrow = null; guideGlow = []; }
+  if (!guideArrow){
+    const box = new T.Box3();
+    ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) box.expandByObject(o); });
+    const sz = box.getSize(new T.Vector3()), rr = Math.max(sz.y, sz.z) / 2;
+    const r = rr * 1.12, tube = rr * 0.045;               // just clear of the knurl, as thin as the ratchet reminder's rings
+    const mat = new T.MeshBasicMaterial({ color: 0x5b93ea, toneMapped: false });
+    const spin = new T.Group();
+    spin.add(new T.Mesh(new T.TorusGeometry(r, tube, 8, 96, Math.PI * 1.5), mat));
+    // the head sits at the start of the band and points the way the band turns; flattened to lie along the band
+    const head = new T.Mesh(new T.ConeGeometry(tube * 3.2, tube * 9, 16), mat);
+    head.position.set(r, -tube * 4.5, 0); head.rotation.z = Math.PI; head.scale.z = 0.45;
+    spin.add(head);
+    spin.traverse(o => { o.userData.noShadow = true; o.raycast = () => {}; });
+    guideArrow = new T.Group(); guideArrow.add(spin);
+    guideArrow.rotation.y = Math.PI / 2;   // the band's own axis (z) along the spindle
+    guideArrow.userData.spin = spin; guideArrow.userData.for = ratchetG;
+    scene.add(guideArrow);
+    // the breathing blue: a see-through shell on each piece of the ratchet, added on top of its own color
+    const glowMat = new T.MeshBasicMaterial({ color: 0x5b93ea, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1, toneMapped: false });
+    ratchetG.children.forEach(o => {
+      if (!o.isMesh || o.userData.ownMat) return;
+      const g = new T.Mesh(o.geometry, glowMat);
+      g.userData.noShadow = true; g.userData.ownMat = true; g.raycast = () => {};
+      o.add(g); guideGlow.push(g);
+    });
+    guideGlow.mat = glowMat;
+  }
+  guideArrow.visible = true;
+  guideGlow.forEach(g => { g.visible = true; });
+  let last = performance.now();
+  const step = t => {
+    if (!guideArrowOn || !guideArrow.visible) return;
+    const dt = Math.min(0.05, (t - last) / 1000); last = t;
+    guideArrow.position.copy(guideRatchetCenter());
+    guideArrow.userData.spin.rotation.z -= dt * 1.4;   // negative about the spindle axis: the tightening way
+    guideGlow.mat.opacity = 0.12 + 0.3 * (0.5 + 0.5 * Math.sin(t / 1000 * 2.6));
+    dirty = true;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+};
+// the middle of the ratchet itself (not the band or the glow on it)
+function guideRatchetCenter(){
+  const b = new T.Box3();
+  ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) b.expandByObject(o); });
+  return b.getCenter(new T.Vector3());
+}
+// "Show me" has the tool put the part in place by itself (the first feature slid between the faces, the
+// spindle run down to just short of it), so the person only has to finish closing it by hand
+window.__guidePlacePart = () => {
+  const S = state.sample, f = S && S.feats.find(x => x.valid);
+  if (!f) return false;
+  goToFeature(f.id, 'near');   // the spindle stops just short, so it's less than a turn to close it by hand
+  return true;
+};
+// "Show me" flies the camera in on one mark: the vernier step looks square down on the one vernier line that
+// lines up, right where it meets its thimble line, instead of the whole row from overhead
+// the stretch the vernier step shows, along the line that lines up: from its number (printed past the frame end
+// of the line) to the far end of the thimble line it meets
+function vernSpan(){
+  const d = Math.round(state.reading*1e4) % 10, ang = VERN0 + d*VSTEP;
+  return { ang, pts: [cylAnchor(S0 - 0.13, SLV_R + 0.002, ang).p, cylAnchor(S0 + state.reading, SLV_R + 0.002, ang).p, cylAnchor(S0 + state.reading + 0.22, TH_R + 0.002, ang).p] };
+}
+window.__guideFrame = names => {
+  if (names[0] !== 'd') return false;
+  const { ang, pts } = vernSpan();
+  // square on to this one line, whatever its angle round the sleeve, so the line and its thimble line run
+  // straight on from each other instead of kinking where they meet
+  const dir = new T.Vector3(0, Math.sin(ang), Math.cos(ang));
+  // the higher lines sit round the back of the sleeve, where a camera kept level would show the tool upside down:
+  // for this view only the camera may roll, so the way up the screen is always the way the vernier numbers climb
+  const up = new T.Vector3(0, Math.cos(ang), -Math.sin(ang));
+  const box = new T.Box3().setFromPoints(pts).expandByScalar(0.04);
+  const fb = fitIso(dir, box.getCenter(new T.Vector3()), 40, box, up);   // fitted as it will look, rolled
+  camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom, toDir: dir, toTarget: fb.target, toZoom: fb.zoom, toUp: up };
+  invalidate();
+  return true;
+};
+// "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
+// reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
+window.__guideSpot = name => {
+  let p = null;
+  // the vernier line that lines up, from its number to the thimble line it meets: the middle, and how big that
+  // stretch is on screen, so the lit window takes in all of it
+  if (name === 'vernSpan'){
+    const r = renderer.domElement.getBoundingClientRect();
+    const s = vernSpan().pts.map(q => { const v = q.clone().project(camera); return [r.left + (v.x + 1)/2*r.width, r.top + (1 - v.y)/2*r.height]; });
+    const xs = s.map(a => a[0]), ys = s.map(a => a[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    return { x: (x0 + x1)/2, y: (y0 + y1)/2, w: x1 - x0 + 70, h: Math.max(90, y1 - y0 + 70) };
+  }
+  const e = p ? null : (typeof examList === 'function' ? examList() : EXAM).find(x => x[0] === name);
+  if (e) p = e[2]().p;
+  else if (!p && typeof errAnchor === 'function') { try { p = errAnchor(name).p; } catch (err) {} }
+  if (!p) return null;
+  const v = p.clone().project(camera), r = renderer.domElement.getBoundingClientRect();
+  if (v.z > 1 || v.z < -1) return null;
+  return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height };
+};
+// and where a reading mark sits on the flat view: a box in page coordinates, or null while it is shut
+window.__guideFlatSpot = name => {
+  const b = flatOpen && flatSpots[name], cv = $('flatCv');
+  if (!b || !cv || !cv.clientWidth) return null;
+  const r = cv.getBoundingClientRect(), sx = r.width/260, sy = r.height/280;
+  return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
+};
 function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
-  atlas = makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
+  atlas =makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
   controls = new T.OrbitControls(camera, el);
   controls.enableDamping = true; controls.dampingFactor = 0.14;
+  if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, el);   // turn round what is under the pointer (js/pivot.js)
   controls.screenSpacePanning = true;
   controls.minZoom = 0.3; controls.maxZoom = 60; controls.zoomSpeed = 1.3;
   controls.addEventListener('start', () => { camTween = null; if (state.exam && controls.autoRotate) setSpin(false); });

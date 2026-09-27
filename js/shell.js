@@ -119,3 +119,43 @@ lockDown(window);
   if (!APPS.some(a => a.id === start)){ try { start = localStorage.getItem('precision-tools-last'); } catch (e) {} }
   show(APPS.some(a => a.id === start) ? start : APPS[0].id);
 })();
+// "Reset all", for when someone is stuck with no way out. It has to be held for 3 seconds, so it never happens by
+// accident, and a note under it says what it does while it is hovered or held. It clears everything the tools
+// remember in this browser (units, panels, the flat view, the table, tutorials seen, the last tool open) and
+// starts the page over on the same tool. Only this app's own saved settings are cleared, nothing else on the site.
+(function(){
+  const b = document.getElementById('resetAll'), pop = document.getElementById('resetPop');
+  if (!b || !pop) return;
+  const HOLD = 3000, KEYS = /^(pt-|precision-tools-|caliper-|depthmic-|height-|mic-)/;
+  let t0 = 0, raf = 0, timer = 0;
+  const show = on => pop.classList.toggle('on', on);
+  const fill = k => b.style.setProperty('--p', String(k));
+  function start(e){
+    if (t0 || b.classList.contains('done')) return;
+    if (e) e.preventDefault();
+    t0 = performance.now(); show(true);
+    const tick = () => { if (!t0) return; const k = Math.min(1, (performance.now() - t0)/HOLD); fill(k); if (k < 1) raf = requestAnimationFrame(tick); };
+    raf = requestAnimationFrame(tick);
+    timer = setTimeout(reset, HOLD);
+  }
+  function cancel(){
+    if (!t0) return;
+    t0 = 0; cancelAnimationFrame(raf); clearTimeout(timer); fill(0);
+    if (!b.matches(':hover') && document.activeElement !== b) show(false);
+  }
+  function reset(){
+    t0 = 0; cancelAnimationFrame(raf); fill(1);
+    b.classList.add('done'); b.querySelector('.ra-t').textContent = 'Resetting…';
+    try { Object.keys(localStorage).filter(k => KEYS.test(k)).forEach(k => localStorage.removeItem(k)); } catch (e) {}
+    setTimeout(() => location.reload(), 250);
+  }
+  b.addEventListener('pointerdown', e => { if (e.button !== 0) return; try { b.setPointerCapture(e.pointerId); } catch (err) {} start(e); });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => b.addEventListener(t, cancel));
+  b.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) start(e); });
+  b.addEventListener('keyup', e => { if (e.key === ' ' || e.key === 'Enter') cancel(); });
+  b.addEventListener('click', e => e.preventDefault());
+  b.addEventListener('blur', () => { cancel(); show(false); });
+  b.addEventListener('mouseenter', () => show(true));
+  b.addEventListener('mouseleave', () => { if (!t0) show(false); });
+  b.addEventListener('focus', () => { if (b.matches(':focus-visible')) show(true); });
+})();
