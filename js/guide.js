@@ -36,7 +36,9 @@
     if (root && STEPS[stepI].part && !STEPS[stepI].done && partList.value !== 'none') partChosen();
   });
   const PART = sel => ({ target: sel, part: true, title: 'Pick a part', text: 'First, choose something to measure from this list.', enter: () => { partPicked = false; }, waitFor: () => false });
-  const LOOK = what => ({ target: '#view', drag: 'look', title: 'Look around', text: `Drag on an empty spot to turn the ${what}, the way the hand shows, right-drag to slide it, and scroll to zoom. Try it, then press Next. The camera buttons at the top right bring back a clean view any time.` });
+  // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
+  let looked = 0;
+  const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 2, title: 'Look around', text: `Drag on an empty spot to turn the ${what}, the way the hand shows, right-drag to slide it, and scroll to zoom. Try it, then press Next. The camera buttons at the top right bring back a clean view any time.` });
   // the vernier caliper and height gage read inches or millimeters, so their walkthrough starts by asking
   // which; the other tools read inches, and the walkthrough simply switches them to inches
   const CHOOSE = { choose: [['in', 'Inches'], ['mm', 'Millimeters']], title: 'Inches or millimeters?', text: 'Which scale would you like to learn to read? You can run <b>Show me</b> again for the other one any time.' };
@@ -181,18 +183,19 @@
     height: 'The flat view on the right is a minimap of the scales, drawn out flat. The close-up at the top magnifies the vernier line that lines up (the inch row, then the metric row); below it, the beam’s inch scale (left) and metric scale (right) run up the middle with both verniers riding beside them.'
   };
   const LOUPES = {
-    loupe: () => curUnit === 'mm' ? 'The strip along the bottom of the flat view magnifies the millimeter scale round the top vernier line that lines up: beam lines above the edge, vernier lines below, each numbered. The lit pair meets exactly; the lines either side plainly miss.'
-      : 'The strip along the bottom of the flat view magnifies the lines round the one that lines up, ten times over: beam lines above the edge (labeled with what each adds), vernier lines below with their numbers. The lit pair meets exactly; the lines either side plainly miss.',
+    loupe: () => curUnit === 'mm' ? 'The strip along the bottom of the flat view magnifies the millimeter scale round the top vernier line that lines up: the vernier’s lines above the edge, the beam’s millimeter lines below. Only the vernier line counts, 0.05 mm per line: the lit one meets a beam line exactly, while the lines either side plainly miss.' + nowMM('vV')
+      : 'The strip along the bottom of the flat view magnifies the lines round the one that lines up, ten times over: the beam’s lines above the edge, the vernier’s numbered lines below. Only the vernier number counts, one thou per line: the lit vernier line meets a beam line exactly, while the lines either side plainly miss.' + now('vV'),
     loupeIn: () => 'The close-up at the top of the flat view magnifies the inch vernier (the top row), centered on the vernier line that meets a main-scale line. It is lit and labeled with the thou it adds, so you can see it meet exactly while its neighbors miss.' + now('iVern'),
     loupeMm: () => 'The close-up at the top of the flat view magnifies the metric vernier in its lower row, centered on the vernier line that meets a main-scale line. It is lit and labeled with what it adds, so you can see it meet exactly while its neighbors miss.' + nowMM('mVern')
   };
   // a mark that sits just past an edge of the flat view (it only draws so much round the reading) is shown by a
   // strip along that edge, and the card says so
   let flatEdge = '';
-  const edgeNote = () => flatEdge ? ` Here it sits just past the ${flatEdge} edge of the flat view, where the lit strip is; the scale carries on past it.` : '';
+  const edgeNote = () => flatEdge === 'note' ? ' Here the number itself is just off the edge of the flat view, so the flat view says where it is, in the lit note.'
+    : flatEdge ? ` Here it sits just past the ${flatEdge} edge of the flat view, where the lit strip is; the scale carries on past it.` : '';
   const FLAT = (s, first) => ({ flatSpot: s.flatKey || s.spot, target: '#flat', hl: s.hl, flatStep: true, title: first ? 'Meet the flat view' : 'Now on the flat view',
-    text: () => (first ? MINI[tool] + ' ' : 'The flat view draws the same scales out flat, so nothing curves away. ')
-      + `Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}.` + edgeNote() + ' Use it to check what you read on the tool.' });
+    text: () => ((first ? MINI[tool] + ' ' : 'The flat view draws the same scales out flat, so nothing curves away. ')
+      + (flatEdge === 'note' ? '' : `Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}.`) + edgeNote() + ' Use it to check what you read on the tool.').replace(/  +/g, ' ') });
   const LOUPE = s => ({ flatSpot: s.loupe, target: '#flat', hl: s.hl, flatStep: true, title: tool === 'height' ? 'The close-up' : 'The magnifier', text: () => LOUPES[s.loupe]() });
   const STEPS = [];
   let curUnit = 'in';
@@ -296,7 +299,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   // the box the window opens on: around the 3D spot while it is on screen, else the step's element
   // A mark on the flat view is found by a tracker: an invisible box placed inside the flat view itself, over the
   // mark, in the canvas's own layout units. Whatever the flat view does (grow to full height, shrink back, glide
-  // between the two, tilt), the tracker goes with it, and its box on screen is exactly where the mark is. A mark
+  // between the two), the tracker goes with it, and its box on screen is exactly where the mark is. A mark
   // past an edge (the flat view only draws so much round the reading) gets a strip along that edge instead.
   let tracker = null;
   function flatBox(name){
@@ -306,6 +309,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const host = cv.offsetParent; if (!host) return null;
     if (!tracker){ tracker = document.createElement('div'); tracker.className = 'gd-track'; tracker.setAttribute('aria-hidden', 'true'); }
     if (tracker.parentNode !== host) host.appendChild(tracker);
+    if (raw.note) flatEdge = 'note';
     const W = raw.w, H = raw.h, m = 2, band = 26;
     let [x0, y0, x1, y1] = raw.box;
     if (y0 >= H - 6){ flatEdge = 'bottom'; y0 = H - band; y1 = H - m; } else if (y1 <= 6){ flatEdge = 'top'; y0 = m; y1 = band; }
@@ -462,6 +466,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onResize);
     window.addEventListener('pointerdown', onPress, true);
+    window.addEventListener('pointermove', onMove, true);
     window.addEventListener('pointerup', onRelease, true);
     window.addEventListener('pointercancel', onRelease, true);
     timer = setInterval(tick, 90);
@@ -478,6 +483,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
     window.removeEventListener('pointerdown', onPress, true);
+    window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onRelease, true);
     window.removeEventListener('pointercancel', onRelease, true);
     const gone = root; root = null; navId++;
@@ -504,8 +510,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   }
   function onResize(){ measureCard(); place(); }
   // while a button is held (the drag being done), the hand steps aside so it isn't in the way
-  function onPress(e){ if (!card || !card.contains(e.target)) pressing = true; }
-  function onRelease(){ pressing = false; }
+  function onPress(e){
+    if (card && card.contains(e.target)) return;
+    pressing = { x: e.clientX, y: e.clientY, far: false, view: !!(e.target.closest && e.target.closest('#view canvas')) };
+  }
+  // a drag across the 3D view counts for "Look around": the first press arms it, a drag of 40 px lets it go on
+  function onMove(e){ if (pressing && !pressing.far && Math.hypot(e.clientX - pressing.x, e.clientY - pressing.y) > 40) pressing.far = true; }
+  function onRelease(){ if (pressing && pressing.view && pressing.far) looked = 2; pressing = false; }
   function onKey(e){
     if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); stop(); }
   }
@@ -538,7 +549,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
     card.querySelector('.gd-back').disabled = i === 0;
     const next = card.querySelector('.gd-next');
-    next.textContent = i === STEPS.length - 1 ? 'Finish' : s.waitClick || s.waitFor ? 'Skip' : 'Next';
+    next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip' : 'Next');
     next.hidden = !!s.choose;
     const ch = card.querySelector('.gd-choose');
     ch.hidden = !s.choose;
@@ -596,6 +607,10 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   // the bright window, the dim panels and click-catchers round it, the card beside it and the arrow between
   // them. All of it moves by transform to exact positions, every frame the 3D spot moves, so it glides with
   // the camera instead of stepping after it, and never makes the page repaint.
+  // a rounded rectangle as a path, for cutting the window out of the dim
+  const roundRect = (x, y, w, h, rr) => { const f = v => v.toFixed(1), a = f(rr), x2 = x + w, y2 = y + h;
+    return `M${f(x + rr)} ${f(y)}H${f(x2 - rr)}A${a} ${a} 0 0 1 ${f(x2)} ${f(y + rr)}V${f(y2 - rr)}A${a} ${a} 0 0 1 ${f(x2 - rr)} ${f(y2)}H${f(x + rr)}A${a} ${a} 0 0 1 ${f(x)} ${f(y2 - rr)}V${f(y + rr)}A${a} ${a} 0 0 1 ${f(x + rr)} ${f(y)}Z`; };
+
   function place(){
     if (!root) return;
     const s = STEPS[stepI], W = innerWidth, H = innerHeight, pad = s.spot || s.flatSpot ? 0 : 8;
@@ -629,15 +644,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!shown) shown = { x: want.x, y: want.y, w: want.w, h: want.h, cx: null, cy: null };
     for (const key of ['x', 'y', 'w', 'h']){ const dv = want[key] - shown[key]; shown[key] = Math.abs(dv) < 0.25 ? want[key] : shown[key] + dv * k; }
     const hr = { x: shown.x, y: shown.y, w: shown.w, h: shown.h };
-    hole.classList.toggle('none', hr.w < 4 || hr.h < 4);
-    if (hr.w >= 4 && hr.h >= 4){ put(hole, 'width', px(hr.w)); put(hole, 'height', px(hr.h)); put(hole, 'transform', tr(hr.x, hr.y)); }
+    const open = hr.w >= 4 && hr.h >= 4;
+    hole.classList.toggle('none', !open);
+    if (open){ put(hole, 'width', px(hr.w)); put(hole, 'height', px(hr.h)); put(hole, 'transform', tr(hr.x, hr.y)); }
     // the dim: one sheet over the whole page with the window cut out of it, its corners rounded like the ring,
     // so there are no seams anywhere; the cut-out also lets clicks through to what is inside it
-    if (hr.w >= 4 && hr.h >= 4){
-      const f = v => v.toFixed(1), rr = Math.min(10, hr.w / 2, hr.h / 2), a = f(rr), x = hr.x, y = hr.y, x2 = x + hr.w, y2 = y + hr.h;
-      const cut = `path(evenodd, "M0 0H${W}V${H}H0Z M${f(x + rr)} ${f(y)}H${f(x2 - rr)}A${a} ${a} 0 0 1 ${f(x2)} ${f(y + rr)}V${f(y2 - rr)}A${a} ${a} 0 0 1 ${f(x2 - rr)} ${f(y2)}H${f(x + rr)}A${a} ${a} 0 0 1 ${f(x)} ${f(y2 - rr)}V${f(y + rr)}A${a} ${a} 0 0 1 ${f(x + rr)} ${f(y)}Z")`;
-      put(dim, 'clipPath', cut); put(dim, 'webkitClipPath', cut);
-    } else { put(dim, 'clipPath', 'none'); put(dim, 'webkitClipPath', 'none'); }
+    const cut = open ? `path(evenodd, "M0 0H${W}V${H}H0Z ${roundRect(hr.x, hr.y, hr.w, hr.h, Math.min(10, hr.w / 2, hr.h / 2))}")` : 'none';
+    put(dim, 'clipPath', cut); put(dim, 'webkitClipPath', cut);
     // the card never covers what the step shows: it goes on a side of the window (and of every mark the step
     // frames on the tool) that has room, the step's own side first where it asks for one, and never off screen
     if (!cardW) measureCard();
@@ -675,10 +688,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     else { const dx = cx - shown.cx, dy = cy - shown.cy; shown.cx = Math.abs(dx) < 0.25 ? cx : shown.cx + dx * k; shown.cy = Math.abs(dy) < 0.25 ? cy : shown.cy + dy * k; }
     cx = shown.cx; cy = shown.cy;
     lastCard = { x: cx, y: cy };
-    // the card leans with the rest of the interface (css/hud.css), toward the middle of the screen: the further
-    // to one side it sits the more it leans, square in the middle, so it never flips as it glides across
-    const lean = document.documentElement.classList.contains('hud-flat') ? 0 : Math.max(-1, Math.min(1, (W/2 - (cx + cw/2))/(W/2)))*7;
-    put(card, 'transform', tr(cx, cy) + (Math.abs(lean) > 0.05 ? ` perspective(900px) rotateY(${lean.toFixed(2)}deg)` : ''));
+    put(card, 'transform', tr(cx, cy));
     // the arrow runs from the card's nearest edge to the window's nearest edge
     let d = '', pts = '';
     r = hr.w >= 4 && hr.h >= 4 ? hr : null;
@@ -737,9 +747,10 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       return { pts, turn: true };
     }
     // a straight drag that reads at a glance: never shorter than 170 px, never longer than 340
+    // (the tool may give a longer stretch than the move, just to aim by: len is the share of it the move takes)
     const a = pts[0], b = pts[pts.length - 1], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
     if (L < 0.5) return null;
-    const want = Math.max(170, Math.min(340, L));
+    const want = Math.max(170, Math.min(340, L*(d.len == null ? 1 : d.len)));
     return { pts: [a, { x: a.x + dx/L*want, y: a.y + dy/L*want }] };
   }
   // The hint, drawn over the dim so it always shows: the path with a trail marching the way to go and an arrowhead

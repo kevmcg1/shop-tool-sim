@@ -1049,16 +1049,12 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
-    // on, so the tilt holds all the way instead of snapping flat and back
-    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
-    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
-    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
-      { transform: base.trim() || 'none' }
+      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
+      { transformOrigin: '0 0', transform: 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -2235,7 +2231,7 @@ function drawFlat() {
   // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units
   {
     const xi = clamp(X(A.inch) - 15, 14, ex - 10), xt = X(A.inch + A.tenth / 10), [dx, dy] = at(A.dial, R - 10);
-    flatSpots = { inch: hintBox ? [2, bt + 2, 204, bt + 24] : [xi - 18, base - 76, xi + 18, base - 44],
+    flatSpots = { inchNote: !!hintBox, inch: hintBox ? [hintBox.x - 4, hintBox.y - 4, hintBox.x + hintBox.w + 4, hintBox.y + hintBox.h + 4] : [xi - 18, base - 76, xi + 18, base - 44],
       tenth: [xt - 26, base - 82, xt + 8, base + 6], dial: [dx - 22, dy - 22, dx + 22, dy + 22] };
   }
   // arrows at the marks that were misread
@@ -2387,7 +2383,11 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   }
   { const xc = clamp(Xm(M.cm * 10), 14, W - 14), xm = Xm(M.whole);   // for "Show me": boxes round each reading mark
     flatSpots = { inch: [xc - 16, yE + 42, xc + 16, yE + 76], tenth: [xm - 10, yE - 4, xm + 10, yE + 34], vern: [vx - 14, yE - 52, vx + 14, yE + 26] }; }
-  if (show && hl.inch && Xm(M.cm * 10) < -6) cornerText(g, `← “${M.cm}” is ${(P - M.cm * 10).toFixed(1)} mm left`, 6, bot - 9, { size: 11, col: '#6b5300', up: true, region: { x: 0, y: yE, w: W, h: bot - yE } });
+  if (show && hl.inch && Xm(M.cm * 10) < -6) {
+    // the centimeter number is off the left of the flat view: a note says where, and "Show me" points at the note
+    const b = cornerText(g, `← “${M.cm}” is ${(P - M.cm * 10).toFixed(1)} mm left`, 6, bot - 9, { size: 11, col: '#6b5300', up: true, region: { x: 0, y: yE, w: W, h: bot - yE } });
+    if (b) { flatSpots.inch = [b.x - 4, b.y - 4, b.x + b.w + 4, b.y + b.h + 4]; flatSpots.inchNote = true; }
+  }
   g.fillStyle = 'rgba(0,0,0,.55)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textBaseline = 'alphabetic';
   const labRight = !tagV || vx < W / 2;
   g.textAlign = labRight ? 'right' : 'left';
@@ -2479,7 +2479,11 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
     txt(String(A.vern), vx, yE + 45, 10.5, '#fff');
     seg(vx, yE + 12, vx, yE + 38, 1.4, HLC.vern);
   }
-  if (show && hl.inch && Xv(A.inch) < 4 && !state.pErr.length) cornerText(g, `← “${A.inch}” is ${(pos - A.inch).toFixed(1)}″ left`, 6, top + 11, { size: 11, col: '#6b5300', region: { x: 0, y: top, w: W, h: yE - top } });
+  if (show && hl.inch && Xv(A.inch) < 4 && !state.pErr.length) {
+    // the inch number is off the left of the flat view: a note says where, and "Show me" points at the note
+    const b = cornerText(g, `← “${A.inch}” is ${(pos - A.inch).toFixed(1)}″ left`, 6, top + 11, { size: 11, col: '#6b5300', region: { x: 0, y: top, w: W, h: yE - top } });
+    if (b) { flatSpots.inch = [b.x - 4, b.y - 4, b.x + b.w + 4, b.y + b.h + 4]; flatSpots.inchNote = true; }
+  }
   g.fillStyle = 'rgba(0,0,0,.55)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textBaseline = 'alphabetic';
   const labRight = !tagV || vx < W / 2;
   g.textAlign = labRight ? 'right' : 'left';
@@ -2496,14 +2500,15 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   g.fillStyle = '#dfe2e5'; g.fillRect(0, L0, W, lm - L0);
   g.fillStyle = '#aab0b6'; g.fillRect(0, lm, W, L1 - lm);
   g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, lm, W, 1.5);
-  // beam lines above the edge, labeled as the beam reads: the inch number, the hundred-thou digit,
-  // and how many thou the short lines between digits add; the vernier lines below carry their own numbers
+  // beam lines above the edge, labeled just as the beam is: the inch number and the hundred-thou digits, the short
+  // 25-thou lines between them bare (these lines only show where the vernier meets the beam; where that is along
+  // the beam adds nothing to the reading, so they carry no amounts); the vernier lines below carry their numbers
   for (let i = Math.floor((vC - 0.05) / VDIV); i <= Math.ceil((vC + 0.05) / VDIV); i++) {
     if (i < 0) continue;
     const x = Lx(i * VDIV), hot = show && hl.vern && i === j;
-    seg(x, lm, x, lm - 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
-    const lab = i % 40 === 0 ? i / 40 + '″' : i % 4 === 0 ? String((i / 4) % 10) : '+' + (i % 4) * 25;
-    txt(lab, x, lm - 40, hot ? 13 : i % 4 === 0 ? 12 : 10.5, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm - (i % 4 === 0 ? 28 : 20), hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    const lab = i % 40 === 0 ? i / 40 + '″' : i % 4 === 0 ? String((i / 4) % 10) : '';
+    if (lab) txt(lab, x, lm - 40, hot ? 13 : 12, hot ? HLC.vern : '#111');
   }
   for (let m = 0; m <= 25; m++) {
     const x = Lx(pos + m * VSTEP);
@@ -3380,20 +3385,65 @@ window.__guideFlatSpot = name => {
   return { left: r.left + b[0] * sx, top: r.top + b[1] * sy, right: r.left + b[2] * sx, bottom: r.top + b[3] * sy };
 };
 // the same box in the flat view's own units, for "Show me" to pin a tracker to inside the flat view, so it
-// follows the flat view however it is laid out, grown, tilted or mid-glide: which canvas, the box, its size
+// follows the flat view however it is laid out, grown or mid-glide: which canvas, the box, its size
 window.__guideFlatRaw = name => {
   const b = flatOpen && flatSpots[name];
-  return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
+  return b ? { cv: 'flatCv', box: b, w: 260, h: 280, note: !!flatSpots[name + 'Note'] } : null;
 };
-// "Show me" draws the move to make by hand: the thumb wheel, from where it is now to where it will be when the
-// jaws (or the rod) touch the part, in page coordinates. The slider follows the pointer along the beam, so
-// that is exactly the drag
+// "Show me" presses on a spot that is certainly on the thumb wheel: a point on its surface facing the camera, found
+// by casting rays at it (its middle first, then round it) and keeping the first that lands on it. It is kept in
+// the wheel's own coordinates, so it rides along with the slider, and looked for again every so often as the
+// view turns.
+const _grab = { local: null, t: 0 };
+function grabPoint() {
+  const now = performance.now(), r = canvas.getBoundingClientRect();
+  if (r.width < 2) return null;
+  const seen = o => { for (; o; o = o.parent) if (!o.visible) return false; return true; };
+  const hitAt = (x, y) => {
+    pointer.set((x - r.left) / r.width * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    const h = raycaster.intersectObject(cal, true).find(q => seen(q.object));
+    return h && roleOf(h.object) === 'wheel' ? h.point : null;
+  };
+  const page = p => { const v = p.clone().project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; };
+  wheel.updateWorldMatrix(true, true);
+  if (_grab.local) {
+    const p = wheel.localToWorld(_grab.local.clone());
+    if (now - _grab.t < 400) return p;
+    _grab.t = now;
+    const s = page(p);
+    if (hitAt(s.x, s.y)) return p;
+  }
+  _grab.local = null; _grab.t = now;
+  const box = new T.Box3().setFromObject(wheel);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < 8; i++) {
+    const s = page(V3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z));
+    x0 = Math.min(x0, s.x); y0 = Math.min(y0, s.y); x1 = Math.max(x1, s.x); y1 = Math.max(y1, s.y);
+  }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, tries = [];
+  for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) tries.push([x0 + (x1 - x0) * i / 8, y0 + (y1 - y0) * j / 8]);
+  tries.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
+  for (const [x, y] of [[cx, cy], ...tries]) {
+    const p = hitAt(x, y);
+    if (p) { _grab.local = wheel.worldToLocal(p.clone()); return p; }
+  }
+  return null;
+}
+// "Show me" draws the move to make by hand: from that point on the thumb wheel to where it will be when the jaws
+// (or the rod) touch the part, in page coordinates. The slider follows the pointer along the beam, so that is
+// exactly the drag
 window.__guideDrag = () => {
   if (!sample.obj || sample.staged || !sample.tool) return null;
+  const P = grabPoint();
+  if (!P) return null;
   const r = canvas.getBoundingClientRect();
-  const at = x => { const v = V3(x + 2.74, -0.44, 0.33).project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; };
-  const a = at(state.pos), b = at(sample.size);
-  return a && b ? { pts: [a, b] } : null;
+  const page = p => { const v = p.clone().project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; };
+  // the far end at least an inch along the beam, so the path's direction on screen is exactly the beam's (a few
+  // hundredths of an inch project to a pixel or two, too short to aim by); the hint trims it to a sensible length
+  const d = sample.size - state.pos, run = Math.sign(d || -1) * Math.max(Math.abs(d), 1);
+  const a = page(P), b = page(P.clone().add(V3(run, 0, 0)));
+  return a && b ? { pts: [a, b], len: Math.abs(d) / Math.abs(run) } : null;
 };
 async function start() {
   window.__load && window.__load.set(0.9, 'Setting up the view…');
