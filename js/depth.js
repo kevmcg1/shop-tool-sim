@@ -2130,16 +2130,12 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
-    // on, so the tilt holds all the way instead of snapping flat and back
-    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
-    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
-    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
-      { transform: base.trim() || 'none' }
+      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
+      { transformOrigin: '0 0', transform: 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -3601,30 +3597,63 @@ window.__guideFlatSpot = name => {
   return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
 };
 // the same box in the flat view's own units, for "Show me" to pin a tracker to inside the flat view, so it
-// follows the flat view however it is laid out, grown, tilted or mid-glide: which canvas, the box, its size
+// follows the flat view however it is laid out, grown or mid-glide: which canvas, the box, its size
 window.__guideFlatRaw = name => {
   const b = flatOpen && flatSpots[name];
   return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
 };
-// "Show me" draws the move to make by hand: three quarters of a turn round the ratchet stop the way it tightens
-// (negative about +y), starting on the side facing the camera, in page coordinates. Circling the pointer round the
-// ratchet turns it with you, so that is exactly the drag
+// "Show me" presses on a spot that is certainly on the thing to grab: a point on its surface facing the camera,
+// found by casting rays at it (its middle first, then round it) and keeping the first that lands on it. It is kept
+// in the thing's own coordinates, so it rides along as it moves, and looked for again every so often as the view turns.
+const _grab = { obj: null, local: null, t: 0 };
+function grabPoint(obj, ok){
+  const now = performance.now(), r = el.getBoundingClientRect();
+  if (!obj || r.width < 2) return null;
+  const hitAt = (x, y) => {
+    ndc.set((x - r.left)/r.width*2 - 1, -((y - r.top)/r.height)*2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const h = ray.intersectObjects(pickables, false)[0];
+    return h && ok(h) ? h.point : null;
+  };
+  const page = p => { const v = p.clone().project(camera); return { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
+  obj.updateWorldMatrix(true, true);
+  if (_grab.obj === obj && _grab.local){
+    const p = obj.localToWorld(_grab.local.clone());
+    if (now - _grab.t < 400) return p;
+    _grab.t = now;
+    const s = page(p);
+    if (hitAt(s.x, s.y)) return p;
+  }
+  _grab.obj = obj; _grab.local = null; _grab.t = now;
+  const box = new T.Box3().setFromObject(obj);
+  if (box.isEmpty()) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < 8; i++){
+    const s = page(new T.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z));
+    x0 = Math.min(x0, s.x); y0 = Math.min(y0, s.y); x1 = Math.max(x1, s.x); y1 = Math.max(y1, s.y);
+  }
+  const cx = (x0 + x1)/2, cy = (y0 + y1)/2, tries = [];
+  for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) tries.push([x0 + (x1 - x0)*i/8, y0 + (y1 - y0)*j/8]);
+  tries.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
+  for (const [x, y] of [[cx, cy], ...tries]){
+    const p = hitAt(x, y);
+    if (p){ _grab.local = obj.worldToLocal(p.clone()); return p; }
+  }
+  return null;
+}
+// "Show me" draws the move to make by hand: from a point on the ratchet stop itself (see grabPoint), three quarters
+// of a turn round the spindle axis the way it tightens (negative about +y), in page coordinates. Circling the pointer
+// round the ratchet turns it with you, so that is exactly the drag
 window.__guideDrag = () => {
   if (!ratchetG) return null;
-  const box = new T.Box3();
-  ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) box.expandByObject(o); });
-  if (box.isEmpty()) return null;
-  const c = box.getCenter(new T.Vector3()), sz = box.getSize(new T.Vector3()), rr = Math.max(sz.x, sz.z)/2*0.8;
-  const r = renderer.domElement.getBoundingClientRect(), eye = camera.position.clone().sub(c).normalize();
-  const at = t => new T.Vector3(c.x + rr*Math.sin(t), c.y, c.z + rr*Math.cos(t));
-  // start where the knob faces the camera most, then go the tightening way (the angle falls)
-  let t0 = 0, best = -Infinity;
-  for (let i = 0; i < 24; i++){ const t = i/24*TAU, d = at(t).sub(c).dot(eye); if (d > best){ best = d; t0 = t; } }
-  const pts = [];
+  const P = grabPoint(ratchetG, h => h.object.userData.kind === 'ratchet');
+  if (!P) return null;
+  const c = guideRatchetCenter(), o = P.clone().sub(c), pts = [];
+  const r = el.getBoundingClientRect(), page = p => { const v = p.clone().project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
   for (let i = 0; i <= 40; i++){
-    const v = at(t0 - i/40*TAU*0.75).project(camera);
-    if (v.z > 1 || v.z < -1) return null;
-    pts.push({ x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height });
+    const a = -i/40*TAU*0.75, q = page(new T.Vector3(o.x*Math.cos(a) + o.z*Math.sin(a), o.y, -o.x*Math.sin(a) + o.z*Math.cos(a)).add(c));
+    if (!q) return null;
+    pts.push(q);
   }
   return { pts, turn: true };
 };

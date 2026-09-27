@@ -1874,16 +1874,12 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
-    // on, so the tilt holds all the way instead of snapping flat and back
-    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
-    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
-    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
+    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
-      { transform: base.trim() || 'none' }
+      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
+      { transformOrigin: '0 0', transform: 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -1999,6 +1995,22 @@ function drawFlatHG(){
   cornerText(g, 'Inch', 6, 9, { size: 10, col: '#c9ccd1' });
   cornerText(g, 'Metric', W - 6, 9, { size: 10, col: '#c9ccd1', align: 'right' });
   cornerText(g, 'Beam', (X0 + X1)/2, 9, { size: 10, col: '#8a8f97', align: 'center' });
+  // the whole-inch and centimeter numbers usually sit below the vernier's 0, off the bottom of the flat view: a
+  // note on a dark tag at the foot of each side says where, and "Show me" points at the note
+  if (show){
+    const iv = Math.floor(I.mainIdx/20), cm = Math.floor(Mm.mainIdx/10);
+    const tag = (t, right) => {
+      g.save(); g.font = '700 10px Inter, Arial, sans-serif';
+      const w = g.measureText(t).width + 12, h = 16, x = right ? W - 3 - w : 3, y = H - 3 - h;
+      g.fillStyle = 'rgba(11,12,14,.9)'; g.fillRect(x, y, w, h);
+      g.fillStyle = '#f2c94c'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, x + 6, y + h/2 + 0.5);
+      g.restore();
+      return [x - 2, y - 2, x + w + 2, y + h + 2];
+    };
+    if (Y(iv*20*IN_MAIN) > H - 6){ flatSpots.inchNum = tag(`↓ ${iv}″ is ${((R - iv*25.4)/25.4).toFixed(2)}″ below`); flatSpots.inchNumNote = true; }
+    if (Y(cm*10) > H - 6){ flatSpots.mmNum = tag(`↓ ${cm} cm is ${(R - cm*10).toFixed(1)} mm below`, true); flatSpots.mmNumNote = true; }
+  }
+
   drawLoupeHG(R, I, Mm, show, C);
 }
 // close-up above the flat view: each row lays one vernier on its side and magnifies it around the
@@ -2249,16 +2261,60 @@ window.__guideFlatRaw = name => {
   if (!flatOpen) return null;
   if (name === 'loupeIn' || name === 'loupeMm') return $('loupeCv') ? { cv: 'loupeCv', box: name === 'loupeIn' ? [0, 0, 260, 56] : [0, 60, 260, 116], w: 260, h: 116 } : null;
   const b = flatSpots[name];
-  return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
+  return b ? { cv: 'flatCv', box: b, w: 260, h: 280, note: !!flatSpots[name + 'Note'] } : null;
 };
-// "Show me" draws the move to make by hand: the slider, from where it is now down to where the scriber rests on
-// the part, in page coordinates. The slider follows the pointer up and down the beam, so that is exactly the drag
+// "Show me" presses on a spot that is certainly on the thing to grab: a point on its surface facing the camera,
+// found by casting rays at it (its middle first, then round it) and keeping the first that lands on it. It is kept
+// in the thing's own coordinates, so it rides along as it moves, and looked for again every so often as the view turns.
+const _grab = { obj: null, local: null, t: 0 };
+function grabPoint(obj, ok){
+  const now = performance.now(), r = el.getBoundingClientRect();
+  if (!obj || r.width < 2) return null;
+  const hitAt = (x, y) => {
+    ndc.set((x - r.left)/r.width*2 - 1, -((y - r.top)/r.height)*2 + 1);
+    ray.setFromCamera(ndc, camera);
+    const h = ray.intersectObjects(pickables, false)[0];
+    return h && ok(h) ? h.point : null;
+  };
+  const page = p => { const v = p.clone().project(camera); return { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
+  obj.updateWorldMatrix(true, true);
+  if (_grab.obj === obj && _grab.local){
+    const p = obj.localToWorld(_grab.local.clone());
+    if (now - _grab.t < 400) return p;
+    _grab.t = now;
+    const s = page(p);
+    if (hitAt(s.x, s.y)) return p;
+  }
+  _grab.obj = obj; _grab.local = null; _grab.t = now;
+  const box = new T.Box3().setFromObject(obj);
+  if (box.isEmpty()) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (let i = 0; i < 8; i++){
+    const s = page(new T.Vector3(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z));
+    x0 = Math.min(x0, s.x); y0 = Math.min(y0, s.y); x1 = Math.max(x1, s.x); y1 = Math.max(y1, s.y);
+  }
+  const cx = (x0 + x1)/2, cy = (y0 + y1)/2, tries = [];
+  for (let i = 0; i <= 8; i++) for (let j = 0; j <= 8; j++) tries.push([x0 + (x1 - x0)*i/8, y0 + (y1 - y0)*j/8]);
+  tries.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cy) - Math.hypot(b[0] - cx, b[1] - cy));
+  for (const [x, y] of [[cx, cy], ...tries]){
+    const p = hitAt(x, y);
+    if (p){ _grab.local = obj.worldToLocal(p.clone()); return p; }
+  }
+  return null;
+}
+// "Show me" draws the move to make by hand: from a point on the slider itself (see grabPoint) straight down to where
+// the scriber rests on the part, in page coordinates. The slider follows the pointer up and down the beam, so
+// that is exactly the drag
 window.__guideDrag = () => {
   if (!state.part) return null;
-  const r = renderer.domElement.getBoundingClientRect();
-  const at = hs => { const v = new T.Vector3(SL_X0, hs + SCRIBE_DROP + 38, -2).project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
-  const a = at(state.hs), b = at(minHs());
-  return a && b ? { pts: [a, b] } : null;
+  const P = grabPoint(sliderG, h => h.object.userData.kind === 'slider');
+  if (!P) return null;
+  const r = el.getBoundingClientRect(), page = p => { const v = p.clone().project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
+  // the far end at least 30 mm down the beam, so the path's direction on screen is exactly the beam's; the hint
+  // trims it to a sensible length
+  const d = minHs() - state.hs, run = Math.sign(d || -1)*Math.max(Math.abs(d), 30);
+  const a = page(P), b = page(P.clone().add(new T.Vector3(0, run, 0)));
+  return a && b ? { pts: [a, b], len: Math.abs(d)/Math.abs(run) } : null;
 };
 async function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
