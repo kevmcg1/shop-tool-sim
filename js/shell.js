@@ -92,20 +92,45 @@ lockDown(window);
     w.__rafPaused = off;
     if (!off) w.__rafHeld.splice(0).forEach(cb => w.requestAnimationFrame(cb));
   }
+  // Switching tools: the open tool dissolves away first (js/dissolve.js), then the new tab's tool shows and builds
+  // in. The tab lights up at once; clicking on meanwhile just changes which tool comes next.
+  const toolFx = f => { try { return f && f.contentWindow && f.contentWindow.__toolFx; } catch (e) { return null; } };
+  let pend = null;
   function show(id){
     const a = APPS.find(x => x.id === id) || APPS[0];
+    if (pend){ pend.id = a.id; mark(a); return; }
     if (current === a.id) return;
+    const fx = current && toolFx(frames[current]);
+    if (fx && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      pend = { id: a.id }; mark(a);
+      const go = () => { if (!pend) return; const n = pend.id; pend = null; swap(n); };
+      Promise.resolve(fx.out()).then(go, go);
+      setTimeout(go, 2000);   // never stuck on a tool that doesn't answer
+      return;
+    }
+    swap(a.id);
+  }
+  // the tab, the address and the remembered tool follow the choice straight away
+  function mark(a){
+    tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.id === 'tab-' + a.id)));
+    placeInk();
+    document.title = 'Shop Tool Sim';
+    if (location.hash !== '#' + a.id) history.replaceState(null, '', '#' + a.id);
+    try { localStorage.setItem('precision-tools-last', a.id); } catch (e) {}
+  }
+  function swap(id){
+    const a = APPS.find(x => x.id === id) || APPS[0];
+    mark(a);
+    // back to the tool that was going: it builds in again where it is
+    if (current === a.id){ const fx = toolFx(frames[a.id]); if (fx) fx.in(); return; }
     current = a.id;
     const f = frameFor(a);
     Object.values(frames).forEach(x => { x.classList.toggle('on', x === f); pause(x, x !== f); });
     // a hidden frame has no size, so its layout is stale: have it lay itself out again now it shows
     const relayout = () => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} };
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
-    tabs.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.id === 'tab-' + a.id)));
-    placeInk();
-    document.title = 'Shop Tool Sim';
-    if (location.hash !== '#' + a.id) history.replaceState(null, '', '#' + a.id);
-    try { localStorage.setItem('precision-tools-last', a.id); } catch (e) {}
+    // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
+    const fx = toolFx(f); if (fx) fx.in();
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
   }
   tabs.addEventListener('keydown', e => {

@@ -1041,13 +1041,35 @@ function removeSample(){
   if (!partG) return;
   const set = new Set(); partG.traverse(o => set.add(o));
   const keep = pickables.filter(p => !set.has(p)); pickables.length = 0; pickables.push(...keep);
-  // the old part dissolves out where it was, then goes
-  const old = partG;
-  Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: () => { disposeTree(old); if (old.parent) old.parent.remove(old); } });
+  // the old part dissolves out where it was, then goes (at once, if newSample has already dissolved it away)
+  const old = partG, gone = () => { disposeTree(old); if (old.parent) old.parent.remove(old); };
+  if (old.userData.gone) gone();
+  else Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: gone });
   partG = setupG = flipG = null; primMeshes = []; hullMeshes = []; hullFeat = '';
 }
-function newSample(key, keepSel){
-  state.sampleKey = key;
+// A new part: the old one dissolves away completely first, with the micrometer held still where it is, so
+// nothing ever moves through a part that is still there. Then the spindle opens right up, clear of anything
+// the new part could bring between the faces, and only then does the new part build in (partReady settles
+// then; "Show me" waits on it before sliding the part in). Asking again meanwhile just changes the part.
+let partWait = null, partReady = Promise.resolve();
+const noMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function newSample(key, keepSel, swapped){
+  if (partWait){ partWait.key = key; partWait.keepSel = keepSel; return; }
+  if (partG && partG.visible && !partG.userData.gone && !noMotion()){   // (one still hidden, waiting to come in, just goes)
+    partWait = { key, keepSel };
+    stopAnim(); state.seq = null; state.partTarget = null;
+    let ready; partReady = new Promise(r => { ready = r; }); partWait.ready = ready;
+    const old = partG;
+    Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: () => {
+      old.visible = false; old.userData.gone = true;
+      const w = partWait; partWait = null;
+      if (!w) return;   // the micrometer was rebuilt meanwhile (a new frame size), with its part
+      newSample(w.key, w.keepSel, true);
+      partReady.then(w.ready);
+    } });
+    return;
+  }
+  state.sampleKey = key; partReady = Promise.resolve();
   const prevSel = state.sample && state.sample.sel;
   removeSample();
   state.seq = null; state.partTarget = null;
@@ -1079,7 +1101,18 @@ function newSample(key, keepSel){
   const t = S.targets[S.sel];
   setSetup(t.s, -1, true);
   renderFeats();
-  Dissolve.in(partG, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });
+  // after another part: clear the way first, the spindle opening right up, and the part builds in once it has
+  const g = partG, fx = { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } };
+  if (!swapped || state.locked || state.reading >= 1 - 1e-7 || noMotion()){ Dissolve.in(g, fx); partReady = Promise.resolve(); return; }
+  g.visible = false;
+  stopAnim(); openForMove();
+  partReady = new Promise(done => {
+    const t0 = performance.now();
+    const go = () => { if (g.visible || partG !== g) return done(); g.visible = true; invalidate(); Dissolve.in(g, fx); done(); };
+    const wait = () => { if (g.visible) return; if (partG !== g) return done(); if (state.anim && performance.now() - t0 < 2500) requestAnimationFrame(wait); else go(); };
+    requestAnimationFrame(wait);
+    setTimeout(go, 2600);   // a timer backs up the frame callbacks, which stop while the page is not being painted
+  });
 }
 function setSetup(id, side, atRest){
   const S = state.sample, s = S.setups[id];
@@ -1656,12 +1689,16 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
+    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
+    // on, so the tilt holds all the way instead of snapping flat and back
+    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
+    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
+    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
-      { transformOrigin: '0 0', transform: 'none' }
+      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
+      { transform: base.trim() || 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -1741,26 +1778,33 @@ function setPractice(on){
   if (on) loadPractice();
 }
 function loadPractice(){
-  // new frame size each time (different from the last one)
+  // new frame size each time (different from the last one), with a part it can measure: the micrometer on
+  // screen dissolves away and the new one builds in with the part already in it
   let nb = Math.floor(Math.random()*6);
   if (nb === B) nb = (nb + 1 + Math.floor(Math.random()*5)) % 6;
   if (state.locked) setLock(false);
   endCoach();
-  setRange(nb); setView('iso');
-  const all = CORE.available(B).filter(k => !CORE.DEFS[k].ref);
+  const all = CORE.available(nb).filter(k => !CORE.DEFS[k].ref);
   const keys = all.filter(k => k !== lastPracticeKey);
   const pool = keys.length ? keys : all;
   const key = pool[Math.floor(Math.random()*pool.length)];
   lastPracticeKey = key;
-  newSample(key);
-  $('sampleSel').value = key;
-  const valid = state.sample.feats.filter(f => f.valid);
-  const f = valid[Math.floor(Math.random()*valid.length)];
-  goToFeature(f.id, true);
-  state.pRevealed = false; state.pErr = []; flatKey = ''; updateAll();
+  state.pRevealed = false; state.pErr = []; flatKey = '';
   $('guess').value = '';
-  $('feedback').innerHTML = `<p class="pintro">Read the <b>${B}–${B + 1}″</b> micrometer, type the reading and press <b>Check</b>. Score ${state.pScore.right}/${state.pScore.total}.</p>`;
+  $('feedback').innerHTML = `<p class="pintro">Read the <b>${nb}–${nb + 1}″</b> micrometer, type the reading and press <b>Check</b>. Score ${state.pScore.right}/${state.pScore.total}.</p>`;
   setTimeout(() => $('guess').focus({ preventScroll: true }), 50);
+  state.sampleKey = key;   // the new micrometer is built with this part on it
+  swapRange(nb, () => {
+    $('sampleSel').value = key;
+    setView('iso');
+    partReady.then(() => {
+      if (!state.practice || !state.sample || state.sampleKey !== key) return;
+      const valid = state.sample.feats.filter(f => f.valid);
+      const f = valid[Math.floor(Math.random()*valid.length)];
+      goToFeature(f.id, true);
+      updateAll();
+    });
+  });
 }
 function splitReading(n){
   const inch = Math.floor(n/1e4); let r = n - inch*1e4;
@@ -2407,15 +2451,30 @@ function setLock(v){
   toast(v ? 'Spindle locked' : 'Spindle unlocked');
 }
 
+// A different size is a different micrometer: the one on screen dissolves away, part and all, the new one is built
+// while nothing shows, and it builds in, as when switching tools. then() runs once it is built. Asking again
+// meanwhile just changes which size comes next.
+let rangeSwap = null;
+function swapRange(nb, then){
+  const fx = window.__toolFx;
+  if (rangeSwap){ rangeSwap.nb = nb; rangeSwap.then = then; return; }
+  if (!fx || noMotion()){ setRange(nb); if (then) then(); return; }
+  rangeSwap = { nb, then };
+  fx.out().then(() => { const w = rangeSwap; rangeSwap = null; setRange(w.nb); if (w.then) w.then(); fx.in(); });
+}
 function setRange(nb){
   B = nb; stopAnim(); endCoach(); state.seq = null; state.coachArmed = true;
   document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.range === B)));
   $('brand').textContent = `${B}–${B + 1}″`;
   $('setTo').placeholder = goHint();
   document.title = `Vernier Micrometer ${B}–${B + 1}″ · 3D`;
+  // a part still on its way in comes in with the rebuilt micrometer instead
+  const w = partWait; partWait = null;
+  if (w) state.sampleKey = w.key;
   build();
   fillSampleOptions();
   newSample(state.sampleKey);
+  if (w) partReady.then(w.ready);
   placeLights();
   resize();
   updateAll();
@@ -2729,7 +2788,7 @@ function updateHighlights(){
 /* ---------- UI bindings ---------- */
 const parseIn = s => parseFloat(String(s).replace(/[″"in\s]/g, ''));
 function bindUI(){
-  document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => { if (+b.dataset.range !== B){ setRange(+b.dataset.range); setView('iso'); } }));
+  document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => { if (+b.dataset.range !== B) swapRange(+b.dataset.range, () => setView('iso')); }));
   document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
   document.querySelectorAll('[data-step]').forEach(b => b.addEventListener('click', () => {
     const base = state.anim && state.anim.type === 'to' ? state.anim.target : state.reading;
@@ -2992,9 +3051,11 @@ function guideRatchetCenter(){
 // "Show me" has the tool put the part in place by itself (the first feature slid between the faces, the
 // spindle run down to just short of it), so the person only has to finish closing it by hand
 window.__guidePlacePart = () => {
-  const S = state.sample, f = S && S.feats.find(x => x.valid);
-  if (!f) return false;
-  goToFeature(f.id, 'near');   // the spindle stops just short, so it's less than a turn to close it by hand
+  // once the new part is in (the old one gone and the spindle opened clear first)
+  partReady.then(() => {
+    const S = state.sample, f = S && S.feats.find(x => x.valid);
+    if (f) goToFeature(f.id, 'near');   // the spindle stops just short, so it's less than a turn to close it by hand
+  });
   return true;
 };
 // "Show me" flies the camera in on one mark: the vernier step looks square down on the one vernier line that
@@ -3047,6 +3108,34 @@ window.__guideFlatSpot = name => {
   const r = cv.getBoundingClientRect(), sx = r.width/260, sy = r.height/280;
   return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
 };
+// the same box in the flat view's own units, for "Show me" to pin a tracker to inside the flat view, so it
+// follows the flat view however it is laid out, grown, tilted or mid-glide: which canvas, the box, its size
+window.__guideFlatRaw = name => {
+  const b = flatOpen && flatSpots[name];
+  return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
+};
+// "Show me" draws the move to make by hand: three quarters of a turn round the ratchet stop the way it tightens
+// (negative about +x), starting on the side facing the camera, in page coordinates. Circling the pointer round the
+// ratchet turns it with you, so that is exactly the drag
+window.__guideDrag = () => {
+  if (!ratchetG) return null;
+  const box = new T.Box3();
+  ratchetG.children.forEach(o => { if (o.isMesh && !o.userData.ownMat) box.expandByObject(o); });
+  if (box.isEmpty()) return null;
+  const c = box.getCenter(new T.Vector3()), sz = box.getSize(new T.Vector3()), rr = Math.max(sz.y, sz.z)/2*0.8;
+  const r = renderer.domElement.getBoundingClientRect(), eye = camera.position.clone().sub(c).normalize();
+  const at = t => new T.Vector3(c.x, c.y + rr*Math.cos(t), c.z + rr*Math.sin(t));
+  // start where the knob faces the camera most, then go the tightening way (the angle falls)
+  let t0 = 0, best = -Infinity;
+  for (let i = 0; i < 24; i++){ const t = i/24*TAU, d = at(t).sub(c).dot(eye); if (d > best){ best = d; t0 = t; } }
+  const pts = [];
+  for (let i = 0; i <= 40; i++){
+    const v = at(t0 - i/40*TAU*0.75).project(camera);
+    if (v.z > 1 || v.z < -1) return null;
+    pts.push({ x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height });
+  }
+  return { pts, turn: true };
+};
 function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   atlas =makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
@@ -3063,6 +3152,7 @@ function start(){
   bindFinish();
   setView('iso', true);
   window.__load ? window.__load.done() : $('loading').remove();
+  Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });   // builds in now, and goes and comes back as tools are switched
 
   // the first view is framed before the layout has settled (fonts, panels, the flat view's corner),
   // so frame it again a few times as things land, until the first touch from the user

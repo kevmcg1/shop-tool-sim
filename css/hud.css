@@ -1,0 +1,14 @@
+/* HUD tilt, after The Division: every floating panel over the 3D view, the minimap (the flat view) with them,
+   turns a few degrees in depth toward the middle of the screen, its outer edge nearest, the way a game HUD wraps
+   round the player. Panels on the left lean one way and panels on the right the other, each hinged on its outer
+   edge so it stays lined up with the margin; nothing else about them changes. The side panel's buttons lean with
+   the left side. (js/*.js glides between layouts keep the tilt; a docked flat view on a phone stays flat.) */
+:root{--hud-a:7deg;--hud-p:900px;--hud-btn-a:5deg;--hud-btn-p:520px}
+#view .actions,#view .quick{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+#view .views,#view .legend,#view .flat{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 50%}
+#view .ov-left{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+#view .ov-right{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 50%}
+aside button{transform:perspective(var(--hud-btn-p)) rotateY(var(--hud-btn-a));transform-origin:0 50%}
+/* the top bar: the tool tabs lean with the left side, Reset all with the right */
+#tabs{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+.reset-all{transform:perspective(var(--hud-btn-p)) rotateY(calc(-1 * var(--hud-btn-a)));transform-origin:100% 50%}
