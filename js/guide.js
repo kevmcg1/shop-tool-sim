@@ -278,6 +278,11 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (e.closest('aside') && b.classList.contains('side-off') && $('sideBtn')) $('sideBtn').click();
     if (e.closest('#reading') && b.classList.contains('panel-off') && $('panelBtn')) $('panelBtn').click();
     if (e.closest('aside')) e.scrollIntoView({ block: 'center', behavior: 'auto' });
+    // on a narrow screen the panels stack and the page scrolls: bring anything else that is out of sight into it
+    else {
+      const r = e.getBoundingClientRect();
+      if (r.top < 0 || r.bottom > innerHeight) e.scrollIntoView({ block: r.height > innerHeight ? 'start' : 'nearest', behavior: 'auto' });
+    }
   }
   // the flat view floats over the 3D view: while the lit window round a spot on the tool would show it on top
   // of what the step points at, it fades out of the way, and comes back once the window moves off it or the walkthrough ends. Its box
@@ -424,7 +429,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const side = fn(s.side, s), keep = side && { side, w: (cardW || 330) + CARD_GAP + 24 };
     if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame, keep)) && vb) vb.click();
     const t = targetOf(s);
-    if (!s.spot) reveal(t);
+    reveal(t);
     // a flat-view step opens the flat view if it was shut, and it is shut again when the walkthrough ends
     const fl = $('flat');
     if (s.flatSpot && fl && fl.classList.contains('closed') && $('flatBtn')){ $('flatBtn').click(); flatOpened = true; }
