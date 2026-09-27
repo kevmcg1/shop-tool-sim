@@ -14,6 +14,10 @@
 <header class="bar">
   <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
+  <div class="reset-wrap">
+    <button type="button" class="reset-all" id="resetAll" aria-describedby="resetPop"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg><span class="ra-t">Reset all</span></button>
+    <div class="reset-pop" id="resetPop" role="tooltip"><b>Hold for 3 seconds to reset everything.</b> Every tool, part and setting goes back to how it started. Use it if you’re stuck and there’s no way out.</div>
+  </div>
 </header>
 <main class="stage" id="stage"></main>
 <footer class="foot"><span>Shop Tool Sim is released under GitHub’s <a href="https://github.com/github/choosealicense.com/blob/gh-pages/_licenses/cc0-1.0.txt" target="_blank" rel="license noopener noreferrer">Creative Commons Zero v1.0 Universal</a> license. All rights reserved.</span></footer>
@@ -70,7 +74,7 @@
     <section data-inst="dial">
       <h2>Dial bezel</h2>
       <div class="bezel-val"><span>Bezel offset</span><b id="bezelVal">0.000″</b></div>
-      <input type="range" id="bezelRange" min="-50" max="50" step="1" value="0" aria-label="Bezel offset in thousandths">
+      <input type="range" id="bezelRange" min="-50" max="50" step="1" value="0" aria-label="Bezel offset in thou">
       <div class="row">
         <button id="zeroBtn">Zero bezel</button>
         <button id="skewBtn">Random offset</button>
@@ -114,10 +118,10 @@
       <h2>Highlights</h2>
       <div class="hlcards">
         <label class="hlcard" style="--c:var(--hl-inch)"><input type="checkbox" data-hl="inch"><span><b>Inch number</b><small>Last whole inch the slider edge has passed</small></span></label>
-        <label class="hlcard" style="--c:var(--hl-tenth)"><input type="checkbox" data-hl="tenth"><span><b>Tenth line</b><small data-inst="dial">Last 0.100″ line left of the slider edge</small><small data-inst="vern">Last beam digit (0.100″) left of the vernier zero</small></span></label>
-        <label class="hlcard" style="--c:var(--hl-dial)" data-inst="dial"><input type="checkbox" data-hl="dial"><span><b>Dial reading</b><small>The dial mark under the needle, in thousandths</small></span></label>
-        <label class="hlcard" style="--c:var(--hl-sub)" data-inst="vern"><input type="checkbox" data-hl="sub"><span><b>0.025″ lines</b><small>Short beam lines passed after that digit</small></span></label>
-        <label class="hlcard" style="--c:var(--hl-vern)" data-inst="vern"><input type="checkbox" data-hl="vern"><span><b>Vernier line</b><small>The vernier line that meets a beam line, in thousandths</small></span></label>
+        <label class="hlcard" style="--c:var(--hl-tenth)"><input type="checkbox" data-hl="tenth"><span><b>Hundred thou line</b><small data-inst="dial">Last hundred-thou line (0.100″) left of the slider edge</small><small data-inst="vern">Last beam digit, a hundred thou (0.100″) each, left of the vernier zero</small></span></label>
+        <label class="hlcard" style="--c:var(--hl-dial)" data-inst="dial"><input type="checkbox" data-hl="dial"><span><b>Dial reading</b><small>The dial mark under the needle, one thou (0.001″) per mark</small></span></label>
+        <label class="hlcard" style="--c:var(--hl-sub)" data-inst="vern"><input type="checkbox" data-hl="sub"><span><b>25-thou lines</b><small>Short beam lines passed after that digit, 25 thou (0.025″) each</small></span></label>
+        <label class="hlcard" style="--c:var(--hl-vern)" data-inst="vern"><input type="checkbox" data-hl="vern"><span><b>Vernier line</b><small>The vernier line that meets a beam line, one thou (0.001″) per line</small></span></label>
         <label class="hlcard" style="--c:#c9ced4"><input type="checkbox" data-hl="outline"><span><b>Part outline</b><small>Colored outline around the part being measured</small></span></label>
       </div>
     </section>
@@ -137,16 +141,16 @@
     <section class="help">
       <h2>Reading the caliper</h2>
       <div data-inst="dial">
-        <p><b>Beam numbers</b> are whole inches. Each <b>line</b> between them is 0.100″. Read the last line to the left of the slider edge.</p>
-        <p><b>The dial</b> adds thousandths: each mark is 0.001″ and one full turn of the needle is 0.100″.</p>
-        <p><b>Reading</b> = inches + tenths + dial. For example 1″ + 0.300″ + 0.047″ = 1.347″.</p>
-        <p><b>Mouse:</b> drag the slider, dial or thumb wheel to move the jaws, scroll over the thumb wheel for 0.001″ steps, drag the knurled bezel to turn the dial face, and click a lock screw to lock it. Shift for fine control.</p>
+        <p><b>Beam numbers</b> are whole inches. Each <b>line</b> between them is a hundred thou (0.100″). Read the last line to the left of the slider edge.</p>
+        <p><b>The dial</b> adds the thou: each mark is one thou (0.001″) and one full turn of the needle is a hundred thou (0.100″).</p>
+        <p><b>Reading</b> = inches + hundred thou + dial. For example 1″ + 300 thou + 47 thou = 1.347″, said “one inch, three hundred forty-seven thou.”</p>
+        <p><b>Mouse:</b> drag the slider, dial or thumb wheel to move the jaws, scroll over the thumb wheel for one-thou (0.001″) steps, drag the knurled bezel to turn the dial face, and click a lock screw to lock it. Shift for fine control.</p>
       </div>
       <div data-inst="vern">
-        <p><b>Beam numbers</b> are whole inches and the <b>small digits</b> are 0.100″. The <b>short lines</b> between digits are 0.025″ each. Read them all at the vernier's 0 line.</p>
-        <p><b>The vernier</b> adds thousandths: find the one vernier line that meets a beam line exactly. Its number is the thousandths, 0 to 24.</p>
-        <p><b>Reading</b> = inches + tenths + 0.025″ lines + vernier. For example 1″ + 0.300″ + 0.050″ + 0.012″ = 1.362″.</p>
-        <p><b>Mouse:</b> drag the slider or thumb wheel to move the jaws, scroll over the thumb wheel for 0.001″ steps, and click the lock screw to lock it. Shift for fine control.</p>
+        <p><b>Beam numbers</b> are whole inches and the <b>small digits</b> are a hundred thou (0.100″) each. The <b>short lines</b> between digits are 25 thou (0.025″) each. Read them all at the vernier's 0 line.</p>
+        <p><b>The vernier</b> adds the thou: find the one vernier line that meets a beam line exactly. Its number is the thou, 0 to 24.</p>
+        <p><b>Reading</b> = inches + hundred thou + 25-thou lines + vernier. For example 1″ + 300 thou + 50 thou + 12 thou = 1.362″, said “one inch, three hundred sixty-two thou.”</p>
+        <p><b>Mouse:</b> drag the slider or thumb wheel to move the jaws, scroll over the thumb wheel for one-thou (0.001″) steps, and click the lock screw to lock it. Shift for fine control.</p>
       </div>
       <p><b>Fine adjust</b> slows every control down about 10×: the slider covers a 0.100″ window, and the wheel steps 0.0001″, so it takes several steps to move the needle to the next mark.</p>
       <p><b>Keys:</b> ←→ 0.001″ (0.0001″ in fine adjust), Shift+←→ 0.010″, PgUp/PgDn 0.100″, F fine adjust, L lock slider, <span data-inst="dial">B lock bezel, Z zero bezel, </span>A auto measure, Esc dismiss.</p>
@@ -225,11 +229,11 @@
         <div class="cell feat" id="featCell"><span class="k" id="fK">Measuring</span><span class="v" id="fV">—</span><span class="h" id="fH"></span></div>
         <div class="cell answer" data-c="inch"><span class="k">Inches</span><span class="v" id="vA"></span><span class="h" id="hA"></span></div>
         <span class="op answer">+</span>
-        <div class="cell answer" data-c="tenth"><span class="k">Tenths</span><span class="v" id="vB"></span><span class="h" id="hB"></span></div>
+        <div class="cell answer" data-c="tenth"><span class="k">Hundred thou</span><span class="v" id="vB"></span><span class="h" id="hB"></span></div>
         <span class="op answer" data-inst="dial">+</span>
         <div class="cell answer" data-c="dial" data-inst="dial"><span class="k">Dial</span><span class="v" id="vC"></span><span class="h" id="hC"></span></div>
         <span class="op answer" data-inst="vern">+</span>
-        <div class="cell answer" data-c="sub" data-inst="vern"><span class="k">0.025″ lines</span><span class="v" id="vS"></span><span class="h" id="hS"></span></div>
+        <div class="cell answer" data-c="sub" data-inst="vern"><span class="k">25-thou lines</span><span class="v" id="vS"></span><span class="h" id="hS"></span></div>
         <span class="op answer" data-inst="vern">+</span>
         <div class="cell answer" data-c="vern" data-inst="vern"><span class="k">Vernier</span><span class="v" id="vV"></span><span class="h" id="hV"></span></div>
         <span class="op answer">=</span>
@@ -250,10 +254,10 @@
     <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
     <ol>
       <li><b>Pick a part.</b> Choose one from “Part” on the left, then click the magic wand. The jaws close gently on it for you.</li>
-      <li data-inst="dial"><b>Read it.</b> The last big number you passed + the small lines after it (0.100″ each) + where the needle points (0.001″ each).</li>
+      <li data-inst="dial"><b>Read it.</b> The last big number you passed + the small lines after it (a hundred thou, 0.100″, each) + where the needle points (one thou, 0.001″, each).</li>
       <li data-inst="dial"><b>Needle not on 0 when closed?</b> Click “Reset bezel” on the left. It turns the dial back to zero, even when it’s locked.</li>
       <li data-inst="vern"><b>Inches or metric?</b> Use the Inches / Metric toggle right above the flat view, or the one on the left. The colors and the flat view follow along.</li>
-      <li data-inst="vern"><b>Read inches (bottom).</b> Big number + small numbers after it (0.100″) + tiny lines after those (0.025″) + the sliding line that lines up perfectly (0.001″).</li>
+      <li data-inst="vern"><b>Read inches (bottom).</b> Big number + small numbers after it (a hundred thou, 0.100″) + tiny lines after those (25 thou, 0.025″) + the sliding line that lines up perfectly (one thou, 0.001″).</li>
       <li data-inst="vern"><b>Read millimeters (top).</b> The last whole millimeter before the top sliding 0, plus the top line that lines up perfectly (0.05 mm each).</li>
       <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
       <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “25.4 mm” or “1.5 in”) and it knows which you mean.</li>
@@ -273,10 +277,14 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 } }
 <\/script>
+<script src="js/dissolve.js"><\/script>
+<script src="js/pivot.js"><\/script>
 <script src="js/caliper.js"><\/script>
 <script src="js/color-dots.js"><\/script>
 <script src="js/dropdowns.js"><\/script>
 <script src="js/range-fill.js"><\/script>
+<script src="js/guide.js"><\/script>
+<script src="js/tips.js"><\/script>
 <script src="js/flat-units.js"><\/script>
 </body>
 </html>
@@ -381,8 +389,8 @@
     <section class="help">
       <h2>Reading the scales</h2>
       <p><b>Frame size</b> is the starting inch: a 2–3″ micrometer adds 2.0000″ to what the scales show.</p>
-      <p><b>Sleeve numbers</b> are tenths; each line between them adds 0.025″. <b>Thimble lines</b> add 0.001″ each; one turn is 0.025″.</p>
-      <p><b>Vernier lines</b> on top of the sleeve: the one that lines up with a thimble line gives the 0.0001″ digit.</p>
+      <p><b>Sleeve numbers</b> are a hundred thou (0.100″) each; each line between them adds 25 thou (0.025″). <b>Thimble lines</b> add one thou (0.001″) each; one turn is 25 thou.</p>
+      <p><b>Vernier lines</b> on top of the sleeve: the one that lines up with a thimble line gives the tenths digit (0.0001″ each).</p>
       <p><b>Mouse:</b> drag the thimble or ratchet to turn, click the lock lever, drag the sample in and out. Shift for fine control.</p>
       <p><b>Keys:</b> ↑↓ 0.001″, Shift+↑↓ 0.0001″, PgUp/PgDn 0.025″, R ratchet, L lock, A auto measure, Esc dismiss.</p>
     </section>
@@ -475,11 +483,11 @@
 <div class="tut" id="tut" role="dialog" aria-modal="true" aria-labelledby="tutTitle" hidden>
   <div class="tut-card">
     <h3 id="tutTitle">Welcome to the micrometer!</h3>
-    <p>This one measures thickness to a ten-thousandth of an inch, far thinner than a hair. It’s really just careful counting, and we’ll do it together.</p>
+    <p>This one measures thickness to a tenth (0.0001″, a tenth of a thou), far thinner than a hair. It’s really just careful counting, and we’ll do it together.</p>
     <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
     <ol>
       <li><b>Pick a size and a part.</b> Choose a frame size on the left (its first number starts every reading), then a part, then click a feature to measure it.</li>
-      <li><b>Read it.</b> Frame size + the last sleeve number (0.100″) + small lines after it (0.025″) + the thimble line at the center line (0.001″) + the top line that lines up perfectly (0.0001″).</li>
+      <li><b>Read it.</b> Frame size + the last sleeve number (a hundred thou, 0.100″) + small lines after it (25 thou, 0.025″) + the thimble line at the center line (one thou, 0.001″) + the top line that lines up perfectly (a tenth, 0.0001″).</li>
       <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
       <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “0.6254 in” or “15.9 mm”) and it knows which you mean.</li>
       <li><b>Zoom the flat view.</b> The box in the corner shows the scales flat. The expand button makes it full height; the eye hides it.</li>
@@ -494,10 +502,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
+<script src="js/dissolve.js"><\/script>
+<script src="js/pivot.js"><\/script>
 <script src="js/micrometer.js"><\/script>
 <script src="js/color-dots.js"><\/script>
 <script src="js/dropdowns.js"><\/script>
 <script src="js/range-fill.js"><\/script>
+<script src="js/guide.js"><\/script>
+<script src="js/tips.js"><\/script>
 </body>
 </html>
 </script>
@@ -736,10 +748,14 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
 <script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.js"><\/script>
+<script src="js/dissolve.js"><\/script>
+<script src="js/pivot.js"><\/script>
 <script src="js/depth.js"><\/script>
 <script src="js/color-dots.js"><\/script>
 <script src="js/dropdowns.js"><\/script>
 <script src="js/range-fill.js"><\/script>
+<script src="js/guide.js"><\/script>
+<script src="js/tips.js"><\/script>
 </body>
 </html>
 </script>
@@ -940,10 +956,14 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
 } }
 <\/script>
+<script src="js/dissolve.js"><\/script>
+<script src="js/pivot.js"><\/script>
 <script src="js/height.js"><\/script>
 <script src="js/color-dots.js"><\/script>
 <script src="js/dropdowns.js"><\/script>
 <script src="js/range-fill.js"><\/script>
+<script src="js/guide.js"><\/script>
+<script src="js/tips.js"><\/script>
 
 </body>
 </html>

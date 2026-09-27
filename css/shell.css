@@ -49,3 +49,20 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .tab-ink{position:absolute;left:0;top:0;height:2px;width:0;border-radius:2px;background:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 70%,transparent);pointer-events:none;opacity:0;transition:transform .38s cubic-bezier(.22,.8,.25,1),width .38s cubic-bezier(.22,.8,.25,1),opacity .2s ease}
 @media (max-width:640px){ .brand{display:none} .bar{padding:0 10px} .tab{padding:0 11px} }
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ink{transition:none} }
+/* nothing on the page can be selected, so a click or drag never highlights text; typing into a box still works */
+html,body{-webkit-user-select:none;user-select:none}
+input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
+/* Reset all, at the right end of the tool bar: fills up in red while it is held, and resets after 3 seconds;
+   a note under it says what it does while it is hovered or held */
+:root{--danger:#f04a45}
+.reset-wrap{position:relative;margin-left:auto;display:flex;align-items:center}
+.reset-all{position:relative;display:flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:9px;border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);background:transparent;color:#f3b4b1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;transition:border-color .2s ease,color .2s ease,background-color .2s ease}
+.reset-all::before{content:"";position:absolute;inset:0;background:var(--danger);opacity:.4;transform:scaleX(var(--p,0));transform-origin:left center}
+.reset-all:hover,.reset-all:focus-visible{border-color:var(--danger);color:#fff;outline:none}
+.reset-all svg,.reset-all span{position:relative}
+.reset-all.done{background:color-mix(in srgb,var(--danger) 40%,transparent);color:#fff}
+.reset-pop{position:absolute;right:0;top:calc(100% + 6px);z-index:20;width:260px;padding:10px 12px;border-radius:9px;background:#16181b;border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);box-shadow:0 12px 28px rgba(0,0,0,.5);font-size:12.5px;line-height:1.45;color:var(--muted);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;pointer-events:none}
+.reset-pop.on{opacity:1;visibility:visible;transform:none;transition:opacity .18s ease,transform .18s ease,visibility 0s}
+.reset-pop b{color:#fff;font-weight:600}
+@media (max-width:640px){ .reset-all{padding:0 10px} .reset-pop{width:min(260px,calc(100vw - 20px))} }
+@media (prefers-reduced-motion: reduce){ .reset-all,.reset-pop,.reset-pop.on{transition:none} }
