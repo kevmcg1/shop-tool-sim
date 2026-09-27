@@ -133,31 +133,33 @@
       Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', title: 'Bring the scriber down by hand',
         text: 'The part slides under the scriber by itself. Now drag the slider on the beam down until the scriber rests on the part’s face.' }, offThenOn()),
       LOOK('height gage'),
+      // the card sits on the other scale's side of the beam: on the inch side while millimeters are read, and on
+      // the metric side while inches are, so it never covers the scale being read
       ...(u === 'mm' ? [
-        { spot: 'mmNum', box: [150, 110], flat: 'the centimeter number', frame: ['mmNum', 'mvernZero'], title: 'Find the centimeter mark', text: () => {
+        { spot: 'mmNum', side: 'left', box: [150, 110], flat: 'the centimeter number', frame: ['mmNum', 'mvernZero'], title: 'Find the centimeter mark', text: () => {
           const v = parseFloat(val('mMain'));
           return 'Look at the metric scale on the beam, on the right. The big numbers are centimeters, 10 mm each. Find the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v/10)} cm</b>, which is ${Math.floor(v/10)*10} mm.`);
         } },
-        { spot: 'mmLine', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the line at or below the zero', text: () => {
+        { spot: 'mmLine', side: 'left', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the line at or below the zero', text: () => {
           const v = parseFloat(val('mMain'));
           return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is one millimeter.'
             + (isNaN(v) ? '' : ` Here it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
-        { spot: 'mvernLine', box: [180, 90], flat: 'the vernier line that lines up', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Look along the metric vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is 0.02 mm, and its big numbers are tenths of a millimeter.' + nowMM('mVern') },
+        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Look along the metric vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is 0.02 mm, and its big numbers are tenths of a millimeter.' + nowMM('mVern') },
         { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
       ] : [
-        { spot: 'inchNum', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
+        { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
           const v = parseFloat(val('iMain'));
           return 'Look at the inch scale on the beam, on the left. The big numbers are whole inches. Find the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v)}″</b>.`);
         } },
-        { spot: 'mainLine', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the line at or below the zero', text: () => {
+        { spot: 'mainLine', side: 'right', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the line at or below the zero', text: () => {
           const v = parseFloat(val('iMain')), n = parseInt(val('iMainH'), 10);
           return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is 50 thou (0.050″).'
             + (isNaN(v) || isNaN(n) ? '' : ` Here it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
-        { spot: 'vernLine', box: [180, 90], flat: 'the vernier line that lines up', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Look along the vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('iVern') },
+        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Look along the vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('iVern') },
         { target: '#reading .rgroup', title: 'Add them up', text: () => 'Inch + main-scale lines + vernier (one thou per line) = the reading in inches.' + now('iTot', 'This one reads') }
       ]),
       SHORT('height'),
@@ -290,6 +292,18 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       away = f.left < r.x + r.w && r.x < f.right && f.top < r.y + r.h && r.y < f.bottom;
     }
     if (away !== flatAway){ flatAway = away; flatEl.classList.toggle('gd-away', away); }
+  }
+  // what the card has to stay off: the lit window, and on a step that frames several marks on the tool (the
+  // number, the vernier's 0 and so on), every one of them that is in sight, with a little room round each
+  function keepClear(s, r){
+    let l = r.x, t = r.y, rt = r.x + r.w, bt = r.y + r.h;
+    const vr = s.spot && s.frame && window.__guideSpot && $('view') && $('view').getBoundingClientRect();
+    if (vr) for (const n of s.frame){
+      const p = window.__guideSpot(n), m = 28;
+      if (!p || p.x < vr.left || p.x > vr.right || p.y < vr.top || p.y > vr.bottom) continue;
+      l = Math.min(l, p.x - m); t = Math.min(t, p.y - m); rt = Math.max(rt, p.x + m); bt = Math.max(bt, p.y + m);
+    }
+    return { x: l, y: t, w: rt - l, h: bt - t };
   }
   function setHl(name, on){
     const c = document.querySelector(`input[data-hl="${name}"]`);
@@ -504,25 +518,36 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       const cut = `path(evenodd, "M0 0H${W}V${H}H0Z M${f(x + rr)} ${f(y)}H${f(x2 - rr)}A${a} ${a} 0 0 1 ${f(x2)} ${f(y + rr)}V${f(y2 - rr)}A${a} ${a} 0 0 1 ${f(x2 - rr)} ${f(y2)}H${f(x + rr)}A${a} ${a} 0 0 1 ${f(x)} ${f(y2 - rr)}V${f(y + rr)}A${a} ${a} 0 0 1 ${f(x + rr)} ${f(y)}Z")`;
       put(dim, 'clipPath', cut); put(dim, 'webkitClipPath', cut);
     } else { put(dim, 'clipPath', 'none'); put(dim, 'webkitClipPath', 'none'); }
-    // the card goes on whichever side of the window has room, and never off screen
+    // the card never covers what the step shows: it goes on a side of the window (and of every mark the step
+    // frames on the tool) that has room, the step's own side first where it asks for one, and never off screen
     if (!cardW) measureCard();
     const cw = cardW, ch = cardH, g = 46;   // g: room for the arrow between them
     let cx, cy;
-    if (!r){ cx = (W - cw) / 2; cy = (H - ch) / 2; }
+    if (!r){ cx = (W - cw) / 2; cy = (H - ch) / 2; lastSide = -1; }
     else {
-      const opts = [
-        { x: r.x + r.w + g, y: r.y + r.h / 2 - ch / 2, room: W - (r.x + r.w) - g - cw },
-        { x: r.x - g - cw, y: r.y + r.h / 2 - ch / 2, room: r.x - g - cw },
-        { x: r.x + r.w / 2 - cw / 2, y: r.y + r.h + g, room: H - (r.y + r.h) - g - ch },
-        { x: r.x + r.w / 2 - cw / 2, y: r.y - g - ch, room: r.y - g - ch }
-      ];
+      const A = keepClear(s, r);
+      const at = (side, gap) => side === 'right' ? { side, x: A.x + A.w + gap, y: r.y + r.h / 2 - ch / 2, room: W - (A.x + A.w) - gap - cw - 12 }
+        : side === 'left' ? { side, x: A.x - gap - cw, y: r.y + r.h / 2 - ch / 2, room: A.x - gap - cw - 12 }
+        : side === 'below' ? { side, x: r.x + r.w / 2 - cw / 2, y: A.y + A.h + gap, room: H - (A.y + A.h) - gap - ch - 12 }
+        : { side, x: r.x + r.w / 2 - cw / 2, y: A.y - gap - ch, room: A.y - gap - ch - 12 };
+      const order = [fn(s.side, s), 'right', 'left', 'below', 'above'].filter((x, i, a) => x && a.indexOf(x) === i);
+      const opts = order.map(x => at(x, g));
       // it keeps its side while that side still has room, instead of hopping as the window moves
-      const keep = lastSide >= 0 && opts[lastSide].room >= 0 ? lastSide : -1;
-      const pick = keep >= 0 ? keep : Math.max(0, opts.findIndex(o => o.room >= 8));
-      const fit = keep >= 0 || opts[pick].room >= 8 ? opts[pick] : opts.reduce((a, o) => o.room > a.room ? o : a);
-      lastSide = opts.indexOf(fit);
+      const kept = opts.find(o => o.side === lastSide && o.room >= 0);
+      let fit = kept || opts.find(o => o.room >= 0);
+      if (!fit){
+        // no side has room for the card and its arrow: the place that covers least of what is shown, with only a
+        // small gap (the window is big enough to need no arrow then), else a corner of the page
+        const cands = order.map(x => at(x, 12)).concat([[12, 12], [W - cw - 12, 12], [12, H - ch - 12], [W - cw - 12, H - ch - 12]].map(([x, y]) => ({ side: 'corner', x, y })));
+        const cover = o => {
+          const x = Math.max(12, Math.min(W - cw - 12, o.x)), y = Math.max(12, Math.min(H - ch - 12, o.y));
+          const hit = q => Math.max(0, Math.min(x + cw, q.x + q.w) - Math.max(x, q.x)) * Math.max(0, Math.min(y + ch, q.y + q.h) - Math.max(y, q.y));
+          return hit(r) * 4 + hit(A) + Math.hypot(x + cw / 2 - (r.x + r.w / 2), y + ch / 2 - (r.y + r.h / 2)) * 0.01;
+        };
+        fit = cands.reduce((a, o) => cover(o) < cover(a) ? o : a);
+      }
+      lastSide = fit.side;
       cx = fit.x; cy = fit.y;
-      if (fit.room < 8){ cx = W - cw - 12; cy = H - ch - 12; }   // nowhere free: bottom right, over the target
     }
     cx = Math.max(12, Math.min(W - cw - 12, cx)); cy = Math.max(12, Math.min(H - ch - 12, cy));
     // the card eases over to its new place too
