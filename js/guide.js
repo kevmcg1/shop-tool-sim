@@ -1,9 +1,11 @@
 // "Show me" (experimental): a hands-on walkthrough of one real measurement with each tool, done on the
 // 3D tool itself: you turn the thumb wheel, ratchet or slider by hand, look around, and read each mark
 // where it is lit up on the tool. Everything is dimmed except the one thing being shown, and a card
-// beside it says what to do, with an arrow pointing at it (and arrows showing which way to drag). Some
-// steps wait for you to do it yourself, and every step can be skipped. Exit or Esc stops it at any
-// time, and whatever it switched on (highlight colors, panels) goes back as it was.
+// beside it says what to do, with an arrow pointing at it. Where you do something by hand, a hand shows
+// it: it presses where a ring pulses, carries the drag along a marked path (or round the knob) and lets
+// go, over and over. Each reading is found again on the flat view (the minimap), whose every part is
+// explained. Some steps wait for you to do it yourself, and every step can be skipped. Exit or Esc stops
+// it at any time, and whatever it switched on (highlight colors, panels) goes back as it was.
 (function(){
   const $ = id => document.getElementById(id);
   const tutBtn = $('tutBtn'); if (!tutBtn) return;
@@ -34,7 +36,7 @@
     if (root && STEPS[stepI].part && !STEPS[stepI].done && partList.value !== 'none') partChosen();
   });
   const PART = sel => ({ target: sel, part: true, title: 'Pick a part', text: 'First, choose something to measure from this list.', enter: () => { partPicked = false; }, waitFor: () => false });
-  const LOOK = what => ({ target: '#view', title: 'Look around', text: `Drag on an empty spot to turn the ${what}, right-drag to slide it, and scroll to zoom. Try it, then press Next. The camera buttons at the top right bring back a clean view any time.` });
+  const LOOK = what => ({ target: '#view', drag: 'look', title: 'Look around', text: `Drag on an empty spot to turn the ${what}, the way the hand shows, right-drag to slide it, and scroll to zoom. Try it, then press Next. The camera buttons at the top right bring back a clean view any time.` });
   // the vernier caliper and height gage read inches or millimeters, so their walkthrough starts by asking
   // which; the other tools read inches, and the walkthrough simply switches them to inches
   const CHOOSE = { choose: [['in', 'Inches'], ['mm', 'Millimeters']], title: 'Inches or millimeters?', text: 'Which scale would you like to learn to read? You can run <b>Show me</b> again for the other one any time.' };
@@ -51,8 +53,8 @@
   const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'When you’re ready, click <b>Practice</b>. The answers hide, and you read the tool yourself. You can run <b>Show me</b> again any time.' };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
-  const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0],
-    text: () => `The part is in place. Put the mouse on the thumb wheel and drag it ${wheelWay()[0]} to ${wheelWay()[1]} until they touch the part. Hold <b>Shift</b> to feather it in, the way you would by hand.`,
+  const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
+    text: () => `The part is in place. Watch the hand: press on the thumb wheel where the ring pulses, hold the button down, and drag it ${wheelWay()[0]} along the arrow to ${wheelWay()[1]} until they touch the part. Hold <b>Shift</b> to feather it in, the way you would by hand.`,
     waitFor: () => touching[tool]() };
 
   const TOURS = {
@@ -77,13 +79,13 @@
       ...(u === 'mm' ? [
         { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the centimeter number', title: 'Read the centimeter number', text: () => 'Millimeters are read along the top edge. The last centimeter number the top vernier’s 0 has passed is outlined; each one is 10 mm.' + nowMM('vA') },
         { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last millimeter line', title: 'Count the millimeter lines', text: () => 'Each line after that number is one millimeter. Count the ones the top vernier’s 0 has passed.' + nowMM('vB') },
-        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', title: 'Find the line that lines up', text: () => 'Now find the one line on the top vernier that meets a beam line exactly. Each vernier line is 0.05 mm, and its numbers 1 to 10 are tenths of a millimeter.' + nowMM('vV') },
+        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Now find the one line on the top vernier that meets a beam line exactly. Each vernier line is 0.05 mm, and its numbers 1 to 10 are tenths of a millimeter.' + nowMM('vV') },
         { target: '#reading .bd', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.05 mm per line) = the reading in millimeters.' + nowMM('vT', 'This one reads') }
       ] : [
         { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera is on the beam now. The last whole-inch number the vernier’s 0 has passed is outlined.' + now('vA') },
         { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou digit', title: 'Count the hundred-thou digits', text: () => 'The small digits on the beam are a hundred thou (0.100″) each. The last one before the vernier’s 0 is lit up.' + now('vB') },
         { spot: 'sub', view: 'scale', hl: 'sub', flat: 'the last 25-thou line', title: 'Add the 25-thou lines', text: () => 'The short lines after that digit are 25 thou (0.025″) each. Count the ones the vernier’s 0 has passed.' + now('vS') },
-        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', title: 'Find the line that lines up', text: () => 'Close up on the vernier now. Find the one vernier line that meets a beam line exactly. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('vV') },
+        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Close up on the vernier now. Find the one vernier line that meets a beam line exactly. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('vV') },
         { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + 25-thou lines + vernier (one thou per line) = the reading.' + now('vT', 'This one reads') }
       ]),
       SHORT('cal'),
@@ -92,8 +94,8 @@
     mic: [
       INTRO('outside micrometer'),
       PART('section:has(#sampleSel) .dd, #sampleSel'),
-      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, title: 'Close it on the part by hand',
-        text: 'The part slides in between the anvil and spindle by itself. Now drag the ratchet stop to turn it the way the blue arrow goes, bringing the spindle down until the ratchet clicks on the part. That click is the right measuring feel.' }, offThenOn()),
+      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Close it on the part by hand',
+        text: 'The part slides in between the anvil and spindle by itself. Now watch the hand: press on the ratchet stop where the ring pulses, hold the button down, and circle round it the way the arrow goes, bringing the spindle down until the ratchet clicks on the part. That click is the right measuring feel.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera is on the sleeve now. The last number showing is a hundred thou (0.100″) each.' + now('vA') },
       { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Each small line showing past that number adds 25 thou (0.025″).' + now('vB') },
@@ -107,8 +109,8 @@
     depth: [
       INTRO('depth micrometer'),
       PART('section:has(#sampleSel) .dd, #sampleSel'),
-      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, title: 'Run the rod down by hand',
-        text: 'The part slides under the base and the base sits down on it by itself. Now drag the ratchet stop to turn it the way the blue arrow goes, running the rod down until the ratchet clicks on the bottom.' }, offThenOn()),
+      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Run the rod down by hand',
+        text: 'The part slides under the base and the base sits down on it by itself. Now watch the hand: press on the ratchet stop where the ring pulses, hold the button down, and circle round it the way the arrow goes, running the rod down until the ratchet clicks on the bottom.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'nextNum', view: 'scale', flat: 'the first number showing below the thimble', title: 'Find the first number you can see', text: () => {
         const a = depA(), n = a == null ? null : a + 1;
@@ -130,8 +132,8 @@
       CHOOSE,
       INTRO('height gage'),
       PART('section:has(#partSel) .dd, #partSel'),
-      Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', title: 'Bring the scriber down by hand',
-        text: 'The part slides under the scriber by itself. Now drag the slider on the beam down until the scriber rests on the part’s face.' }, offThenOn()),
+      Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', drag: true, title: 'Bring the scriber down by hand',
+        text: 'The part slides under the scriber by itself. Now watch the hand: press on the slider where the ring pulses, hold the button down, and drag it down the beam along the arrow until the scriber rests on the part’s face.' }, offThenOn()),
       LOOK('height gage'),
       // the card sits on the other scale's side of the beam: on the inch side while millimeters are read, and on
       // the metric side while inches are, so it never covers the scale being read
@@ -146,7 +148,7 @@
           return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is one millimeter.'
             + (isNaN(v) ? '' : ` Here it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
-        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Look along the metric vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is 0.02 mm, and its big numbers are tenths of a millimeter.' + nowMM('mVern') },
+        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Look along the metric vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is 0.02 mm, and its big numbers are tenths of a millimeter.' + nowMM('mVern') },
         { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
       ] : [
         { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
@@ -159,7 +161,7 @@
           return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is 50 thou (0.050″).'
             + (isNaN(v) || isNaN(n) ? '' : ` Here it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
-        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Look along the vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('iVern') },
+        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Look along the vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('iVern') },
         { target: '#reading .rgroup', title: 'Add them up', text: () => 'Inch + main-scale lines + vernier (one thou per line) = the reading in inches.' + now('iTot', 'This one reads') }
       ]),
       SHORT('height'),
@@ -167,14 +169,43 @@
     ]
   };
   // the steps in use: the vernier caliper and height gage build theirs for the unit picked at the start
-  // After each reading step comes the same mark on the flat view (the scales drawn out flat in the corner),
-  // lit up in the same color, so what was read on the tool and what the flat view shows are plainly one thing.
-  const FLAT = s => ({ flatSpot: s.flatKey || s.spot, target: '#flat', hl: s.hl, title: 'Now on the flat view',
-    text: () => `The flat view in the corner draws the same scales out flat, so nothing curves away. Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}. Use it to check what you read on the tool.` });
+  // After each reading step comes the same mark on the flat view (the scales drawn out flat in the corner, the
+  // minimap), lit up in the same color, so what was read on the tool and what the flat view shows are plainly
+  // one thing. The first of them says what every part of the flat view is; a vernier step also gets the
+  // magnifier (the close-up of the lines that line up) explained, where the tool has one.
+  const MINI = {
+    dial: 'The flat view in the corner is a minimap of the scales, drawn out flat so nothing curves away. The strip on top is the beam at the slider edge (inch numbers and hundred-thou lines); under it is the dial, needle and all.',
+    vern: 'The flat view in the corner is a minimap of the scales, drawn out flat so nothing curves away. On top is the beam with the vernier plate under its edge, just as on the tool; the strip at the bottom is a magnifier on the lines round the vernier line that lines up.',
+    mic: 'The flat view in the corner is a minimap of the sleeve and thimble, unrolled flat so nothing curves round out of sight. The sleeve is on the left, its numbers and lines along the index line (and the vernier lines up its left side); the thimble marks run down the right.',
+    depth: 'The flat view in the corner is a minimap of the sleeve and thimble, unrolled flat so nothing curves round out of sight. The thimble is at the top: it covers the reading as the rod goes down. The sleeve numbers under it run toward the base.',
+    height: 'The flat view on the right is a minimap of the scales, drawn out flat. The close-up at the top magnifies the vernier line that lines up (the inch row, then the metric row); below it, the beam’s inch scale (left) and metric scale (right) run up the middle with both verniers riding beside them.'
+  };
+  const LOUPES = {
+    loupe: () => curUnit === 'mm' ? 'The strip along the bottom of the flat view magnifies the millimeter scale round the top vernier line that lines up: beam lines above the edge, vernier lines below, each numbered. The lit pair meets exactly; the lines either side plainly miss.'
+      : 'The strip along the bottom of the flat view magnifies the lines round the one that lines up, ten times over: beam lines above the edge (labeled with what each adds), vernier lines below with their numbers. The lit pair meets exactly; the lines either side plainly miss.',
+    loupeIn: () => 'The close-up at the top of the flat view magnifies the inch vernier (the top row), centered on the vernier line that meets a main-scale line. It is lit and labeled with the thou it adds, so you can see it meet exactly while its neighbors miss.' + now('iVern'),
+    loupeMm: () => 'The close-up at the top of the flat view magnifies the metric vernier in its lower row, centered on the vernier line that meets a main-scale line. It is lit and labeled with what it adds, so you can see it meet exactly while its neighbors miss.' + nowMM('mVern')
+  };
+  // a mark that sits just past an edge of the flat view (it only draws so much round the reading) is shown by a
+  // strip along that edge, and the card says so
+  let flatEdge = '';
+  const edgeNote = () => flatEdge ? ` Here it sits just past the ${flatEdge} edge of the flat view, where the lit strip is; the scale carries on past it.` : '';
+  const FLAT = (s, first) => ({ flatSpot: s.flatKey || s.spot, target: '#flat', hl: s.hl, flatStep: true, title: first ? 'Meet the flat view' : 'Now on the flat view',
+    text: () => (first ? MINI[tool] + ' ' : 'The flat view draws the same scales out flat, so nothing curves away. ')
+      + `Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}.` + edgeNote() + ' Use it to check what you read on the tool.' });
+  const LOUPE = s => ({ flatSpot: s.loupe, target: '#flat', hl: s.hl, flatStep: true, title: tool === 'height' ? 'The close-up' : 'The magnifier', text: () => LOUPES[s.loupe]() });
   const STEPS = [];
+  let curUnit = 'in';
   const build = u => {
+    curUnit = u;
     const t = TOURS[tool], list = typeof t === 'function' ? t(u) : t;
-    STEPS.splice(0, STEPS.length, ...list.flatMap(s => s.flat && $('flat') ? [s, FLAT(s)] : [s]));
+    let first = true;
+    STEPS.splice(0, STEPS.length, ...list.flatMap(s => {
+      if (!s.flat || !$('flat')) return [s];
+      const out = [s, FLAT(s, first)]; first = false;
+      if (s.loupe) out.push(LOUPE(s));
+      return out;
+    }));
   };
   build('in');
   const pressUnits = u => { const b = document.querySelector(`aside [data-units="${u}"]`); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); };
@@ -201,9 +232,18 @@
 .gd-svg{position:fixed;inset:0;width:100%;height:100%;overflow:visible}
 .gd-svg path{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 4px rgba(0,0,0,.6))}
 .gd-svg polygon{fill:var(--accent)}
-.gd-dir{position:fixed;left:0;top:0;will-change:transform;display:flex;gap:8px;align-items:center;justify-content:center;width:64px;color:var(--accent);font-size:22px;pointer-events:none;text-shadow:0 0 8px rgba(0,0,0,.8)}
-.gd-dir i{animation:gd-glow 1.6s ease-in-out infinite}
-@keyframes gd-glow{50%{opacity:.45}}
+.gd-drag{position:fixed;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.gd-drag .gd-glow{fill:none;stroke:var(--accent);stroke-opacity:.28;stroke-width:24;stroke-linecap:round;stroke-linejoin:round}
+.gd-drag .gd-trail{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1 14;animation:gd-march .6s linear infinite;filter:drop-shadow(0 0 3px rgba(0,0,0,.9))}
+.gd-drag .gd-done{fill:none;stroke:var(--accent);stroke-width:8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px var(--accent))}
+.gd-drag .gd-head{fill:var(--accent);stroke:#fff;stroke-width:2;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(0,0,0,.8))}
+.gd-drag .gd-grab{fill:color-mix(in srgb,var(--accent) 30%,transparent);stroke:#fff;stroke-width:2.5}
+.gd-drag .gd-ring{fill:none;stroke:var(--accent);stroke-width:3}
+@keyframes gd-march{to{stroke-dashoffset:-15}}
+.gd-hand{position:fixed;left:0;top:0;width:44px;height:44px;transform-origin:12px 1px;font-size:40px;line-height:1;color:#fff;pointer-events:none;will-change:transform,opacity;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85)) drop-shadow(0 0 1px #000)}
+.gd-hand svg,.gd-hand i{width:40px;height:40px}
+.gd-lbl{position:fixed;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform;font-size:13.5px;font-weight:700;letter-spacing:.02em;color:#0b0c0e;background:var(--accent);padding:5px 10px 5px 8px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.55);display:flex;gap:6px;align-items:center}
+.gd-track{position:absolute;pointer-events:none;visibility:hidden}
 .gd-card{position:fixed;left:0;top:0;will-change:transform;width:min(330px,calc(100vw - 24px));pointer-events:auto;background:var(--panel,#16181b);color:var(--ink,#ececee);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}
 .gd-card h4{margin:0 26px 6px 0;font-size:15px;font-weight:600}
 .gd-card p{margin:0;color:var(--muted,#8a8f97)}
@@ -215,6 +255,9 @@
 .gd-do[hidden]{display:none}
 .gd-card .gd-max{display:flex;width:100%;margin-top:10px;padding:7px 10px;gap:7px;align-items:center;justify-content:center;font-weight:600}
 .gd-card .gd-max[hidden]{display:none}
+.gd-max .ic-shrink{display:none}
+.gd-max.on .ic-grow{display:none}
+.gd-max.on .ic-shrink{display:inline-block}
 .gd-foot{display:flex;align-items:center;gap:6px;margin-top:12px}
 .gd-count{flex:1;font-size:11.5px;color:var(--muted,#8a8f97);font-variant-numeric:tabular-nums}
 .gd-card button{padding:5px 12px;font-size:12.5px;border-radius:7px}
@@ -222,11 +265,13 @@
 body.guiding .dd-list{z-index:950}
 body.guiding .flat{transition:filter .25s,opacity .2s ease}
 body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;transition:filter .25s,opacity .2s ease,visibility 0s linear .2s}
-@media (prefers-reduced-motion: reduce){ .gd-dir i{animation:none} body.guiding .flat,body.guiding .flat.gd-away{transition:none} }`;
+@media (prefers-reduced-motion: reduce){ .gd-drag .gd-trail{animation:none} body.guiding .flat,body.guiding .flat.gd-away{transition:none} }`;
   document.head.appendChild(css);
 
   /* ---------- the overlay ---------- */
-  let root = null, hole, dim, svg, dirEl, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '', lastDir = '';
+  let root = null, hole, dim, svg, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '';
+  // the hand that shows a drag: its path, the moving hand, and its label (see showDrag)
+  let dragSvg = null, dragEls = null, hand = null, dragLbl = null, pressing = false, lastDragKey = '', lastLbl = '';
   let lastR = null, lastSide = -1, lastCard = null, lastSvg = '', arrowPath = null, arrowHead = null, cardW = 0, cardH = 0;
   // what is on screen now, easing toward where things belong: the window (x, y, w, h) and the card (x, y)
   let shown = null, lastPlaceT = 0;
@@ -249,7 +294,34 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     return null;
   }
   // the box the window opens on: around the 3D spot while it is on screen, else the step's element
+  // A mark on the flat view is found by a tracker: an invisible box placed inside the flat view itself, over the
+  // mark, in the canvas's own layout units. Whatever the flat view does (grow to full height, shrink back, glide
+  // between the two, tilt), the tracker goes with it, and its box on screen is exactly where the mark is. A mark
+  // past an edge (the flat view only draws so much round the reading) gets a strip along that edge instead.
+  let tracker = null;
+  function flatBox(name){
+    flatEdge = '';
+    const raw = window.__guideFlatRaw && window.__guideFlatRaw(name), cv = raw && $(raw.cv);
+    if (!raw || !cv || !cv.clientWidth || !cv.getClientRects().length) return null;
+    const host = cv.offsetParent; if (!host) return null;
+    if (!tracker){ tracker = document.createElement('div'); tracker.className = 'gd-track'; tracker.setAttribute('aria-hidden', 'true'); }
+    if (tracker.parentNode !== host) host.appendChild(tracker);
+    const W = raw.w, H = raw.h, m = 2, band = 26;
+    let [x0, y0, x1, y1] = raw.box;
+    if (y0 >= H - 6){ flatEdge = 'bottom'; y0 = H - band; y1 = H - m; } else if (y1 <= 6){ flatEdge = 'top'; y0 = m; y1 = band; }
+    if (x0 >= W - 6){ flatEdge = 'right'; x0 = W - band; x1 = W - m; } else if (x1 <= 6){ flatEdge = 'left'; x0 = m; x1 = band; }
+    x0 = Math.max(m, x0); y0 = Math.max(m, y0); x1 = Math.min(W - m, x1); y1 = Math.min(H - m, y1);
+    if (x1 - x0 < 14){ const c = (x0 + x1)/2; x0 = Math.max(m, c - 7); x1 = Math.min(W - m, c + 7); }
+    if (y1 - y0 < 14){ const c = (y0 + y1)/2; y0 = Math.max(m, c - 7); y1 = Math.min(H - m, c + 7); }
+    const kx = cv.clientWidth/W, ky = cv.clientHeight/H, ox = cv.offsetLeft + cv.clientLeft, oy = cv.offsetTop + cv.clientTop;
+    const px = v => (Math.round(v*10)/10) + 'px';
+    put(tracker, 'left', px(ox + x0*kx)); put(tracker, 'top', px(oy + y0*ky));
+    put(tracker, 'width', px((x1 - x0)*kx)); put(tracker, 'height', px((y1 - y0)*ky));
+    const b = tracker.getBoundingClientRect();
+    return b.width > 2 && b.height > 2 ? b : null;
+  }
   function boxOf(s){
+    if (s.flatSpot && window.__guideFlatRaw) return flatBox(s.flatSpot) || (targetOf(s) ? targetOf(s).getBoundingClientRect() : null);
     // a mark on the flat view: the box the tool gives, kept inside the flat view's canvas
     if (s.flatSpot && window.__guideFlatSpot){
       const b = window.__guideFlatSpot(s.flatSpot), cv = $('flatCv'), cr = cv && cv.getBoundingClientRect();
@@ -282,8 +354,27 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   // of what the step points at, it fades out of the way, and comes back once the window moves off it or the walkthrough ends. Its box
   // is still measured while it is faded (display is untouched), so it can't flicker in and out.
   const flatEl = $('flat');
-  let flatAway = false, flatOpened = false, flatMaxed = false;
+  let flatAway = false, flatOpened = false, flatMax0 = false;
   const flatIsMax = () => !!$('flatMaxBtn') && $('flatMaxBtn').getAttribute('aria-pressed') === 'true';
+  // a flat-view step makes sure the flat view is there to see: opened if it was shut, grown if the window is too
+  // small for it to show its scales in the corner, and scrolled to on a phone (where it sits under the 3D view)
+  function showFlat(){
+    const fl = $('flat'); if (!fl) return;
+    if (fl.classList.contains('closed') && $('flatBtn')){ $('flatBtn').click(); flatOpened = true; }
+    if (['ov-hide', 'ov-min', 'min'].some(c => fl.classList.contains(c)) && $('flatMaxBtn') && !flatIsMax()) $('flatMaxBtn').click();
+    if (fl.classList.contains('docked')) fl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+  // the card's button to grow the flat view to full height, or shrink it back, whichever it isn't now
+  function syncMax(){
+    const b = card && card.querySelector('.gd-max'), s = STEPS[stepI], fl = $('flat');
+    if (!b) return;
+    const show = !!(s && s.flatStep && $('flatMaxBtn') && fl && !fl.classList.contains('docked')), on = flatIsMax();
+    const was = [b.hidden, b.classList.contains('on')];
+    b.hidden = !show; b.classList.toggle('on', on);
+    b.querySelector('span').textContent = on ? 'Shrink the minimap back' : 'Expand the minimap';
+    b.setAttribute('aria-pressed', String(on));
+    if (was[0] !== b.hidden || was[1] !== on) measureCard();
+  }
   function dodgeFlat(r){
     if (!flatEl) return;
     let away = false;
@@ -317,6 +408,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (b.classList.contains('exam') && $('exitExam')) $('exitExam').click();
     if (b.classList.contains('practice') && $('practiceBtn')) $('practiceBtn').click();
     saved = [...document.querySelectorAll('input[data-hl]')].map(c => [c, c.checked]);
+    flatMax0 = flatIsMax();
     build('in');
     if (!STEPS[0].choose) pressUnits('in');
     STEPS.forEach(x => { x.done = false; });
@@ -335,12 +427,19 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     hole = mk('div', 'gd-hole');
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gd-svg'); svg.setAttribute('aria-hidden', 'true'); root.appendChild(svg);
     svg.innerHTML = '<path/><polygon/>'; arrowPath = svg.firstChild; arrowHead = svg.lastChild;
-    dirEl = mk('div', 'gd-dir'); dirEl.setAttribute('aria-hidden', 'true');
+    // the drag hint: its path (a soft glow, a white trail marching the way to go, the stretch already covered, an
+    // arrowhead), a ring pulsing where to press, the hand that does it, and a label saying what to do
+    dragSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); dragSvg.setAttribute('class', 'gd-drag'); dragSvg.setAttribute('aria-hidden', 'true'); root.appendChild(dragSvg);
+    dragSvg.innerHTML = '<path class="gd-glow"/><path class="gd-trail"/><path class="gd-done"/><polygon class="gd-head"/><circle class="gd-ring"/><circle class="gd-grab"/>';
+    dragEls = { glow: dragSvg.children[0], trail: dragSvg.children[1], done: dragSvg.children[2], head: dragSvg.children[3], ring: dragSvg.children[4], grab: dragSvg.children[5] };
+    hand = mk('div', 'gd-hand'); hand.setAttribute('aria-hidden', 'true'); hand.innerHTML = '<i class="fa-solid fa-hand-pointer"></i>';
+    dragLbl = mk('div', 'gd-lbl'); dragLbl.setAttribute('aria-hidden', 'true');
+    lastDragKey = ''; lastLbl = ''; pressing = false;
     card = mk('div', 'gd-card');
     card.innerHTML = `<button class="gd-x" type="button" aria-label="Exit the walkthrough" data-tip="Exit">✕</button><h4></h4><p aria-live="polite"></p>
       <div class="gd-choose" hidden></div>
       <div class="gd-do" hidden><i class="fa-solid fa-hand-pointer"></i><span></span></div>
-      <button type="button" class="gd-max" hidden><i class="fa-solid fa-expand"></i><span>Expand the minimap</span></button>
+      <button type="button" class="gd-max" hidden><i class="fa-solid fa-expand ic-grow"></i><i class="fa-solid fa-compress ic-shrink"></i><span>Expand the minimap</span></button>
       <div class="gd-foot"><span class="gd-count"></span><button type="button" class="gd-back">Back</button><button type="button" class="gd-next primary">Next</button></div>`;
     card.querySelector('.gd-x').addEventListener('click', stop);
     // picking a unit sets the tool to it, builds the steps for it, and moves on
@@ -351,17 +450,20 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       go(1);
     });
     card.querySelector('.gd-back').addEventListener('click', () => go(stepI - 1));
-    // "Expand the minimap": the flat view goes full height, and stays that way until the walkthrough ends
-    card.querySelector('.gd-max').addEventListener('click', e => {
-      if (!flatIsMax() && $('flatMaxBtn')){ $('flatMaxBtn').click(); flatMaxed = true; }
-      e.currentTarget.hidden = true; measureCard();
-      card.querySelector('.gd-next').focus({ preventScroll: true });
+    // "Expand the minimap" / "Shrink the minimap back": the flat view grows to full height or goes back to its
+    // corner; whichever size it had before the walkthrough comes back when it ends
+    card.querySelector('.gd-max').addEventListener('click', () => {
+      if ($('flatMaxBtn')) $('flatMaxBtn').click();
+      syncMax();
     });
     card.querySelector('.gd-next').addEventListener('click', () => stepI >= STEPS.length - 1 ? stop() : advance());
     document.body.appendChild(root);
     b.classList.add('guiding');
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onResize);
+    window.addEventListener('pointerdown', onPress, true);
+    window.addEventListener('pointerup', onRelease, true);
+    window.addEventListener('pointercancel', onRelease, true);
     timer = setInterval(tick, 90);
     // every frame: the window and card ease toward where they belong (and follow the 3D spot as the camera moves)
     const follow = () => { if (!root) return; place(); requestAnimationFrame(follow); };
@@ -375,12 +477,16 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (clickOff) { clickOff(); clickOff = null; }
     window.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
+    window.removeEventListener('pointerdown', onPress, true);
+    window.removeEventListener('pointerup', onRelease, true);
+    window.removeEventListener('pointercancel', onRelease, true);
     const gone = root; root = null; navId++;
     dodgeFlat(null);
     const fl = $('flat');
-    if (flatMaxed && flatIsMax()) $('flatMaxBtn').click();   // back to its usual size
+    if ($('flatMaxBtn') && flatIsMax() !== flatMax0) $('flatMaxBtn').click();   // back to the size it had
     if (flatOpened && fl && !fl.classList.contains('closed') && $('flatBtn')) $('flatBtn').click();
-    flatOpened = false; flatMaxed = false;
+    flatOpened = false;
+    if (tracker){ tracker.remove(); tracker = null; }
     // and the camera goes back to the plain iso view
     const iso = document.querySelector('#view [data-view="iso"]');
     if (iso) iso.click();
@@ -397,6 +503,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     btn.focus({ preventScroll: true });
   }
   function onResize(){ measureCard(); place(); }
+  // while a button is held (the drag being done), the hand steps aside so it isn't in the way
+  function onPress(e){ if (!card || !card.contains(e.target)) pressing = true; }
+  function onRelease(){ pressing = false; }
   function onKey(e){
     if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); stop(); }
   }
@@ -405,7 +514,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (i < 0 || i >= STEPS.length) return;
     // a step whose element isn't on this screen is passed over, in whichever direction we were going
     const dirn = i >= stepI ? 1 : -1;
-    const skip = x => ((x.target || x.spot) && !targetOf(x)) || (x.part && x.done);   // a part is already picked: never back to that step
+    // (a flat-view step is never passed over: it brings the flat view out itself)
+    const skip = x => ((x.target || x.spot) && !x.flatStep && !targetOf(x)) || (x.part && x.done);   // a part is already picked: never back to that step
     while (skip(STEPS[i]) && i + dirn >= 0 && i + dirn < STEPS.length) i += dirn;
     if (STEPS[i].part && STEPS[i].done) return;   // nowhere else to go
     stepI = i; navId++;
@@ -422,9 +532,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame)) && vb) vb.click();
     const t = targetOf(s);
     if (!s.spot) reveal(t);
-    // a flat-view step opens the flat view if it was shut, and it is shut again when the walkthrough ends
-    const fl = $('flat');
-    if (s.flatSpot && fl && fl.classList.contains('closed') && $('flatBtn')){ $('flatBtn').click(); flatOpened = true; }
+    // a flat-view step brings the flat view out (opened, grown or scrolled to), and it goes back when the walkthrough ends
+    if (s.flatStep) showFlat();
     card.querySelector('h4').textContent = s.title;
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
     card.querySelector('.gd-back').disabled = i === 0;
@@ -434,11 +543,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const ch = card.querySelector('.gd-choose');
     ch.hidden = !s.choose;
     ch.innerHTML = s.choose ? s.choose.map(([u, label]) => `<button type="button" data-u="${u}">${label}</button>`).join('') : '';
-    // on a flat-view step, a button to expand the flat view (gone once it is expanded)
-    card.querySelector('.gd-max').hidden = !(s.flatSpot && $('flatMaxBtn') && !flatIsMax());
+    // on a flat-view step, a button to expand the flat view, or shrink it back once it is expanded
+    syncMax();
     const doEl = card.querySelector('.gd-do');
-    doEl.hidden = !(s.waitClick || s.waitFor);
-    doEl.querySelector('span').textContent = 'Give it a try!';
+    doEl.hidden = !(s.waitClick || s.waitFor || s.drag);
+    doEl.querySelector('span').textContent = s.drag === 'look' ? 'Follow the hand: press on empty space, hold, and drag.'
+      : s.drag ? 'Follow the hand: press where the ring pulses, hold, and ' + (s.arrow3d ? 'circle round the way the arrow goes.' : 'drag along the arrow.')
+      : 'Give it a try!';
     // steps that wait for a click move on by themselves a moment after it (long enough to watch it happen)
     if (s.waitClick && t){
       const onClick = e => {
@@ -471,6 +582,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const s = STEPS[stepI];
     const text = fn(s.text, s);
     if (text !== lastText){ card.querySelector('p').innerHTML = text; lastText = text; measureCard(); }
+    syncMax();
     if (s.refit && window.__guideRefit) window.__guideRefit();
     if (s.waitFor && !waitDone && s.waitFor(s)){
       waitDone = true; s.done = true;
@@ -498,6 +610,14 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       r = { x: Math.max(4, x0 - pad), y: Math.max(4, y0 - pad) };
       r.w = Math.min(W - 4, x1 + pad) - r.x; r.h = Math.min(H - 4, y1 + pad) - r.y;
       if (r.w < 4 || r.h < 4) r = null;
+    }
+    // a drag to make by hand: the lit window takes in the whole of its path, so it can all be seen and done
+    const dg = dragPath(s, r);
+    if (dg && r && !dg.look){
+      const xs = dg.pts.map(p => p.x), ys = dg.pts.map(p => p.y), m = 30;
+      const x0 = Math.max(4, Math.min(r.x, Math.min(...xs) - m)), y0 = Math.max(4, Math.min(r.y, Math.min(...ys) - m));
+      const x1 = Math.min(W - 4, Math.max(r.x + r.w, Math.max(...xs) + m)), y1 = Math.min(H - 4, Math.max(r.y + r.h, Math.max(...ys) + m));
+      r = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     }
     lastR = r;
     dodgeFlat(s.spot ? r : null);   // only a spot on the 3D tool can be covered; a whole-view step keeps it showing
@@ -555,7 +675,10 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     else { const dx = cx - shown.cx, dy = cy - shown.cy; shown.cx = Math.abs(dx) < 0.25 ? cx : shown.cx + dx * k; shown.cy = Math.abs(dy) < 0.25 ? cy : shown.cy + dy * k; }
     cx = shown.cx; cy = shown.cy;
     lastCard = { x: cx, y: cy };
-    put(card, 'transform', tr(cx, cy));
+    // the card leans with the rest of the interface (css/hud.css), toward the middle of the screen: the further
+    // to one side it sits the more it leans, square in the middle, so it never flips as it glides across
+    const lean = document.documentElement.classList.contains('hud-flat') ? 0 : Math.max(-1, Math.min(1, (W/2 - (cx + cw/2))/(W/2)))*7;
+    put(card, 'transform', tr(cx, cy) + (Math.abs(lean) > 0.05 ? ` perspective(900px) rotateY(${lean.toFixed(2)}deg)` : ''));
     // the arrow runs from the card's nearest edge to the window's nearest edge
     let d = '', pts = '';
     r = hr.w >= 4 && hr.h >= 4 ? hr : null;
@@ -584,15 +707,100 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       arrowPath.setAttribute('d', d || 'M0,0'); arrowHead.setAttribute('points', pts || '0,0');
       put(svg, 'display', d ? '' : 'none');
     }
-    // a step about dragging shows which way to drag, just above the window
-    const dir = r && fn(s.dir, s);
-    if (dir !== lastDir){
-      lastDir = dir;
-      const ic = { left: [['l', 'left']], right: [['r', 'right']], x: [['l', 'left'], ['r', 'right']], y: [['u', 'up'], ['d', 'down']] }[dir] || [];
-      dirEl.innerHTML = ic.map(([c, a]) => `<i class="fa-solid fa-arrow-${a} ${c}"></i>`).join('');
+    showDrag(dg, now);
+  }
+
+  /* ---------- the hand that shows a drag ---------- */
+  // The drag the step asks for, in page coordinates: from the tool (the thumb wheel's run to the part, a turn round
+  // the ratchet, the slider down the beam), or for "Look around" a sweep across the middle of the view. Without
+  // one from the tool it falls back to the way the step says, from the middle of the lit window.
+  function dragPath(s, r){
+    if (!s.drag || waitDone) return null;
+    if (s.drag === 'look'){
+      const vr = $('view') && $('view').getBoundingClientRect(); if (!vr || vr.width < 80) return null;
+      const cx = vr.left + vr.width*0.5, cy = vr.top + vr.height*0.8, w = Math.min(280, vr.width*0.32), pts = [];   // low in the view, where it's usually empty
+      for (let i = 0; i <= 24; i++){ const u = i/24; pts.push({ x: cx - w/2 + u*w, y: cy - Math.sin(u*Math.PI)*w*0.16 }); }
+      return { pts, look: true };
     }
-    put(dirEl, 'display', dir ? 'flex' : 'none');
-    if (dir) put(dirEl, 'transform', tr(r.x + r.w / 2 - 32, r.y - 32 < 4 ? r.y + r.h + 6 : r.y - 32));
+    const d = window.__guideDrag && window.__guideDrag();
+    let pts = d && d.pts && d.pts.length > 1 ? d.pts.slice() : null;
+    if (!pts){
+      const dir = fn(s.dir, s); if (!dir || !r) return null;
+      const c = { x: r.x + r.w/2, y: r.y + r.h/2 }, v = { left: [-1, 0], right: [1, 0], x: [1, 0], y: [0, 1] }[dir] || [1, 0];
+      return { pts: [c, { x: c.x + v[0]*150, y: c.y + v[1]*150 }] };
+    }
+    if (d.turn){
+      // a turn too small to follow is drawn bigger round the same middle: press on the knob, then circle out round it
+      const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const cx = (x0 + x1)/2, cy = (y0 + y1)/2, size = Math.max(x1 - x0, y1 - y0);
+      if (size < 120){ const k = 120/Math.max(size, 1); pts = [pts[0], ...pts.map(p => ({ x: cx + (p.x - cx)*k, y: cy + (p.y - cy)*k }))]; }
+      return { pts, turn: true };
+    }
+    // a straight drag that reads at a glance: never shorter than 170 px, never longer than 340
+    const a = pts[0], b = pts[pts.length - 1], dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy);
+    if (L < 0.5) return null;
+    const want = Math.max(170, Math.min(340, L));
+    return { pts: [a, { x: a.x + dx/L*want, y: a.y + dy/L*want }] };
+  }
+  // The hint, drawn over the dim so it always shows: the path with a trail marching the way to go and an arrowhead
+  // at the end, a ring pulsing where to press, and a hand that presses there, carries the drag along the path
+  // (the stretch it has covered lighting up behind it), lets go and starts again. While a button is held down
+  // the hand steps aside and the path fades back, so it never gets in the way of the drag itself.
+  function showDrag(dg, t){
+    const on = !!dg && !pressing;
+    put(dragSvg, 'display', dg ? '' : 'none'); put(hand, 'display', on ? '' : 'none'); put(dragLbl, 'display', on ? '' : 'none');
+    if (!dg) { lastDragKey = ''; return; }
+    put(dragSvg, 'opacity', pressing ? '0.3' : '1');
+    const pts = dg.pts, f = v => v.toFixed(1), cum = [0];
+    for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+    const total = cum[cum.length - 1] || 1;
+    const at = len => {
+      let i = 1; while (i < pts.length - 1 && cum[i] < len) i++;
+      const a = pts[i - 1], b = pts[i], seg = (cum[i] - cum[i - 1]) || 1, k = Math.max(0, Math.min(1, (len - cum[i - 1])/seg));
+      return { x: a.x + (b.x - a.x)*k, y: a.y + (b.y - a.y)*k, ax: (b.x - a.x)/seg, ay: (b.y - a.y)/seg };
+    };
+    const d = 'M' + pts.map(p => f(p.x) + ',' + f(p.y)).join('L');
+    if (d !== lastDragKey){
+      lastDragKey = d;
+      const E = dragEls;
+      E.glow.setAttribute('d', d); E.trail.setAttribute('d', d); E.done.setAttribute('d', d);
+      // the arrowhead sits on the end, along the last stretch; the press ring on the start
+      const e = pts[pts.length - 1], q = at(Math.max(0, total - 12)), ux = q.ax, uy = q.ay, L = Math.hypot(ux, uy) || 1, ax = ux/L, ay = uy/L;
+      E.head.setAttribute('points', `${f(e.x + ax*14)},${f(e.y + ay*14)} ${f(e.x - ax*14 - ay*15)},${f(e.y - ay*14 + ax*15)} ${f(e.x - ax*14 + ay*15)},${f(e.y - ay*14 - ax*15)}`);
+      E.grab.setAttribute('cx', f(pts[0].x)); E.grab.setAttribute('cy', f(pts[0].y)); E.grab.setAttribute('r', '11');
+      E.ring.setAttribute('cx', f(pts[0].x)); E.ring.setAttribute('cy', f(pts[0].y));
+    }
+    // the ring keeps pulsing out from where to press
+    const rp = (t % 1300)/1300;
+    put(dragEls.ring, 'opacity', (1 - rp).toFixed(2)); dragEls.ring.setAttribute('r', f(12 + rp*30));
+    // the loop: appear and press (0–16%), carry the drag along (16–80%), let go (80–88%), fade (90–100%)
+    const period = dg.turn ? 3000 : dg.look ? 2600 : 2400, u = (t % period)/period;
+    const ease = x => x < 0.5 ? 2*x*x : 1 - Math.pow(-2*x + 2, 2)/2;
+    const tr = u < 0.16 ? 0 : u > 0.8 ? 1 : ease((u - 0.16)/0.64);
+    const press = u < 0.16 ? Math.min(1, u/0.1) : u < 0.8 ? 1 : Math.max(0, 1 - (u - 0.8)/0.08);
+    const alpha = u < 0.06 ? u/0.06 : u > 0.9 ? Math.max(0, 1 - (u - 0.9)/0.1) : 1;
+    const p = at(tr*total);
+    put(hand, 'transform', `translate(${f(p.x - 12)}px,${f(p.y - 1)}px) scale(${(1 - 0.18*press).toFixed(3)})`);
+    put(hand, 'opacity', alpha.toFixed(2));
+    put(dragEls.done, 'strokeDasharray', `${f(tr*total)} ${f(total + 20)}`);
+    put(dragEls.done, 'opacity', (press > 0 ? alpha : 0).toFixed(2));
+    // what to do, in a label by the start: off the far side of the path from where it goes, or above a turn
+    const lbl = dg.look ? 'Press, hold & drag to turn the view' : dg.turn ? 'Press, hold & circle round' : 'Press, hold & drag';
+    if (lbl !== lastLbl){ lastLbl = lbl; dragLbl.innerHTML = '<i class="fa-solid fa-computer-mouse"></i><span>' + lbl + '</span>'; dragLbl._w = 0; }
+    if (!dragLbl._w){ dragLbl._w = dragLbl.offsetWidth; dragLbl._h = dragLbl.offsetHeight; }
+    const lw = dragLbl._w || 150, lh = dragLbl._h || 26;
+    let lx, ly;
+    if (dg.turn || dg.look){
+      const xs = pts.map(q => q.x), ys = pts.map(q => q.y);
+      lx = (Math.min(...xs) + Math.max(...xs))/2 - lw/2; ly = Math.min(...ys) - lh - 26;
+      if (ly < 8) ly = Math.max(...ys) + 26;
+    } else {
+      const s0 = at(0), L = Math.hypot(s0.ax, s0.ay) || 1, ax = s0.ax/L, ay = s0.ay/L;
+      lx = pts[0].x - ax*(lw/2 + 34) - lw/2; ly = pts[0].y - ay*(lh/2 + 30) - lh/2;
+      if (Math.abs(ay) < 0.5) ly -= lh + 6;   // a sideways drag: the label sits up out of the path's way
+    }
+    lx = Math.max(8, Math.min(innerWidth - lw - 8, lx)); ly = Math.max(8, Math.min(innerHeight - lh - 8, ly));
+    put(dragLbl, 'transform', `translate(${f(lx)}px,${f(ly)}px)`);
   }
 
   btn.addEventListener('click', start);

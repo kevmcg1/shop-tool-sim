@@ -1049,12 +1049,16 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
+    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
+    // on, so the tilt holds all the way instead of snapping flat and back
+    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
+    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
+    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
-      { transformOrigin: '0 0', transform: 'none' }
+      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
+      { transform: base.trim() || 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -1266,9 +1270,10 @@ function hullMat(tool) {
 }
 function buildSample(type) {
   if (sample.obj) {
-    // the old part dissolves out where it was (one still waiting off the caliper just goes)
+    // the old part dissolves out where it was (one still waiting off the caliper, or one already dissolved
+    // away by newSample, just goes)
     const old = sample.obj, gone = () => { if (old.parent) old.parent.remove(old); old.traverse(o => o.geometry && o.geometry.dispose()); };
-    if (old.parent) Dissolve.out(old, { frame: () => invalidate(120), done: gone }); else gone();
+    if (old.parent && !old.userData.gone) Dissolve.out(old, { frame: () => invalidate(120), done: gone }); else gone();
   }
   sample = { type, tool: null, size: 0, obj: null };
   const def = PARTS[type];
@@ -1951,20 +1956,38 @@ let curView = 'iso';   // the view last asked for; cleared once the user moves t
 // the view after the part changes, while the camera is still following the part: the depth rod works at the far
 // end of the beam, so a depth part turns the camera round to the rod and the part there; anything else gets the
 // fitted iso view (the jaws and reading, or the whole tool when there's no part)
+// A part that needs the depth rod (or leaving one) turns the camera rather than carrying it along the beam: it
+// stays where it is and swings round to face the beam end, then moves in along its line of sight.
+let isoDepth = false;
 function frameForPart() {
   if (curView !== 'iso') return;
-  setView('iso');
+  setView('iso', false, depthPart() !== isoDepth);
 }
-function setView(name, instant) {
+function setView(name, instant, turn) {
   const v = viewFor(name);
   curView = name;
+  // the iso view asked for while the depth rod comes into play or goes out of it turns too, and asking again
+  // while it is turning carries on turning
+  if (turn === undefined && name === 'iso') turn = depthPart() !== isoDepth || !!(camTween && camTween.turn);
   let toPos = v.target.clone().add(v.dir.clone().normalize().multiplyScalar(v.dist));
-  if (name === 'iso' && depthPart()) v.dir = new T.Vector3(-0.35, 0.6, 1);   // in front of the beam end, a little behind it and about 30° up: the rod runs into the part in plain sight
+  if (name === 'iso' && depthPart()) {
+    // in front of the beam end and a little to the left of it, about 30° up: the rod runs into the part in plain
+    // sight. Turning to it, the camera looks from where it already is (kept in front and 15–40° up), so the view
+    // only turns and closes in instead of sliding along
+    v.dir = new T.Vector3(-0.35, 0.6, 1);
+    if (turn) {
+      const c = isoBox().getCenter(new T.Vector3()), d = camera.position.clone().sub(c).normalize();
+      const flat = Math.hypot(d.x, d.z) || 1, el = clamp(Math.atan2(d.y, flat), 0.26, 0.7);
+      let yaw = Math.atan2(d.x, d.z); yaw = clamp(yaw, -1.2, 0.35);
+      v.dir = new T.Vector3(Math.sin(yaw) * Math.cos(el), Math.sin(el), Math.cos(yaw) * Math.cos(el));
+    }
+  }
+  if (name === 'iso') isoDepth = depthPart();
   if (name === 'iso' || name === 'front'){ const f = fitIso(v.dir.clone().normalize(), v.target, v.dist, name === 'iso' ? isoBox() : fitBox(cal)); toPos = f.pos; v.target = f.target; }
   if (instant || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     camera.position.copy(toPos); controls.target.copy(v.target); controls.update(); camTween = null; return;
   }
-  camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget: v.target };
+  camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos, toTarget: v.target, turn: !!turn };
 }
 // Camera moves glide around what the camera looks at instead of cutting straight through space: the point
 // it looks at slides across, the view turns along the shortest arc, and the distance (or zoom) changes by the
@@ -1986,10 +2009,30 @@ function stepCam(dt) {
   }
   c.t = Math.min(1, c.t + dt / c.dur);
   const e = c.t * c.t * c.t * (c.t * (c.t * 6 - 15) + 10);
+  if (c.turn) { turnCam(c); if (c.t >= 1) camTween = null; return; }
   controls.target.lerpVectors(c.fromTarget, c.toTarget, e);
   _glideQ.identity().slerp(c.turn, e);
   camera.position.copy(c.u0).applyQuaternion(_glideQ).multiplyScalar(c.d0 * Math.pow(c.d1 / c.d0, e)).add(controls.target);
   if (c.t >= 1) camTween = null;
+}
+
+// The turning glide: the camera itself only travels in a straight line from where it was to where it lands, and
+// does most of that late, while the way it looks swings round early along the shortest arc. So the view turns to
+// the new spot first and then closes in on it, instead of the whole picture sliding sideways.
+const _turnQ = new T.Quaternion(), _turnD = new T.Vector3();
+function turnCam(c) {
+  if (!c.look) {
+    c.look0 = c.fromTarget.clone().sub(c.fromPos); c.l0 = c.look0.length() || 1; c.look0.divideScalar(c.l0);
+    c.look1 = c.toTarget.clone().sub(c.toPos); c.l1 = c.look1.length() || 1; c.look1.divideScalar(c.l1);
+    c.look = new T.Quaternion().setFromUnitVectors(c.look0, c.look1);
+    c.dur = Math.max(c.dur, 1.5);
+  }
+  const sm = (a, b, x) => { const u = clamp((x - a) / (b - a), 0, 1); return u * u * u * (u * (u * 6 - 15) + 10); };
+  const turn = sm(0, 0.65, c.t), move = sm(0.25, 1, c.t);
+  camera.position.lerpVectors(c.fromPos, c.toPos, move);
+  _turnQ.identity().slerp(c.look, turn);
+  _turnD.copy(c.look0).applyQuaternion(_turnQ);
+  controls.target.copy(camera.position).addScaledVector(_turnD, c.l0 * Math.pow(c.l1 / c.l0, move));
 }
 
 /* ================================================================== examination labels */
@@ -2352,6 +2395,7 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
 
   // ---- loupe
   const L0 = bot + 8, L1 = H - 6, lm = (L0 + L1) / 2, k2 = 40, cx = W / 2;
+  flatSpots.loupe = [4, L0, W - 4, L1];   // for "Show me": the magnifier strip
   const center = show ? M.vern : clamp(M.vern + ((M.q * 7) % 3) - 1, 0, 20);
   const vC = P + center * 1.95, Lx = v => cx + (v - vC) * k2;
   g.save();
@@ -2443,6 +2487,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
 
   // ---- loupe
   const L0 = bot + 8, L1 = H - 6, lm = (L0 + L1) / 2, k2 = 3200, cx = W / 2;
+  flatSpots.loupe = [4, L0, W - 4, L1];   // for "Show me": the magnifier strip
   const center = show ? A.vern : clamp(A.vern + ((n * 7) % 3) - 1, 0, 25);
   const vC = pos + center * VSTEP;                    // value coordinate under the loupe center
   const Lx = v => cx + (v - vC) * k2;
@@ -2514,7 +2559,24 @@ function unstagePart() {
   lastKey = ''; hlKey = ''; flatKey = '';
   frameForPart();   // the part is on the caliper now: frame the measuring
 }
-function newSample(type) {
+// A new part: the old one dissolves away completely first, with the caliper held still where it is, so nothing
+// ever moves through a part that is still there. Only once it has gone does the slider move off to where the
+// new part needs it (clear of it), and the new part come in. Asking again meanwhile just changes which part
+// comes next; then() runs once the new part is on its way (practice measures it then).
+let partWait = null;
+function newSample(type, then) {
+  if (partWait) { partWait.type = type; partWait.then = then; return; }
+  const old = sample.obj;
+  if (old && old.parent && !old.userData.gone && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    partWait = { type, then };
+    state.animQ = [];
+    Dissolve.out(old, { frame: () => invalidate(120), done: () => {
+      old.visible = false; old.userData.gone = true;
+      const w = partWait; partWait = null;
+      newSample(w.type, w.then);
+    } });
+    return;
+  }
   if (state.sliderLocked) setSliderLock(false);
   buildSample(type);
   const def = PARTS[type];
@@ -2528,6 +2590,7 @@ function newSample(type) {
   if (def) toast(def.hint);
   if (def && !sample.staged) Dissolve.in(sample.obj, { frame: () => invalidate(120) });   // already clear of the jaws: in it comes
   if (!def || !sample.staged) frameForPart();   // no part: back to the whole tool
+  if (then) then();
 }
 function removePart() { $('sampleSel').value = 'none'; changePart('none'); }
 // Changing the part: the caliper lets go of the old one first, the way you would by hand: outside jaws open a
@@ -2586,8 +2649,7 @@ function loadPractice() {
   state.bezel = 0;
   setBezelLock(true);
   $('sampleSel').value = key;
-  newSample(key);
-  autoMeasure();
+  newSample(key, autoMeasure);
   state.pRevealed = false; state.pErr = [];
   lastKey = ''; hlKey = ''; flatKey = ''; updateOutline();
   setView('iso');
@@ -3317,6 +3379,22 @@ window.__guideFlatSpot = name => {
   const r = cv.getBoundingClientRect(), sx = r.width / 260, sy = r.height / 280;
   return { left: r.left + b[0] * sx, top: r.top + b[1] * sy, right: r.left + b[2] * sx, bottom: r.top + b[3] * sy };
 };
+// the same box in the flat view's own units, for "Show me" to pin a tracker to inside the flat view, so it
+// follows the flat view however it is laid out, grown, tilted or mid-glide: which canvas, the box, its size
+window.__guideFlatRaw = name => {
+  const b = flatOpen && flatSpots[name];
+  return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
+};
+// "Show me" draws the move to make by hand: the thumb wheel, from where it is now to where it will be when the
+// jaws (or the rod) touch the part, in page coordinates. The slider follows the pointer along the beam, so
+// that is exactly the drag
+window.__guideDrag = () => {
+  if (!sample.obj || sample.staged || !sample.tool) return null;
+  const r = canvas.getBoundingClientRect();
+  const at = x => { const v = V3(x + 2.74, -0.44, 0.33).project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; };
+  const a = at(state.pos), b = at(sample.size);
+  return a && b ? { pts: [a, b] } : null;
+};
 async function start() {
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   bindPointer();
@@ -3338,6 +3416,7 @@ async function start() {
   try { await renderer.compileAsync(scene, camera); } catch (e) {}
   booted = true;
   window.__load ? window.__load.done() : $('loading').remove();
+  Dissolve.tool(cal, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
 
   // the first view is framed before the layout has settled (fonts, panels, the flat view's corner),
   // so frame it again a few times as things land, until the first touch from the user

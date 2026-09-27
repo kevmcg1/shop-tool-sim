@@ -1,0 +1,23 @@
+/* HUD tilt, after The Division: the panels, cards and buttons all over the page turn a few degrees in depth
+   toward the middle of the screen, their outer edge nearest, the way a game HUD wraps round the player. What is
+   on the left leans one way and what is on the right the other, each hinged on its outer edge so it stays lined
+   up with its margin; nothing else about them changes. The settings cog in the top bar switches it all off
+   (html.hud-flat, set by js/shell.js and js/hud.js). Whole panels lean rather than every button in them, so
+   nothing leans twice. (Layout glides in js/*.js keep the tilt; a docked flat view on a phone stays flat.) */
+:root{--hud-a:7deg;--hud-p:900px;--hud-btn-a:6deg;--hud-btn-p:520px}
+/* the floating panels over the 3D view, the minimap (flat view) among them */
+html:not(.hud-flat) #view .actions,html:not(.hud-flat) #view .quick{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+html:not(.hud-flat) #view .views,html:not(.hud-flat) #view .legend,html:not(.hud-flat) #view .flat{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 50%}
+html:not(.hud-flat) #view .ov-left{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+html:not(.hud-flat) #view .ov-right{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 50%}
+/* the side panel: its title block and each of its cards */
+html:not(.hud-flat) aside > header,html:not(.hud-flat) aside > section{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+/* a card whose dropdown is open sits above the cards under it, so its list isn't hidden behind them */
+aside > section:has(.dd.open){position:relative;z-index:40}
+/* anything else marked with the side it sits on (the reading bar's cards, by js/hud.js) */
+html:not(.hud-flat) [data-hud="l"]{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+html:not(.hud-flat) [data-hud="r"]{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 50%}
+/* the top bar: the name and the tool tabs lean with the left side; the settings cog, Reset all and their notes with the right */
+html:not(.hud-flat) .bar .brand,html:not(.hud-flat) #tabs{transform:perspective(var(--hud-p)) rotateY(var(--hud-a));transform-origin:0 50%}
+html:not(.hud-flat) .reset-all,html:not(.hud-flat) .set-btn{transform:perspective(var(--hud-btn-p)) rotateY(calc(-1 * var(--hud-btn-a)));transform-origin:100% 50%}
+html:not(.hud-flat) .set-pop,html:not(.hud-flat) .reset-pop.on{transform:perspective(var(--hud-p)) rotateY(calc(-1 * var(--hud-a)));transform-origin:100% 0}

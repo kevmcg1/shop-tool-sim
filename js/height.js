@@ -693,11 +693,32 @@ function partMeshes(P, mat){
   }
   return S.map(s => ({ mesh: s.t === 'box' ? rbox(s.x0, s.x1, 0, s.y1, s.z0, s.z1, 0.6, mat) : cyl(s.r, 0, s.y1, 'y', [s.cx, s.cz], mat, 64), solids: [s] }));
 }
-function newPart(key, keepSel){
-  if (partG){
-    // the old part dissolves out where it was, then goes
+// A new part: the old one dissolves away completely first, with the gage held still where it is, so the scriber
+// never moves through a part that is still there. Then the scriber lifts to its clearance height over the new
+// part, and only then does the new part build in, parked beside the gage (partReady settles then; "Show me"
+// waits on it before sliding the part under). Asking again meanwhile just changes which part comes next.
+let partWait = null, partReady = Promise.resolve();
+const noMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function newPart(key, keepSel, swapped){
+  if (partWait){ partWait.key = key; partWait.keepSel = keepSel; return; }
+  if (partG && partG.visible && !partG.userData.gone && !noMotion()){   // (one still hidden, waiting to come in, just goes)
+    partWait = { key, keepSel };
+    state.seq = null; state.partTarget = null; state.partGoal = null; state.moveGoal = null; state.lift = null;
+    let ready; partReady = new Promise(r => { ready = r; }); partWait.ready = ready;
     const old = partG;
-    Dissolve.out(old, { frame: () => invalidate(120), done: () => { if (old.parent) old.parent.remove(old); old.traverse(o => { if (o.geometry) o.geometry.dispose(); }); } });
+    Dissolve.out(old, { frame: () => invalidate(120), done: () => {
+      old.visible = false; old.userData.gone = true;
+      const w = partWait; partWait = null;
+      newPart(w.key, w.keepSel, true);
+      partReady.then(ready);
+    } });
+    return;
+  }
+  partReady = Promise.resolve();
+  if (partG){
+    // the old part dissolves out where it was, then goes (at once, if it has already been dissolved away above)
+    const old = partG, gone = () => { if (old.parent) old.parent.remove(old); old.traverse(o => { if (o.geometry) o.geometry.dispose(); }); };
+    if (old.userData.gone) gone(); else Dissolve.out(old, { frame: () => invalidate(120), done: gone });
     partG = null;
   }
   pickables.splice(0, pickables.length, ...pickables.filter(p => p.userData.kind !== 'part'));
@@ -737,7 +758,17 @@ function newPart(key, keepSel){
   partG.position.set(state.px, 0, state.pz);
   renderFeats();
   liftForMove();
-  Dissolve.in(partG, { frame: () => invalidate(120) });
+  // after another part, the scriber goes up clear first, then in it comes
+  const g = partG, fx = { frame: () => invalidate(120) };
+  if (!swapped || noMotion() || state.lift == null || Math.abs(faceH() - state.lift) < 0.05){ Dissolve.in(g, fx); return; }
+  g.visible = false;
+  partReady = new Promise(done => {
+    const t0 = performance.now();
+    const go = () => { if (g.visible || partG !== g) return done(); g.visible = true; invalidate(120); Dissolve.in(g, fx); done(); };
+    const wait = () => { if (g.visible) return; if (partG !== g) return done(); if (state.lift != null && performance.now() - t0 < 2500) requestAnimationFrame(wait); else go(); };
+    requestAnimationFrame(wait);
+    setTimeout(go, 2600);   // a timer backs up the frame callbacks, which stop while the page is not being painted
+  });
 }
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 // top of a solid if it reaches under a footprint (in part coordinates), else 0
@@ -961,8 +992,12 @@ function loadPractice(){
   const keys = Object.keys(PARTS).filter(k => k !== 'plate');
   const key = keys[Math.floor(Math.random()*keys.length)];
   $('partSel').value = key; newPart(key);
-  const f = state.part.feats[Math.floor(Math.random()*state.part.feats.length)];
-  measureFeature(f.id);
+  // measured once the new part is in (the old one gone and the scriber lifted clear first)
+  partReady.then(() => {
+    if (!state.practice || !state.part || state.part.key !== key) return;
+    const f = state.part.feats[Math.floor(Math.random()*state.part.feats.length)];
+    measureFeature(f.id);
+  });
   state.pRevealed = false; lastUI = '';
   $('guess').value = ''; $('pfb').className = ''; $('pfb').innerHTML = `<p class="pintro">Read the <b>${$('pUnit').value === 'in' ? 'inch (left-hand)' : 'metric (right-hand)'}</b> scales and type the height, then press <b>Check</b>. Score ${state.pScore.right}/${state.pScore.total}.</p>`;
 }
@@ -1839,12 +1874,16 @@ function flipLayout(apply, skip){
   for (const e of els){
     const a = before.get(e), b = e.getBoundingClientRect();
     if (!a.width || !b.width || !a.height || !b.height) continue;
-    const dx = a.left - b.left, dy = a.top - b.top, sx = a.width/b.width, sy = a.height/b.height;
+    // the glide is laid over the panel's own tilt (css/hud.css), scaling and moving it about the point it tilts
+    // on, so the tilt holds all the way instead of snapping flat and back
+    const cs = getComputedStyle(e), base = cs.transform === 'none' ? '' : ' ' + cs.transform;
+    const o = cs.transformOrigin.split(' ').map(parseFloat), fx = e.offsetWidth ? o[0]/e.offsetWidth : 0.5, fy = e.offsetHeight ? o[1]/e.offsetHeight : 0.5;
+    const dx = a.left + fx*a.width - (b.left + fx*b.width), dy = a.top + fy*a.height - (b.top + fy*b.height), sx = a.width/b.width, sy = a.height/b.height;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5 && Math.abs(sx - 1) < 0.005 && Math.abs(sy - 1) < 0.005) continue;
     if (e._flip) e._flip.cancel();
     e._flip = e.animate([
-      { transformOrigin: '0 0', transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})` },
-      { transformOrigin: '0 0', transform: 'none' }
+      { transform: `translate(${dx}px,${dy}px) scale(${sx},${sy})${base}` },
+      { transform: base.trim() || 'none' }
     ], { duration: 360, easing: 'cubic-bezier(.22,.8,.25,1)' });
   }
 }
@@ -2132,10 +2171,13 @@ function tick(now){
 // "Show me" has the tool put the part in place by itself (slid under the scriber with the scriber held up
 // clear of it), so the person only has to bring the slider down onto it by hand
 window.__guidePlacePart = () => {
-  const P = state.part;
-  if (!P) return false;
-  measureFeature(P.sel);
-  if (state.seq) state.seq.hold = true;
+  // once the new part is in (the old one gone and the scriber lifted clear first)
+  partReady.then(() => {
+    const P = state.part;
+    if (!P) return;
+    measureFeature(P.sel);
+    if (state.seq) state.seq.hold = true;
+  });
   return true;
 };
 // "Show me" reads the inch scale the way a machinist does: the inch number, the main-scale line at or below
@@ -2200,6 +2242,24 @@ window.__guideFlatSpot = name => {
   const r = cv.getBoundingClientRect(), sx = r.width/260, sy = r.height/280;
   return { left: r.left + b[0]*sx, top: r.top + b[1]*sy, right: r.left + b[2]*sx, bottom: r.top + b[3]*sy };
 };
+// the same box in the flat view's own units, for "Show me" to pin a tracker to inside the flat view, so it
+// follows the flat view however it is laid out, grown or mid-glide: which canvas, the box, its size. The
+// close-up above the scales has a row for each vernier: loupeIn (inch, on top) and loupeMm (metric)
+window.__guideFlatRaw = name => {
+  if (!flatOpen) return null;
+  if (name === 'loupeIn' || name === 'loupeMm') return $('loupeCv') ? { cv: 'loupeCv', box: name === 'loupeIn' ? [0, 0, 260, 56] : [0, 60, 260, 116], w: 260, h: 116 } : null;
+  const b = flatSpots[name];
+  return b ? { cv: 'flatCv', box: b, w: 260, h: 280 } : null;
+};
+// "Show me" draws the move to make by hand: the slider, from where it is now down to where the scriber rests on
+// the part, in page coordinates. The slider follows the pointer up and down the beam, so that is exactly the drag
+window.__guideDrag = () => {
+  if (!state.part) return null;
+  const r = renderer.domElement.getBoundingClientRect();
+  const at = hs => { const v = new T.Vector3(SL_X0, hs + SCRIBE_DROP + 38, -2).project(camera); return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height }; };
+  const a = at(state.hs), b = at(minHs());
+  return a && b ? { pts: [a, b] } : null;
+};
 async function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   buildGage();
@@ -2230,6 +2290,7 @@ async function start(){
   measureFeature('s1');
   setDelta(0);
   window.__load ? window.__load.done() : $('loading').remove();
+  Dissolve.tool(root, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
   requestAnimationFrame(tick);
 }
 const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
