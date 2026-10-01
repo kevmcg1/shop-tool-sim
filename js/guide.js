@@ -102,7 +102,7 @@
       { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera is on the sleeve now. The last number showing is a hundred thou (0.100″) each.' + now('vA') },
       { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Each small line showing past that number adds 25 thou (0.025″).' + now('vB') },
       { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'The thimble adds the thou, one thou (0.001″) per line. Follow the index line, the long line along the sleeve, across onto the thimble, and take the highest thimble mark that sits on it or below it. A mark above the index line hasn’t reached it yet, so it doesn’t count.' + now('vC') },
-      { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], hl: 'vernier', flat: 'the vernier line that lines up with a thimble line', title: 'Find the vernier line',
+      { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', flat: 'the vernier line that lines up with a thimble line', title: 'Find the vernier line',
         text: () => 'Looking square on at the one vernier line that lines up, from its number on the sleeve to where it meets its thimble line at the thimble edge: the two run on as one straight line. That line’s number is the tenths, a tenth (0.0001″) each.' + now('vD') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Frame size + sleeve number + sleeve lines + thimble + vernier = the reading.' + now('vT', 'This one reads') },
       SHORT('mic'),
