@@ -3062,8 +3062,9 @@ function vernSpan(){
   const d = Math.round(state.reading*1e4) % 10, ang = VERN0 + d*VSTEP;
   return { ang, pts: [cylAnchor(S0 - 0.13, SLV_R + 0.002, ang).p, cylAnchor(S0 + state.reading, SLV_R + 0.002, ang).p, cylAnchor(S0 + state.reading + 0.22, TH_R + 0.002, ang).p] };
 }
-window.__guideFrame = names => {
-  if (names[0] !== 'd') return false;
+// the reading the camera is aimed at: the line that lines up changes with the reading, so the view must follow it
+let vernAimed = -1;
+function aimVernier(){
   const { ang, pts } = vernSpan();
   // square on to this one line, whatever its angle round the sleeve, so the line and its thimble line run
   // straight on from each other instead of kinking where they meet
@@ -3074,8 +3075,20 @@ window.__guideFrame = names => {
   const box = new T.Box3().setFromPoints(pts).expandByScalar(0.04);
   const fb = fitIso(dir, box.getCenter(new T.Vector3()), 40, box, up);   // fitted as it will look, rolled
   camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom, toDir: dir, toTarget: fb.target, toZoom: fb.zoom, toUp: up };
+  vernAimed = Math.round(state.reading*1e4);
   invalidate();
+}
+window.__guideFrame = names => {
+  if (names[0] !== 'd') return false;
+  aimVernier();
   return true;
+};
+// while the vernier step is up, a reading that changes (the thimble turned, the spindle still settling, a new
+// "Go to") swings the camera round to the line that lines up now, so the two lines always meet in the view. It waits
+// until the spindle has stopped and the pointer is off the tool, so the view never slides while it is being turned
+window.__guideRefit = () => {
+  if (drag || state.anim || vernAimed < 0 || Math.round(state.reading*1e4) === vernAimed) return;
+  aimVernier();
 };
 // "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
 // reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
