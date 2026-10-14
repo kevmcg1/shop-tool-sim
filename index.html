@@ -41,7 +41,7 @@ if (location.protocol === 'file:'){
 <title>Dial Caliper Trainer</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/caliper.css?v=52">
+<link rel="stylesheet" href="css/caliper.css?v=53">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -268,18 +268,18 @@ if (location.protocol === 'file:'){
 <\/script>
 <script src="js/dissolve.js?v=50"><\/script>
 <script src="js/holo.js?v=50"><\/script>
-<script src="js/plate.js?v=51"><\/script>
+<script src="js/plate.js?v=52"><\/script>
 <script src="js/pivot.js?v=50"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
-<script src="js/caliper.js?v=60"><\/script>
+<script src="js/caliper.js?v=62"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 <script src="js/flat-units.js?v=50"><\/script>
-<script src="js/version.js?v=55"><\/script>
+<script src="js/version.js?v=56"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -293,7 +293,7 @@ if (location.protocol === 'file:'){
 <title>Vernier Micrometer · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/micrometer.css?v=52">
+<link rel="stylesheet" href="css/micrometer.css?v=53">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -350,10 +350,10 @@ if (location.protocol === 'file:'){
     <section class="sample-sec">
       <h2>Sample</h2>
       <select id="sampleSel" aria-label="Sample to measure"></select>
-      <div class="row"><button id="newVals">New random values</button></div>
-      <p class="note" style="margin:8px 0 0">Click a feature to measure it, or drag the part through the micrometer yourself. The part slides against the anvil and the feature under the faces is detected. Sizes change every time, within ±0.0100″ of nominal.</p>
+      <div class="row"><button id="newVals">New random values</button><button id="revealBtn">Show actual</button></div>
+      <h3 class="sub-h">Features</h3>
       <div id="feats"></div>
-      <div class="row"><button id="revealBtn">Show actual</button></div>
+      <p class="note">Click a feature to measure it, or drag the part through the micrometer yourself. The part slides against the anvil and the feature under the faces is detected. Sizes change every time, within ±0.0100″ of nominal.</p>
     </section>
 
     <section class="answer">
@@ -488,18 +488,18 @@ if (location.protocol === 'file:'){
 <script src="vendor/BufferGeometryUtils.r128.js?v=1"><\/script>
 <script src="js/dissolve.js?v=50"><\/script>
 <script src="js/holo.js?v=50"><\/script>
-<script src="js/plate.js?v=51"><\/script>
+<script src="js/plate.js?v=52"><\/script>
 <script src="js/pivot.js?v=50"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
 <!-- js/hands.js?v=72 (the 3D hands, switched off: load it with a script tag here to bring them back) -->
-<script src="js/micrometer.js?v=85"><\/script>
+<script src="js/micrometer.js?v=87"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=55"><\/script>
+<script src="js/version.js?v=56"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -513,7 +513,7 @@ if (location.protocol === 'file:'){
 <title>Depth Micrometer · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/depth.css?v=52">
+<link rel="stylesheet" href="css/depth.css?v=53">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -570,10 +570,10 @@ if (location.protocol === 'file:'){
     <section class="sample-sec">
       <h2>Part</h2>
       <select id="sampleSel" aria-label="Part to measure"></select>
-      <div class="row"><button id="newVals">New random depths</button></div>
-      <p class="note" style="margin:8px 0 0">Click a feature to measure it, or drag the part under the base yourself. The micrometer lifts while the part moves, then the base seats on the top face. Depths change every time, within ±0.010″ of nominal.</p>
+      <div class="row"><button id="newVals">New random depths</button><button id="revealBtn">Show actual</button></div>
+      <h3 class="sub-h">Features</h3>
       <div id="feats"></div>
-      <div class="row"><button id="revealBtn">Show actual</button></div>
+      <p class="note">Click a feature to measure it, or drag the part under the base yourself. The micrometer lifts while the part moves, then the base seats on the top face. Depths change every time, within ±0.010″ of nominal.</p>
     </section>
 
     <section>
@@ -724,16 +724,16 @@ if (location.protocol === 'file:'){
 <script src="vendor/clipper.js?v=1"><\/script>
 <script src="js/dissolve.js?v=50"><\/script>
 <script src="js/holo.js?v=50"><\/script>
-<script src="js/plate.js?v=51"><\/script>
+<script src="js/plate.js?v=52"><\/script>
 <script src="js/pivot.js?v=50"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
-<script src="js/depth.js?v=52"><\/script>
+<script src="js/depth.js?v=53"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=55"><\/script>
+<script src="js/version.js?v=56"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -747,7 +747,7 @@ if (location.protocol === 'file:'){
 <title>Vernier Height Gage · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/height.css?v=52">
+<link rel="stylesheet" href="css/height.css?v=53">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -806,8 +806,9 @@ if (location.protocol === 'file:'){
     <section>
       <h2>Part</h2>
       <select id="partSel" aria-label="Part to measure"></select>
-      <div id="feats"></div>
       <div class="row"><button id="newVals">New random heights</button><button id="revealBtn">Show actual</button></div>
+      <h3 class="sub-h">Features</h3>
+      <div id="feats"></div>
     </section>
 
     <section class="answer">
@@ -919,17 +920,17 @@ if (location.protocol === 'file:'){
 <\/script>
 <script src="js/dissolve.js?v=50"><\/script>
 <script src="js/holo.js?v=50"><\/script>
-<script src="js/plate.js?v=51"><\/script>
+<script src="js/plate.js?v=52"><\/script>
 <script src="js/pivot.js?v=50"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
-<script src="js/height.js?v=53"><\/script>
+<script src="js/height.js?v=54"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 
-<script src="js/version.js?v=55"><\/script>
+<script src="js/version.js?v=56"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -943,7 +944,7 @@ if (location.protocol === 'file:'){
 <title>Telescopic Gauge</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=58">
+<link rel="stylesheet" href="css/telescopic.css?v=59">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -1126,20 +1127,21 @@ if (location.protocol === 'file:'){
 <script src="vendor/three.r128.min.js?v=1"><\/script>
 <script src="js/dissolve.js?v=50"><\/script>
 <script src="js/holo.js?v=50"><\/script>
-<script src="js/plate.js?v=51"><\/script>
+<script src="js/plate.js?v=52"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
 <script src="js/telescopic.js?v=63"><\/script>
-<script src="js/version.js?v=55"><\/script>
+<script src="js/tips.js?v=51"><\/script>
+<script src="js/version.js?v=56"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
-<script src="js/version.js?v=55"></script>
+<script src="js/version.js?v=56"></script>
 <script src="js/changelog.js?v=53"></script>
 <script src="js/mobile-notice.js?v=1"></script>
 <script src="js/shell.js?v=57"></script>
-<script src="js/devmode.js?v=60"></script>
+<script src="js/devmode.js?v=61"></script>
 </body>
 </html>

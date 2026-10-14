@@ -113,6 +113,24 @@
         : [['number', '0.5'], ['precise', '1.2345'], ['negative', '-3'], ['empty', ''], ['letters', 'abc'], ['huge', '99999'], ['tiny', '0.0000001']];
       vals.forEach(([n, v]) => list.push({ key: key(base + '=' + n, 'type'), label: base + ' ← ' + n, kind: 'type', v, get: () => el }));
     });
+    // everything else a hand can operate: ARIA buttons / switches / menu items, disclosure summaries, colour pickers, the draggable dividers
+    // between panels (arrow keys and a drag), and every tooltip (hover over it, and the tooltip must stay inside the window)
+    d.querySelectorAll('[role=button]:not(button), [role=switch], [role=menuitem], [role=checkbox]:not(input), [role=radio]:not(input), summary').forEach(el => {
+      if (skip(el) || el.closest('.dd-list')) return; const base = labelOf(el);
+      list.push({ key: key(base, 'click'), label: base, kind: 'click', get: () => el });
+    });
+    d.querySelectorAll('input[type=color]').forEach(el => {
+      if (skip(el)) return; const base = labelOf(el);
+      [['white', '#ffffff'], ['black', '#000000'], ['blue', '#5b93ea']].forEach(([n, v]) => list.push({ key: key(base + '=' + n, 'type'), label: base + ' ← ' + n, kind: 'type', v, get: () => el }));
+    });
+    d.querySelectorAll('[role=separator][tabindex]').forEach(el => {
+      if (skip(el)) return; const base = labelOf(el);
+      ['key up', 'key down', 'key home', 'key end', 'drag up', 'drag down'].forEach(n => list.push({ key: key(base + ':' + n, 'divider'), label: base + ' ' + n, kind: 'divider', how: n, get: () => el }));
+    });
+    d.querySelectorAll('[data-tip]').forEach(el => {
+      if (skip(el)) return; const base = labelOf(el);
+      list.push({ key: key(base, 'hover'), label: 'tooltip: ' + base, kind: 'hover', get: () => el });
+    });
     // the 3D view: drags, scroll and a click, like a hand would
     const cv = d.querySelector('#cv, #view canvas, canvas.gl');
     if (cv && visible(cv)) ['orbit drag', 'pan drag', 'zoom in', 'zoom out', 'click middle', 'small drag'].forEach(n => list.push({ key: 'view:' + n, label: '3D view: ' + n, kind: 'view', how: n, get: () => cv }));
@@ -122,7 +140,18 @@
   const actionsOf = w => { const m = w.__devMon; if (!m) return discover(w); if (m.dirty || !m.cache){ m.cache = discover(w); m.dirty = false; } return m.cache; };
   function perform(w, a, rand){
     const el = a.get(); if (!el) return;
+    // a tooltip left showing by the last hover goes when the pointer moves on
+    if (w.__devHover && w.__devHover !== el){ try { w.__devHover.dispatchEvent(new w.PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse', relatedTarget: w.document.body })); } catch (e) {} w.__devHover = null; }
     if (a.kind === 'click'){ el.click(); }
+    else if (a.kind === 'hover'){ el.scrollIntoView && el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); el.dispatchEvent(new w.PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' })); w.__devHover = el; }
+    else if (a.kind === 'divider'){
+      const r = el.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2, h = a.how;
+      if (h.startsWith('key')){ const k = { 'key up': 'ArrowUp', 'key down': 'ArrowDown', 'key home': 'Home', 'key end': 'End' }[h]; el.focus(); el.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true })); el.dispatchEvent(new w.KeyboardEvent('keyup', { key: k, bubbles: true, cancelable: true })); }
+      else {
+        const dy = h === 'drag up' ? -70 : 70, P = (t, y, bs) => el.dispatchEvent(new w.PointerEvent(t, { bubbles: true, cancelable: true, pointerId: 9, pointerType: 'mouse', isPrimary: true, clientX: cx, clientY: y, button: 0, buttons: bs }));
+        P('pointerdown', cy, 1); for (let i = 1; i <= 6; i++) P('pointermove', cy + dy*i/6, 1); P('pointerup', cy + dy, 0);
+      }
+    }
     else if (a.kind === 'toggle'){ el.click(); }
     else if (a.kind === 'slide'){
       const lo = +el.min || 0, hi = el.max === '' ? 100 : +el.max, st = +el.step || 1; let v = lo + (hi - lo)*a.frac; v = Math.round(v/st)*st; el.value = v;
@@ -154,6 +183,11 @@
     const gaps = mon.gaps.slice(mark.g), worst = gaps.length ? Math.max(...gaps) : 0;
     if (worst > FR.stall && !w.document.hidden) found.push({ type: 'stall', detail: 'a frame took ' + Math.round(worst) + ' ms' });
     else if (worst > FR.jank && !w.document.hidden) found.push({ type: 'jank', detail: 'a frame took ' + Math.round(worst) + ' ms' });
+    try {   // a tooltip that is showing must lie wholly inside the window (js/tips.js)
+      const tp = w.document.querySelector('.tipl.on');
+      if (tp){ const r = tp.getBoundingClientRect(), W = w.document.documentElement.clientWidth, H = w.document.documentElement.clientHeight;
+        if (r.left < -1 || r.top < -1 || r.right > W + 1 || r.bottom > H + 1) found.push({ type: 'tooltip cut off', detail: '“' + (tp.textContent || '').slice(0, 40) + '” at ' + Math.round(r.left) + ',' + Math.round(r.top) + ' to ' + Math.round(r.right) + ',' + Math.round(r.bottom) + ' in ' + W + '×' + H }); }
+    } catch (e) {}
     try {
       // (on the page itself, everything but this panel: its own report quotes the words it is looking for)
       const t = w === window ? [...w.document.body.children].filter(e => e !== panel).map(e => e.innerText || '').join(' ') : (w.document.body.innerText || ''), m = BAD_TEXT.exec(t);
@@ -268,7 +302,7 @@
       // comes out of that slot, so the pace holds at RATE steps a second however busy the page is
       let thrown = null; const now0 = performance.now();
       if (!run.at || now0 - run.at > 250) run.at = now0;
-      const slot = run.at; run.at = slot + 1000/RATE;
+      const slot = run.at; run.at = slot + 1000/RATE + (a.kind === 'hover' ? 420 : 0);   // (a tooltip waits a moment before it shows)
       try { perform(w, a, rand); } catch (e) { thrown = e; }
       await sleep(Math.max(4, run.at - performance.now() - 6));
       run.steps++; run.active += Math.min(400, performance.now() - now0);
@@ -694,7 +728,7 @@
   function feedback(T){
     const rows = controlRows(T), f = frameStats(T.fr.sample), g = grade({ ...f, n: T.fr.n, over50: T.fr.over50, over100: T.fr.over100 });
     const slow = rows.filter(r => r.uses >= 2).sort((a, b) => b.p95FrameMs - a.p95FrameMs).slice(0, 6);
-    const inert = rows.filter(r => r.uses >= 3 && r.didSomething === 0 && r.kind !== 'key');
+    const inert = rows.filter(r => r.uses >= 3 && r.didSomething === 0 && r.kind !== 'key' && r.kind !== 'hover');
     const never = rows.filter(r => r.uses === 0);
     return { rows, frames: { ...f, n: T.fr.n, over34: T.fr.over34, over50: T.fr.over50, over100: T.fr.over100, max: Math.round(T.fr.max) }, grade: g, slow, inert, never };
   }

@@ -3,8 +3,13 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.2.3',
+  version: '1.2.4',
   changelog: [
+    { v: '1.2.4', date: '2026-10-14', title: 'A calmer table and tidier panels', items: [
+      'The measuring table is now an even dark gray with barely any marks, so it no longer flashes light and dark when you rotate the view.',
+      'The Sample and Part panels have cleaner feature cards, and the telescopic gauge uses the same tooltips as the other tools (never cut off by the window).',
+      'On the calipers, the gauge you send over is now drawn by the caliper itself, so the jaws and slider hide it where they should.'
+    ] },
     { v: '1.2.3', date: '2026-10-14', title: 'Phone heads-up and gauge buttons', items: [
       'Phones and tablets now get a pop-up saying the simulator is best on a laptop or desktop, with a Continue anyway button.',
       'The telescopic gauge has the same top-left buttons as the other tools: the side panel, Examine and Practice.'

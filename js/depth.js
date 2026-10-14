@@ -2220,7 +2220,7 @@ function renderFeats(){
     const t = TYPES[f.type];
     return `<div class="fcard${S.sel === f.id ? ' sel' : ''}" style="--c:${t.c}">
       <button class="fhead" data-select="${f.id}" aria-pressed="${S.sel === f.id}" title="Measure this feature"><i class="sw" style="--c:${t.c}"></i><span class="fname">${esc(f.label)}</span><span class="ftype">${t.name}</span></button>
-      ${S.revealed ? `<div class="fres">Actual ${S.vals[f.id].toFixed(3)}″</div>` : ''}</div>`;
+      ${S.revealed ? `<div class="fres"><span>Actual depth</span><b>${S.vals[f.id].toFixed(3)}″</b></div>` : ''}</div>`;
   }).join('') || '<p class="note" style="margin:8px 0 0">No feature on this part is inside this rod’s range — fit another rod.</p>';
 }
 

@@ -990,7 +990,7 @@ function renderFeats(){
   const P = state.part, box = $('feats');
   $('revealBtn').textContent = P && P.revealed ? 'Hide actual' : 'Show actual';
   if (!P){ box.innerHTML = ''; return; }
-  box.innerHTML = P.feats.map(f => `<button class="fcard${P.sel === f.id ? ' sel' : ''}" data-feat="${f.id}"><span class="fn">${f.label}</span>${P.revealed ? `<span class="fv">${(f.value/IN).toFixed(4)}″ · ${f.value.toFixed(3)} mm</span>` : ''}</button>`).join('');
+  box.innerHTML = P.feats.map(f => `<button class="fcard${P.sel === f.id ? ' sel' : ''}" data-feat="${f.id}" aria-pressed="${P.sel === f.id}"><span class="fn">${f.label}</span>${P.revealed ? `<span class="fv">${(f.value/IN).toFixed(4)}″ · ${f.value.toFixed(3)} mm</span>` : ''}</button>`).join('');
 }
 
 /* ---------- practice ---------- */
