@@ -528,3 +528,28 @@ aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{di
 .xlayer line{transition:stroke-opacity .3s ease}
 .xlayer line.pre{stroke-opacity:0}
 @media (prefers-reduced-motion: reduce){ .xdot,.xl,.xlayer line{transition:none} }
+
+/* ---- the help section at the bottom of the sidebar: reading it, mouse, keys ---- */
+.help .hp-sub{margin:16px 0 8px;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.help h2+.hp-sub,.help [data-inst]>.hp-sub:first-child{margin-top:2px}
+.hp-list,.hp-keys{margin:0;display:grid;gap:6px}
+.hp-list>div{padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:rgba(255,255,255,.03)}
+.hp-list dt{font-size:12.5px;font-weight:650;color:var(--ink)}
+.hp-list dt small{margin-left:6px;font-size:11px;font-weight:500;color:var(--muted)}
+.hp-list dd{margin:3px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.hp-list dd b{color:var(--ink);font-weight:600}
+.hp-list dd.eq{color:var(--ink)}
+.hp-list>div:has(dd.eq){border-color:color-mix(in srgb,var(--sc,#8a8f97) 45%,var(--line));background:color-mix(in srgb,var(--sc,#8a8f97) 9%,transparent)}
+.hp-acts,.hp-steps{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.hp-acts li,.hp-steps li{position:relative;padding-left:15px;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.hp-acts li::before{content:"";position:absolute;left:2px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--sc,#8a8f97)}
+.hp-steps{counter-reset:hp}
+.hp-steps li{padding-left:24px;counter-increment:hp}
+.hp-steps li::before{content:counter(hp);position:absolute;left:0;top:.1em;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--ink);border:1px solid color-mix(in srgb,var(--sc,#8a8f97) 70%,transparent)}
+.hp-acts b,.hp-steps b{color:var(--ink);font-weight:600}
+.hp-keys>div{display:grid;grid-template-columns:112px minmax(0,1fr);gap:8px;align-items:baseline;font-size:12.5px;line-height:1.5}
+.hp-keys dt{display:flex;flex-wrap:wrap;gap:3px;align-items:center;color:var(--muted)}
+.hp-keys dd{margin:0;color:var(--muted)}
+.help kbd{display:inline-block;min-width:22px;padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-bottom-width:2px;color:#fff;font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center}
+.hp-note{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
+.hp-note b{color:var(--ink);font-weight:600}

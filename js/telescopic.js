@@ -337,7 +337,7 @@ function camPreset(n){const D=S.sample.actual,g=S.g,asp=Math.max(.6,camera.aspec
  if(n==='top')return{th:.2,ph:.04,r:70+D*2.2,t:[0,0,0],rel:true};   // straight down the bore (a hair off vertical, so the camera's up direction stays defined)
  return{th:0,ph:1.45,r:fit(g.max+56,g.hl+g.rb+40),t:[0,(g.hl-g.rb)/2,0],rel:true};}
 // pick a view. The pan and zoom you made go with it, unless it is the camera choosing for itself.
-function camGo(n,instant,fast){S.camName=n;cam.off.set(0,0,0);cam.zoom=1;cam.fixed=false;cam.auto=null;cam.speed=fast?7:4;if(instant)cam.snap=true;}
+function camGo(n,instant,fast){PV.p=null;S.camName=n;cam.off.set(0,0,0);cam.zoom=1;cam.fixed=false;cam.auto=null;cam.speed=fast?7:4;if(instant)cam.snap=true;}
 function camAuto(n){if(S.camName!==n){S.camName=n;cam.speed=4;}}
 function camGoal(){
  const p=camPreset(S.camName||'gauge'),t=[p.t[0],p.t[1],p.t[2]];
@@ -361,6 +361,9 @@ function stepCam(dt){
  if(!cam.orb&&!EX.on&&!(!cam.auto&&(S.camName==='hole'||S.camName==='top'))){const d=Math.exp(-dt*4.5);cam.dth*=d;cam.dph*=d;if(Math.abs(cam.dth)<1e-4)cam.dth=0;if(Math.abs(cam.dph)<1e-4)cam.dph=0;}
  const sp=Math.sin(cam.ph);camera.position.set(cam.t.x+cam.r*sp*Math.sin(cam.th),cam.t.y+cam.r*Math.cos(cam.ph),cam.t.z+cam.r*sp*Math.cos(cam.th));
  camera.lookAt(cam.t);
+ // (hole and top views stay where they are turned to; the others settle back, and that settling turns about the same point)
+ const settles=!EX.on&&!(!cam.auto&&(S.camName==='hole'||S.camName==='top'))&&(Math.abs(cam.dth)>1e-4||Math.abs(cam.dph)>1e-4);
+ if(PV.p&&(cam.orb||settles))pvHold();else if(!cam.orb)PV.p=null;
 }
 let rsW=0,rsH=0;
 function resize(){
@@ -373,6 +376,32 @@ function resize(){
  S.sized=true;
 }
 new ResizeObserver(resize).observe(stage);
+
+/* ================= TURNING THE VIEW ABOUT THE POINT UNDER THE POINTER ================= */
+// A drag that swings the view turns it about whatever is under the pointer (the gauge, the part, the bench; over empty space, the spot at the
+// distance of the gauge), not about the middle of the view. Each frame the camera and its pan offset slide sideways just enough that the picked
+// point stays exactly where it was on screen, which is the same as turning round it. It is let go of when the swing has finished.
+const PV={p:null,nx:0,ny:0},_pvv=new THREE.Vector3(),_pvd=new THREE.Vector3(),_pvr=new THREE.Vector3(),_pvu=new THREE.Vector3(),_pvf=new THREE.Vector3(),pvRay=new THREE.Raycaster();
+function pvPick(e){
+ const b=cv.getBoundingClientRect();if(b.width<2||b.height<2)return;
+ const nx=(e.clientX-b.left)/b.width*2-1,ny=-((e.clientY-b.top)/b.height)*2+1;
+ pvRay.setFromCamera(new THREE.Vector2(nx,ny),camera);
+ const seen=h=>{const o=h.object,m=o.material;if(!o.isMesh||!m||Array.isArray(m)||m.depthTest===false||m.visible===false||m.side===THREE.BackSide)return false;for(let q=o;q;q=q.parent)if(!q.visible)return false;return true;};
+ const hit=pvRay.intersectObject(scene,true).find(seen);
+ PV.p=hit?hit.point.clone():pvRay.ray.origin.clone().addScaledVector(pvRay.ray.direction,camera.position.distanceTo(cam.t));
+ PV.nx=nx;PV.ny=ny;
+}
+function pvHold(){
+ if(!PV.p)return;
+ camera.updateMatrixWorld();
+ _pvv.copy(PV.p).project(camera);
+ const dx=_pvv.x-PV.nx,dy=_pvv.y-PV.ny;
+ if(Math.abs(dx)+Math.abs(dy)<1e-5)return;
+ camera.matrixWorld.extractBasis(_pvr,_pvu,_pvf);
+ const depth=Math.max(1,-_pvd.copy(PV.p).applyMatrix4(camera.matrixWorldInverse).z),hh=depth*TANF,hw=hh*camera.aspect;
+ _pvd.set(0,0,0).addScaledVector(_pvr,dx*hw).addScaledVector(_pvu,dy*hh);
+ cam.off.add(_pvd);cam.t.add(_pvd);camera.position.add(_pvd);camera.lookAt(cam.t);
+}
 
 /* ================= POINTER ================= */
 const ray=new THREE.Raycaster(),ptrs=new Map();let drag=null,pinch0=0;
@@ -408,7 +437,7 @@ cv.addEventListener('pointerdown',e=>{
   const mode=pan?'pan':(EX.on?'orbit':h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';
   drag={mode,part:h,x:e.clientX,y:e.clientY,moved:0,vy:0,vOn:false,acc:0,dep:null};
   if(pan)cv.style.cursor='move';
-  if(mode==='orbit')cam.orb=true;
+  if(mode==='orbit'){cam.orb=true;pvPick(e);}else PV.p=null;
   if(h&&AM.on)autoCancel();   // taking hold of the gauge by hand ends Auto measure
  }
  else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);pinchMid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};drag=null;cam.orb=false;}
@@ -1225,7 +1254,7 @@ resize();selectSample(0);camGo('overview',true);shopApply();
 if(window.__holo)window.__holo.attach({THREE,select:$('sampleSel'),
  caption:v=>{const s=SAMPLES[+v];return s?[s.name,s.tag]:['',''];},
  build:v=>{const s=SAMPLES[+v];if(!s)return null;const g=new THREE.Group();g.add(new THREE.Mesh(partShapeGeo(s).geo));return g;}});
-window.__lab={FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
+window.__lab={PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
 requestAnimationFrame(tick);   // draws behind the loading screen
 // Like the other tools: nothing builds in until everything is ready. The shaders are compiled first, the dissolve's own
 // cut-away versions included (one short throwaway sweep, hidden behind the loading screen), so the build-in that follows
