@@ -28,7 +28,8 @@ const holeD=d=>{const s=S.sample;return s.actual+s.taper*(1-clamp(d,0,s.H)/s.H);
 // where the gauge waits before it goes in: just an inch (25.4 mm) above the part, right over the hole
 const HOVER=25.4;
 // getting in: the heads are pushed in and the knob locked, and the gauge waits this long over the hole (arrows and a bubble say so) before it goes down
-const PINCH_MS=1000,BUBBLE_MS=1000;
+const PINCH_MS=1000,BUBBLE_MS=7000;   // (the bubble's words stay up for 7 s; its arrows only pulse for the first ARROW_MS of that)
+const ARROW_MS=2800;
 
 /* ================= RENDERER / SCENE ================= */
 const stage=$('view'),cv=$('cv');
@@ -118,9 +119,9 @@ const xcyl=r=>{const g=new THREE.CylinderGeometry(r,r,1,32);g.rotateZ(Math.PI/2)
 function tag(m,part){m.userData.part=part;return m;}
 // an arrow along +x with its tip at +len/2: a shaft and a cone, drawn on top of everything
 function arrowMesh(g){
- const r=g.rr,len=r*6.5,head=r*2.6,grp=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0xffc800,depthTest:false,transparent:true,opacity:1,side:THREE.DoubleSide,toneMapped:false});
- const shaft=new THREE.Mesh(new THREE.CylinderGeometry(r*.55,r*.55,len-head,14),mat);shaft.rotation.z=-Math.PI/2;shaft.position.x=-head/2;
- const cone=new THREE.Mesh(new THREE.ConeGeometry(r*1.5,head,18),mat);cone.rotation.z=-Math.PI/2;cone.position.x=len/2-head/2;
+ const r=g.rr,len=r*4.2,head=r*1.8,grp=new THREE.Group(),mat=new THREE.MeshBasicMaterial({color:0xffc800,depthTest:false,transparent:true,opacity:1,side:THREE.DoubleSide,toneMapped:false});
+ const shaft=new THREE.Mesh(new THREE.CylinderGeometry(r*.36,r*.36,len-head,14),mat);shaft.rotation.z=-Math.PI/2;shaft.position.x=-head/2;
+ const cone=new THREE.Mesh(new THREE.ConeGeometry(r*1.05,head,18),mat);cone.rotation.z=-Math.PI/2;cone.position.x=len/2-head/2;
  shaft.renderOrder=cone.renderOrder=30;grp.add(shaft,cone);grp.visible=false;
  return{grp,mat,len};
 }
@@ -158,11 +159,12 @@ function poseGauge(th,L,my){
  // contact dots (world, in the cut plane)
  const D=holeD(S.depth),r=g.hr,touch=S.insertT>.97&&Math.abs(2*r+(D-2*r)/Math.cos(th)-L)<.04&&S.inserted;
  GP.dL.visible=GP.dR.visible=touch;
- {const bb=S.bubble,now=performance.now(),on=!!(bb&&bb.arrows&&now-bb.t0<bb.ms&&!FLY.on),inward=on&&bb.arrows==='in';
+ {const bb=S.bubble,now=performance.now(),on=!!(bb&&bb.arrows&&now-bb.t0<Math.min(bb.ms,ARROW_MS)&&!FLY.on),inward=on&&bb.arrows==='in';
   GP.arrows.forEach((a,k)=>{a.grp.visible=on;if(!on)return;
-   const sd=k?1:-1,since=now-bb.t0,pulse=Math.sin(since/1000*Math.PI*6)*.5+.5,fade=Math.min(1,(bb.ms-since)/220,since/120+.25);
-   // pushing in: just outside each head, nudging toward it; pushing out: on each rod, nudging toward the wall
-   const off=inward?L/2+g.rr*1.4+a.len/2+(1-pulse)*g.rr*2.4:L/2-g.hd-a.len/2-g.rr*.6+pulse*g.rr*2;
+   const sd=k?1:-1,since=now-bb.t0,pulse=Math.sin(since/1000*Math.PI*6)*.5+.5,fade=Math.min(1,(Math.min(bb.ms,ARROW_MS)-since)/220,since/120+.25);
+   // both sit clear of the gauge, just beyond each head, so the two are well apart: pushing in, they point at the heads and nudge toward them;
+   // pushing out, they point away from the gauge at the wall and nudge toward it
+   const off=inward?L/2+g.rr*2.2+a.len/2+(1-pulse)*g.rr*2:L/2+g.rr*2.2+a.len/2+pulse*g.rr*1.8;
    a.grp.position.set(sd*off,0,g.rr*1.2);a.grp.scale.x=inward?-sd:sd;a.mat.opacity=Math.max(0,fade);});}
  if(touch){const cl=[-u[0]*xc,my-u[1]*xc],cr=[u[0]*xc,my+u[1]*xc];
   GP.dL.position.set(cl[0]-r*.9,cl[1],r+.2);GP.dR.position.set(cr[0]+r*.9,cr[1],r+.2);}
@@ -328,8 +330,11 @@ function camPreset(n){const D=S.sample.actual,g=S.g,asp=Math.max(.6,camera.aspec
  // the whole gauge, hub to knob, with the cross-bar's full reach
  if(n==='gauge'||n==='travel')return{th:0,ph:1.45,r:fit(g.max+56,g.hl+g.rb+40),t:[0,(g.hl-g.rb)/2,0],rel:true};
  // close on the cross-bar and the first stretch of handle (the part's rim is just above it)
- if(n==='hole'){const vh=Math.max(70,g.max*.55+50);return{th:0,ph:1.45,r:Math.max(48+D*1.6,fit(g.max*.5+30,vh)),t:[0,vh*.3,0],rel:true};}
- if(n==='top')return{th:.2,ph:.75,r:70+D*2.2,t:[0,0,0],rel:true};
+ // the hole itself, from the side through the cutaway: the part's section faces the camera, and the whole gauge stays in the picture, from the
+ // bottom of the hole to the very top of the knob (wherever the gauge is just now, tipped over as far as it can go)
+ if(n==='hole'){const H=S.sample.H,e=S.insertT,ee=e*e*(3-2*e),my=-S.depth+(1-ee)*(S.depth+HOVER),top=Math.max(my+g.hl,0)+8,bot=-H-6,w=Math.max(2*(S.partHalfW||40),g.max,g.hl*.9)+30,h=top-bot;
+  return{th:0,ph:1.47,r:fit(w,h),t:[0,(top+bot)/2,0],rel:false};}
+ if(n==='top')return{th:.2,ph:.04,r:70+D*2.2,t:[0,0,0],rel:true};   // straight down the bore (a hair off vertical, so the camera's up direction stays defined)
  return{th:0,ph:1.45,r:fit(g.max+56,g.hl+g.rb+40),t:[0,(g.hl-g.rb)/2,0],rel:true};}
 // pick a view. The pan and zoom you made go with it, unless it is the camera choosing for itself.
 function camGo(n,instant,fast){S.camName=n;cam.off.set(0,0,0);cam.zoom=1;cam.fixed=false;cam.auto=null;cam.speed=fast?7:4;if(instant)cam.snap=true;}
@@ -337,7 +342,7 @@ function camAuto(n){if(S.camName!==n){S.camName=n;cam.speed=4;}}
 function camGoal(){
  const p=camPreset(S.camName||'gauge'),t=[p.t[0],p.t[1],p.t[2]];
  if(p.rel){gaugeAnchor(_anc);t[0]+=_anc.x;t[1]+=_anc.y;t[2]+=_anc.z;}
- return{th:p.th+cam.dth,ph:clamp(p.ph+cam.dph,.12,2.05),r:p.r*cam.zs,t:[t[0]+cam.off.x,t[1]+cam.off.y,t[2]+cam.off.z]};
+ return{th:p.th+cam.dth,ph:clamp(p.ph+cam.dph,.03,(S.camName==='hole'||S.camName==='top')?1.62:2.2),r:p.r*cam.zs,t:[t[0]+cam.off.x,t[1]+cam.off.y,t[2]+cam.off.z]};
 }
 function stepCam(dt){
  // the zoom eases toward where the wheel put it, in log space, so every notch glides and feels the same at any distance
@@ -352,14 +357,18 @@ function stepCam(dt){
   cam.speed+=(9-cam.speed)*(1-Math.exp(-dt*.9));
  }
  if(EX.on&&EX.spin&&!cam.orb)cam.dth+=dt*.45;
- if(!cam.orb&&!EX.on){const d=Math.exp(-dt*4.5);cam.dth*=d;cam.dph*=d;if(Math.abs(cam.dth)<1e-4)cam.dth=0;if(Math.abs(cam.dph)<1e-4)cam.dph=0;}
+ // (a view picked by hand, Hole or Top, stays where you turn it to; the others settle back to facing the gauge)
+ if(!cam.orb&&!EX.on&&!(!cam.auto&&(S.camName==='hole'||S.camName==='top'))){const d=Math.exp(-dt*4.5);cam.dth*=d;cam.dph*=d;if(Math.abs(cam.dth)<1e-4)cam.dth=0;if(Math.abs(cam.dph)<1e-4)cam.dph=0;}
  const sp=Math.sin(cam.ph);camera.position.set(cam.t.x+cam.r*sp*Math.sin(cam.th),cam.t.y+cam.r*Math.cos(cam.ph),cam.t.z+cam.r*sp*Math.cos(cam.th));
  camera.lookAt(cam.t);
 }
 let rsW=0,rsH=0;
 function resize(){
  const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;
- if(w!==rsW||h!==rsH){rsW=w;rsH=h;renderer.setSize(w,h,false);}camera.aspect=w/h;camera.updateProjectionMatrix();
+ // Resizing clears the canvas, and the observer runs after the frame was drawn: while a panel slides open or shut that painted an empty frame
+ // after every step (the flicker). So the picture is drawn again at once, at the new size, before anything is painted.
+ if(w!==rsW||h!==rsH){rsW=w;rsH=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(S.sized)try{renderer.render(scene,camera);}catch(e){}}
+ else{camera.aspect=w/h;camera.updateProjectionMatrix();}
  if(!S.sized)cam.snap=true;
  S.sized=true;
 }
@@ -382,7 +391,7 @@ function panBy(dx,dy){
 // and out once it is at the top.
 function dragVert(dy){
  drag.vy+=dy;if(!drag.vOn){if(Math.abs(drag.vy)<6)return;drag.vOn=true;}
- const mm=dy*2*cam.r*TANF/Math.max(1,cv.clientHeight);
+ const mm=dy*2*cam.r*TANF/Math.max(1,cv.clientHeight)*(S.fine?.1:1);
  if(!S.inserted){drag.acc+=mm;if(drag.acc>4&&S.insertT<.05){drag.acc=0;toggleInsert();drag.dep=S.depth;}if(drag.acc<0)drag.acc=0;return;}
  const mx=+$('depth').max;
  drag.dep=clamp((drag.dep==null?S.depth:drag.dep)+mm,6-14,mx+6);
@@ -416,10 +425,10 @@ cv.addEventListener('pointermove',e=>{
  else if(drag.mode==='rock'){
   if(drag.part==='knob'&&drag.moved<=6)return;
   drag.part='gauge';cv.style.cursor='grabbing';
-  if(S.dragR&&dx)setTiltCmd(S.tiltCmd-dx*.35*D2R);
+  if(S.dragR&&dx)setTiltCmd(S.tiltCmd-dx*.35*D2R*(S.fine?.1:1));
   if(S.dragY&&dy)dragVert(dy);
  }
- else if(drag.mode==='orbit'){if(EX.on){cam.dth-=dx*.008;cam.dph=clamp(cam.dph-dy*.006,-.9,.5);}else{cam.dth=clamp(cam.dth-dx*.006,-1.3,1.3);cam.dph=clamp(cam.dph-dy*.006,-.7,.7);}}
+ else if(drag.mode==='orbit'){if(EX.on){cam.dth-=dx*.008;cam.dph=clamp(cam.dph-dy*.006,-.9,.5);}else{cam.dth=clamp(cam.dth-dx*.006,-Math.PI,Math.PI);cam.dph=clamp(cam.dph-dy*.006,-1.45,1.2);}}
 });
 function endPtr(e){
  if(drag&&drag.mode==='rock'&&drag.part==='knob'&&drag.moved<6){autoCancel();toggleLock();}
@@ -650,6 +659,10 @@ function refreshHud(){
  setHtml('btnAuto',AM.on?'Stop auto <kbd>A</kbd>':'Auto measure <kbd>A</kbd>');
  setHtml('btnLock',S.unlocked?'Lock knob <kbd>L</kbd>':'Unlock knob <kbd>L</kbd>');
  setHtml('btnInsert',S.inserted?'Take it out <kbd>I</kbd>':'Insert in hole <kbd>I</kbd>');
+ {const set=(id,v)=>{const b=$(id);if(b.getAttribute('aria-pressed')!==String(v))b.setAttribute('aria-pressed',String(v));};
+  set('insQuick',S.inserted);set('lockQuick',!S.unlocked);
+  const ph='Go to depth '+fmtDepthNum(Math.round(S.depth*10)/10),st=$('setTo');if(st.placeholder!==ph)st.placeholder=ph;
+  const ti=$('insQuick'),tt=S.inserted?'Take it out\nLifts the gauge back out of the hole.':'Insert in hole\nPushes the heads in, locks the knob and slides the gauge into the hole. Press again to take it out.';if(ti.getAttribute('data-tip')!==tt)ti.setAttribute('data-tip',tt);}
  [...$('toolSeg').querySelectorAll('button')].forEach(b=>{const on=b.dataset.t===S.mTool;if(b.getAttribute('aria-pressed')!==String(on))b.setAttribute('aria-pressed',String(on));});
  setHtml('btnTake','Measure <kbd>M</kbd>');
 }
@@ -1143,7 +1156,8 @@ document.querySelectorAll('[data-send]').forEach(b=>{b.onclick=()=>{S.mTool=b.da
 $('toolSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.mTool=b.dataset.t;};
 $('dragY').onchange=e=>{S.dragY=e.target.checked;};$('dragR').onchange=e=>{S.dragR=e.target.checked;};
 $('btnReset').onclick=()=>{autoCancel();ensureHome(()=>{resetGauge();toast('Gauge reset: locked and out of the hole.');});};
-document.querySelectorAll('[data-view]').forEach(b=>{b.onclick=()=>{camGo(b.dataset.view);cam.fixed=true;};});
+document.querySelectorAll('[data-view]').forEach(b=>{b.onclick=()=>{if(b.dataset.view==='hole'&&S.view!=='cut')pickView('cut');   // the hole is seen through the cutaway
+ cam.dth=0;cam.dph=0;camGo(b.dataset.view);cam.fixed=true;};});
 $('tilt').oninput=e=>{autoCancel();const v=+e.target.value;ensureHome(()=>{S.tiltCmd=snapSquare(v*D2R);if(S.tiltCmd===0&&v!==0)$('tilt').value='0.00';});};
 $('depth').oninput=e=>{autoCancel();const v=+e.target.value;ensureHome(()=>trySetDepth(v));};
 $('aids').onchange=e=>{S.aids=e.target.checked;};
@@ -1154,22 +1168,44 @@ $('realChk').onchange=e=>{S.shop=e.target.checked;try{localStorage.setItem('pt-r
 $('unitSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.unit=b.dataset.u;[...$('unitSeg').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
  for(const k in cache)delete cache[k];buildSamples();buildGset();if(!$('mic').classList.contains('hidden'))showMic();};
 let viewJob=0;
-$('viewS').onclick=e=>{const b=e.target.closest('button');if(!b)return;const v=b.dataset.v;[...$('viewS').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+// the part's view (cutaway, x-ray, solid): the part dissolves away, and builds back in the new one
+function pickView(v){
+ [...$('viewS').children].forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)));
  const id=++viewJob;
  if(v===S.view){if(partG.userData.dz)Dissolve.in(partG,{cells:40,ms:520});return;}   // back to the view it was in: the sweep reverses
  // the part dissolves away, and builds back in the new view
  Dissolve.out(partG,{cells:40,ms:520,done:()=>{if(id!==viewJob)return;setView(v);Dissolve.in(partG,{cells:40,ms:520});}});
-};
+}
+$('viewS').onclick=e=>{const b=e.target.closest('button');if(b)pickView(b.dataset.v);};
 document.addEventListener('keydown',e=>{
  if(e.target.tagName==='INPUT'&&e.target.type==='range'||e.target.tagName==='SELECT'||e.ctrlKey||e.metaKey||e.altKey)return;
  if(EX.on)return;
  const k=e.key.toLowerCase();
  if(k==='a')autoMeasure();else if(k==='l'){autoCancel();ensureHome(()=>toggleLock());}else if(k==='i'){autoCancel();ensureHome(()=>toggleInsert());}else if(k==='m')takeMeasure(S.mTool);else if(k==='r')$('btnReset').click();
- else if(e.key==='ArrowLeft'){autoCancel();ensureHome(()=>setTiltCmd(S.tiltCmd+.5*D2R));e.preventDefault();}
- else if(e.key==='ArrowRight'){autoCancel();ensureHome(()=>setTiltCmd(S.tiltCmd-.5*D2R));e.preventDefault();}
- else if(e.key==='ArrowUp'){const v=clamp(S.depth-1,6,+$('depth').max);$('depth').value=v;trySetDepth(v);e.preventDefault();}
- else if(e.key==='ArrowDown'){const v=clamp(S.depth+1,6,+$('depth').max);$('depth').value=v;trySetDepth(v);e.preventDefault();}
+ else if(e.key==='ArrowLeft'){autoCancel();ensureHome(()=>setTiltCmd(S.tiltCmd+(S.fine?.05:.5)*D2R));e.preventDefault();}
+ else if(e.key==='ArrowRight'){autoCancel();ensureHome(()=>setTiltCmd(S.tiltCmd-(S.fine?.05:.5)*D2R));e.preventDefault();}
+ else if(e.key==='ArrowUp'){const v=clamp(+(S.depth-(S.fine?.1:1)).toFixed(2),6,+$('depth').max);$('depth').value=v;trySetDepth(v);e.preventDefault();}
+ else if(e.key==='ArrowDown'){const v=clamp(+(S.depth+(S.fine?.1:1)).toFixed(2),6,+$('depth').max);$('depth').value=v;trySetDepth(v);e.preventDefault();}
 });
+
+/* ================= THE QUICK CONTROLS (bottom left of the 3D view) ================= */
+S.fine=false;
+$('panelBtn').onclick=()=>{const off=document.body.classList.toggle('panel-off');$('panelBtn').setAttribute('aria-pressed',String(off));$('panelBtn').setAttribute('aria-label',off?'Show the reading panel':'Hide the reading panel');$('panelBtn').setAttribute('data-tip',off?'Show the reading panel\nBrings the readings and buttons back.':'Hide the reading panel\nGives the 3D view the whole height.');};
+$('insQuick').onclick=()=>$('btnInsert').click();
+$('lockQuick').onclick=()=>$('btnLock').click();
+$('squareQuick').onclick=()=>{autoCancel();ensureHome(()=>setTiltCmd(0));};
+$('fineQuick').onclick=()=>{S.fine=!S.fine;$('fineQuick').setAttribute('aria-pressed',String(S.fine));};
+// type a depth (in the units chosen on the left) and the gauge goes there: it is put in the hole first if it is not in it yet
+function goDepth(){
+ const raw=parseFloat($('setTo').value.replace(/[^0-9.\-]/g,''));
+ if(!isFinite(raw)||raw<=0){toast('Type a depth in '+(S.unit==='in'?'inches':'millimeters')+', like '+fmtDepthNum(14)+'.');return;}
+ const mm=S.unit==='in'?raw*25.4:raw,v=Math.round(clamp(mm,6,+$('depth').max)*10)/10;
+ autoCancel();
+ ensureHome(()=>{if(!S.inserted)toggleInsert();if(!S.inserted)return;$('depth').value=v;trySetDepth(v);$('setTo').value='';});
+}
+const fmtDepthNum=mm=>S.unit==='in'?(mm/25.4).toFixed(2)+' in':mm+' mm';
+$('goBtn').onclick=goDepth;
+$('setTo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();goDepth();}e.stopPropagation();});
 
 /* ================= START ================= */
 window.__load&&window.__load.set(.5,'Building the gauge…');

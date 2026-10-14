@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shop Tool Sim</title>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
 <script>
 // opened straight from disk, the browser refuses local fonts (the page has no origin): they come from Google Fonts then, as they used to
 if (location.protocol === 'file:'){
     var st = [].slice.call(document.head.querySelectorAll('style')).filter(function(x){ return /@font-face/.test(x.textContent); })[0]; if (st) st.remove();
-  var g = document.createElement('link'); g.rel = 'stylesheet'; g.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap'; document.head.appendChild(g);
+  var g = document.createElement('link'); g.rel = 'stylesheet'; g.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Roboto:ital,wght@1,700&display=swap'; document.head.appendChild(g);
 }
 </script>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
@@ -40,8 +40,9 @@ if (location.protocol === 'file:'){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dial Caliper Trainer</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/caliper.css?v=53">
+<link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
+<link rel="stylesheet" href="css/caliper.css?v=54">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -279,7 +280,7 @@ if (location.protocol === 'file:'){
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 <script src="js/flat-units.js?v=50"><\/script>
-<script src="js/version.js?v=56"><\/script>
+<script src="js/version.js?v=57"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -292,8 +293,9 @@ if (location.protocol === 'file:'){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vernier Micrometer · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/micrometer.css?v=53">
+<link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
+<link rel="stylesheet" href="css/micrometer.css?v=54">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -493,13 +495,13 @@ if (location.protocol === 'file:'){
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
 <!-- js/hands.js?v=72 (the 3D hands, switched off: load it with a script tag here to bring them back) -->
-<script src="js/micrometer.js?v=87"><\/script>
+<script src="js/micrometer.js?v=88"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=56"><\/script>
+<script src="js/version.js?v=57"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -512,8 +514,9 @@ if (location.protocol === 'file:'){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Depth Micrometer · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/depth.css?v=53">
+<link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
+<link rel="stylesheet" href="css/depth.css?v=54">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -733,7 +736,7 @@ if (location.protocol === 'file:'){
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=56"><\/script>
+<script src="js/version.js?v=57"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -746,8 +749,9 @@ if (location.protocol === 'file:'){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vernier Height Gage · 3D</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/height.css?v=53">
+<link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
+<link rel="stylesheet" href="css/height.css?v=54">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -930,7 +934,7 @@ if (location.protocol === 'file:'){
 <script src="js/guide.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 
-<script src="js/version.js?v=56"><\/script>
+<script src="js/version.js?v=57"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -943,8 +947,9 @@ if (location.protocol === 'file:'){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Telescopic Gauge</title>
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
-<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=59">
+<link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
+<link rel="stylesheet" href="css/telescopic.css?v=61">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -1050,6 +1055,14 @@ if (location.protocol === 'file:'){
         <button class="ib" type="button" data-view="hole" aria-label="Hole view" data-tip="Hole view&#10;Close-up of the hole."><i class="fa-solid fa-magnifying-glass-plus"></i></button>
         <button class="ib" type="button" data-view="top" aria-label="Top view" data-tip="Top view&#10;Looking down into the hole."><i class="fa-solid fa-circle-dot"></i></button>
       </div>
+      <div class="quick" role="group" aria-label="Gauge controls">
+        <button class="ib" type="button" id="panelBtn" aria-pressed="false" aria-label="Hide the reading panel" data-tip="Hide the reading panel&#10;Gives the 3D view the whole height."><i class="fa-solid fa-angles-down ic-off"></i><i class="fa-solid fa-angles-up ic-on"></i></button>
+        <button class="ib" type="button" id="insQuick" aria-pressed="false" aria-label="Insert in hole" data-tip="Insert in hole&#10;Pushes the heads in, locks the knob and slides the gauge into the hole. Press again to take it out."><i class="fa-solid fa-arrows-up-down"></i></button>
+        <button class="ib" type="button" id="squareQuick" aria-label="Square up" data-tip="Square up&#10;Stands the handle straight, where the heads are closest together."><i class="fa-solid fa-crosshairs"></i></button>
+        <button class="ib" type="button" id="fineQuick" aria-pressed="false" aria-label="Fine adjust" data-tip="Fine adjust&#10;Slows rocking and depth about 10× for hairline moves."><i class="fa-solid fa-feather-pointed"></i></button>
+        <button class="ib lock" type="button" id="lockQuick" aria-pressed="true" aria-label="Lock the knob" data-tip="Lock the knob&#10;Locks the knurled knob so the heads stay at their length. The lock turns red while it is locked."><i class="fa-solid fa-lock-open ic-off"></i><i class="fa-solid fa-lock ic-on"></i></button>
+        <div class="goto" role="group" aria-label="Go to a depth"><input type="text" id="setTo" placeholder="Go to depth 0.55 in" inputmode="decimal" autocomplete="off" aria-label="Move the gauge to a depth in the bore"><button class="ib" type="button" id="goBtn" aria-label="Go to that depth">Go</button></div>
+      </div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <div class="cine top"><span class="ct">Examination</span><div class="cc">
         <button class="pbtn" type="button" id="spinBtn" aria-pressed="true"><i class="fa-solid fa-rotate"></i><span class="lbl">Auto-rotate</span></button>
@@ -1131,14 +1144,14 @@ if (location.protocol === 'file:'){
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=50"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
-<script src="js/telescopic.js?v=63"><\/script>
+<script src="js/telescopic.js?v=66"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=56"><\/script>
+<script src="js/version.js?v=57"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
-<script src="js/version.js?v=56"></script>
+<script src="js/version.js?v=57"></script>
 <script src="js/changelog.js?v=53"></script>
 <script src="js/mobile-notice.js?v=1"></script>
 <script src="js/shell.js?v=57"></script>

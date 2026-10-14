@@ -2618,12 +2618,11 @@ function toolBox(iso){
   if (hide) partG.visible = false;
   const box = fitBox(scene);
   if (hide) partG.visible = true;
-  // the lab's gauge, drawn over its stand-in, is framed with the tool: the cross-bar and the first stretch of the handle (a tall one runs off the top)
+  // the lab's gauge is framed with the tool, the whole of it, from the heads to the very top of the knob (a tall gauge makes the tool a little smaller)
   if (handsShown() && guideHands && guideHands.group.visible) box.union(guideHands.fitBox());   // "Show me": the hands holding it
   if (tgLab && tgVis){
     tgVis.updateWorldMatrix(true, true);
-    const gb = new T.Box3().setFromObject(tgVis), o = new T.Vector3().setFromMatrixPosition(tgVis.matrixWorld);
-    gb.max.y = Math.min(gb.max.y, o.y + 1.4); box.union(gb);
+    box.union(new T.Box3().setFromObject(tgVis));
   }
   return box;
 }

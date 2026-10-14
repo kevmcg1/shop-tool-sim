@@ -55,12 +55,6 @@ main{grid-area:main;display:flex;flex-direction:column;min-width:0;min-height:0}
 .ib[aria-pressed="true"] .ic-off,.ib[aria-expanded="true"] .ic-off{display:none}
 .ib[aria-pressed="true"] .ic-on,.ib[aria-expanded="true"] .ic-on{display:inline-block}
 [data-tip]{position:relative}
-[data-tip]::after{content:attr(data-tip);position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);background:#fff;color:#000;border:1px solid #000;font-family:"Inter",system-ui,sans-serif;font-size:12px;font-weight:500;line-height:1.4;padding:6px 9px;border-radius:6px;width:max-content;max-width:240px;white-space:pre-line;text-align:left;opacity:0;visibility:hidden;pointer-events:none;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-[data-tip]:hover::after,[data-tip]:focus-visible::after{opacity:1;visibility:visible}
-.ov-top [data-tip]::after{bottom:auto;top:calc(100% + 8px)}
-.ov-bottom [data-tip]::after{top:auto;bottom:calc(100% + 8px)}
-.ov-left [data-tip]::after{left:0;right:auto;transform:none}
-.ov-right [data-tip]::after{left:auto;right:0;transform:none}
 .ov{will-change:left,top}
 .actions,.views,.legend,.quick{flex-wrap:wrap}
 .legend.ov-hide,.flat.ov-hide{visibility:hidden}
@@ -181,7 +175,6 @@ body.resizing,body.resizing *{cursor:row-resize!important;user-select:none}
 .pgo:hover{background:#e7e8ea}
 .pgo.alt{background:#000;color:#fff;border-color:rgba(255,255,255,.28)}
 .pgo.alt:hover{background:#fff;color:#000}
-.pgo[data-tip]::after{left:auto;right:0;transform:none}
 .pintro{color:var(--muted);font-size:13px;margin:0}
 .fb-empty{color:var(--muted);font-size:13px;display:flex;gap:8px;align-items:center}
 .fx{display:flex;flex-direction:column;gap:12px;padding:2px 2px 10px}
@@ -313,10 +306,8 @@ button:hover .svg-inline--fa,button:focus-visible .svg-inline--fa,.mk:hover .mou
   .m-only{display:none}
   .t-only{display:inline}
   /* a tap leaves :hover stuck on touch, so the tooltip would sit over the content */
-  [data-tip]::after{content:none}
   .legend{display:none!important}
 }
-[data-tip]::after{max-width:min(240px,calc(100vw - 24px))}
 
 /* the reading bar is height:auto from here down, so cell text can wrap instead of being cut off */
 @media (max-width:860px){
@@ -700,3 +691,12 @@ aside #lockBtn[aria-pressed="true"]:hover,aside #bezelLockBtn[aria-pressed="true
 .fcard .fres{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0;padding:8px 12px 9px 17px;border-top:1px solid var(--line);font-size:12px;font-weight:500;color:var(--muted)}
 .fcard .fres b{font-size:13.5px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion: reduce){ .fcard,.fcard::before,.sw,.sw::after{transition:none} }
+
+/* ---- the sidebar's categories: Roboto, upper-case italic, over a thin gradient rule in the section's own color ---- */
+aside h2{position:relative;margin:0 0 14px;padding:0 0 9px;font-family:"Roboto","Inter",system-ui,sans-serif;font-style:italic;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;line-height:1.2}
+aside h2::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--sc,#8a8f97) 0%,color-mix(in srgb,var(--sc,#8a8f97) 45%,#5b93ea) 42%,transparent 100%)}
+/* ...and the sidebar's buttons: side by side they are always the same height, whatever their wording */
+aside .row{align-items:stretch}
+aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{display:flex;align-items:center;justify-content:center;min-height:40px;text-align:center;line-height:1.25}
+/* tooltips are drawn by js/tips.js (one card on the page itself, never cut off): no element draws its own */
+[data-tip]::after{content:none!important;display:none!important}

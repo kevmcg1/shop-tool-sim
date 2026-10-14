@@ -71,9 +71,6 @@ label.chk input{accent-color:var(--accent);width:15px;height:15px;margin:0}
 .pbtn{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 13px;background:#000;color:#fff;border:1px solid rgba(255,255,255,.28);border-radius:8px;font-weight:600}
 .pbtn:hover,.pbtn[aria-pressed="true"]{background:#fff;color:#000;border-color:#fff}
 [data-tip]{position:relative}
-[data-tip]::after{content:attr(data-tip);position:absolute;right:0;top:calc(100% + 8px);background:#fff;color:#000;font-size:12px;font-weight:500;line-height:1.4;padding:6px 9px;border-radius:6px;width:max-content;max-width:230px;white-space:pre-line;text-align:left;opacity:0;visibility:hidden;pointer-events:none;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.45)}
-.actions [data-tip]::after{left:0;right:auto}
-[data-tip]:hover::after,[data-tip]:focus-visible::after{opacity:1;visibility:visible}
 .legend{position:absolute;right:12px;top:12px;display:flex;gap:6px;z-index:2;flex-wrap:wrap;justify-content:flex-end}
 .mk{display:flex;align-items:center;gap:7px;background:#fff;color:#000;border-radius:8px;padding:5px 10px 5px 8px;font-size:12.5px;font-weight:600}
 .mouse{position:relative;display:inline-block;width:14px;height:19px;flex:none}
@@ -149,7 +146,6 @@ body.exam aside,body.exam .reading,body.exam .actions,body.exam .views,body.exam
 /* ---- layout guarantees: nothing clipped, nothing off the edge, nothing on top of anything else ---- */
 main{overflow-y:auto;overflow-x:hidden}
 #view{min-height:260px}
-[data-tip]::after{max-width:min(230px,calc(100vw - 24px))}
 @media (hover:none){ [data-tip]::after{content:none} .legend{display:none} .views{top:12px} }
 @media (max-width:860px){ #view{height:min(62vh,560px)} }
 @media (max-width:480px){
@@ -157,7 +153,6 @@ main{overflow-y:auto;overflow-x:hidden}
   /* the camera buttons drop under Examine / Practice instead of sliding over them */
   .legend{top:56px;left:12px;right:auto;justify-content:flex-start}
   .views{top:98px;left:12px;right:auto}
-  .views [data-tip]::after{left:0;right:auto}
   .reading{padding:10px 12px;gap:10px}
   .rgroup{gap:4px}
   .op{display:none}
@@ -281,7 +276,6 @@ main{container-type:inline-size}
 #view .flat.closed canvas,#view .flat.min canvas{display:none}
 .flat.closed #flatCv{display:none}
 .ib.sm{width:28px;height:28px;font-size:13px;border-radius:6px}
-.flat [data-tip]::after{right:0;left:auto;top:auto;bottom:calc(100% + 8px)}
 .flat-dock{display:none}
 body.exam .flat{display:none!important}
 @media (max-width:700px){
@@ -332,7 +326,6 @@ body.fold-panel .split{display:none}
 .rstat .status-chip::before{position:absolute;left:0;top:calc(50% - 3.5px)}
 /* the reading panel button sits in the bottom-left corner, with the hint moved over beside it */
 .quick{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;z-index:2}
-.quick [data-tip]::after{left:0;transform:none}
 .hint{left:56px;max-width:min(520px,calc(100% - 68px))}
 body.exam .quick{display:none!important}
 /* dark scrollbars everywhere: a slim rounded thumb, inset by a transparent border so it suits any background */
@@ -517,3 +510,12 @@ button.fcard.sel::before{opacity:1;width:4px}
 .fcard .fn{flex:1;min-width:0;font-size:13px;font-weight:600;line-height:1.3}
 .fcard .fv{flex:none;font-size:12px;font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums}
 @media (prefers-reduced-motion: reduce){ button.fcard,button.fcard::before{transition:none} }
+
+/* ---- the sidebar's categories: Roboto, upper-case italic, over a thin gradient rule in the section's own color ---- */
+aside h2{position:relative;margin:0 0 14px;padding:0 0 9px;font-family:"Roboto","Inter",system-ui,sans-serif;font-style:italic;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;line-height:1.2}
+aside h2::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--sc,#8a8f97) 0%,color-mix(in srgb,var(--sc,#8a8f97) 45%,#5b93ea) 42%,transparent 100%)}
+/* ...and the sidebar's buttons: side by side they are always the same height, whatever their wording */
+aside .row{align-items:stretch}
+aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{display:flex;align-items:center;justify-content:center;min-height:40px;text-align:center;line-height:1.25}
+/* tooltips are drawn by js/tips.js (one card on the page itself, never cut off): no element draws its own */
+[data-tip]::after{content:none!important;display:none!important}
