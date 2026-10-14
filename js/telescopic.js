@@ -500,7 +500,12 @@ function buildSamples(){
 }
 function buildGset(){
  const D=S.sample.nom,best=pickGauge(D);
- $('gset').innerHTML=GAUGES.map((g,i)=>'<button class="gchip'+(S.auto&&i===best?' best':'')+(D>=g.min&&D<=g.max?' fit':'')+'" aria-pressed="'+(i===S.gi)+'" data-i="'+i+'"><b>'+g.name+'</b><small>'+rangeParts(g)[0]+'</small><small>('+rangeParts(g)[1]+')</small></button>').join('');
+ // the chips are kept and updated in place, so the BEST badge can ease from one to the next (and pop in the first time) instead of being rebuilt
+ const box=$('gset'),chip=g=>'<b>'+g.name+'</b><small>'+rangeParts(g)[0]+'</small><small>('+rangeParts(g)[1]+')</small>',fresh=box.children.length!==GAUGES.length;
+ if(fresh)box.innerHTML=GAUGES.map((g,i)=>'<button class="gchip" data-i="'+i+'">'+chip(g)+'</button>').join('');
+ [...box.children].forEach((b,i)=>{const g=GAUGES[i],h=chip(g);if(b.innerHTML!==h)b.innerHTML=h;b.classList.toggle('fit',D>=g.min&&D<=g.max);b.setAttribute('aria-pressed',String(i===S.gi));});
+ const mark=()=>[...box.children].forEach((b,i)=>b.classList.toggle('best',S.auto&&i===best));
+ if(fresh)requestAnimationFrame(()=>requestAnimationFrame(mark));else mark();
  const g=S.g;let n;
  if(S.auto)n='This hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+g.name+'</b> ('+fmtRange(g)+').';
  else n=D<g.min?'<b>'+g.name+'</b> is too big for this hole: its shortest length is larger than the hole.':D>g.max?'<b>'+g.name+'</b> is too small: the rods can’t reach the far wall.':'<b>'+g.name+'</b> covers this hole'+(Math.min(D-g.min,g.max-D)<1.2?', but with little room to rock.':'.');
@@ -606,11 +611,14 @@ LABS.forEach(l=>{const e=document.createElement('div');e.className='lab';
  e.innerHTML='<b></b><i></i><span>'+l.t+'</span>';
  l.line=e.querySelector('b');l.tag=e.querySelector('span');
  $('labels').appendChild(e);l.el=e;});
+let labsOn=false;
 const _v=new THREE.Vector3(),_o=new THREE.Vector3();
 const toScr=(v,w,h)=>{v.project(camera);return[(v.x*.5+.5)*w,(-v.y*.5+.5)*h];};
 function refreshLabels(){
  const on=S.labels||(G.on&&GSTEPS[G.i]&&GSTEPS[G.i].labels),w=stage.clientWidth,h=stage.clientHeight;
- if(!on){LABS.forEach(l=>l.el.classList.remove('show'));return;}
+ if(!on){LABS.forEach(l=>l.el.classList.remove('show'));labsOn=false;return;}
+ // switched on: the names come in one at a time, each popping out of its dot like a bubble (the delay is read by the .show transitions)
+ if(!labsOn){labsOn=true;LABS.forEach((l,i)=>l.el.style.setProperty('--d',(i*170)+'ms'));}
  const g=S.g,GAP=27;
  const pts=LABS.map(l=>{_v.set(...l.p());pivot.localToWorld(_v);const s=toScr(_v,w,h);return{l,x:s[0],y:s[1],lx:0,ly:s[1]};});
  // a column of names just outside each end of the cross-bar
