@@ -42,7 +42,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/caliper.css?v=55">
+<link rel="stylesheet" href="css/caliper.css?v=57">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -154,19 +154,49 @@ if (location.protocol === 'file:'){
     <section class="help">
       <h2>Reading the caliper</h2>
       <div data-inst="dial">
-        <p><b>Beam numbers</b> are whole inches. Each <b>line</b> between them is a hundred thou (0.100″). Read the last line to the left of the slider edge.</p>
-        <p><b>The dial</b> adds the thou: each mark is one thou (0.001″) and one full turn of the needle is a hundred thou (0.100″).</p>
-        <p><b>Reading</b> = inches + hundred thou + dial. For example 1″ + 300 thou + 47 thou = 1.347″, said “one inch, three hundred forty-seven thou.”</p>
-        <p><b>Mouse:</b> drag the slider, dial or thumb wheel to move the jaws, scroll over the thumb wheel for one-thou (0.001″) steps, drag the knurled bezel to turn the dial face, and click a lock screw to lock it. Shift for fine control.</p>
+      <div class="hp-sub">Reading it</div>
+      <dl class="hp-list">
+        <div><dt>Beam numbers</dt><dd>Whole inches. Each <b>line</b> between them is a hundred thou (0.100″). Read the last line to the left of the slider edge.</dd></div>
+        <div><dt>The dial</dt><dd>Adds the thou: each mark is one thou (0.001″), and one full turn of the needle is a hundred thou (0.100″).</dd></div>
+        <div><dt>Reading</dt><dd class="eq">Inches + hundred thou + dial. For example 1″ + 300 thou + 47 thou = 1.347″, said “one inch, three hundred forty-seven thou.”</dd></div>
+      </dl>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag the slider, dial or thumb wheel</b> to move the jaws.</li>
+        <li><b>Scroll over the thumb wheel</b> for one-thou (0.001″) steps.</li>
+        <li><b>Drag the knurled bezel</b> to turn the dial face.</li>
+        <li><b>Click a lock screw</b> to lock it.</li>
+        <li><b>Hold Shift</b> for fine control.</li>
+      </ul>
       </div>
       <div data-inst="vern">
-        <p><b>Beam numbers</b> are whole inches and the <b>small digits</b> are a hundred thou (0.100″) each. The <b>short lines</b> between digits are 25 thou (0.025″) each. Read them all at the vernier's 0 line.</p>
-        <p><b>The vernier</b> adds the thou: find the one vernier line that meets a beam line exactly. Its number is the thou, 0 to 24.</p>
-        <p><b>Reading</b> = inches + hundred thou + 25-thou lines + vernier. For example 1″ + 300 thou + 50 thou + 12 thou = 1.362″, said “one inch, three hundred sixty-two thou.”</p>
-        <p><b>Mouse:</b> drag the slider or thumb wheel to move the jaws, scroll over the thumb wheel for one-thou (0.001″) steps, and click the lock screw to lock it. Shift for fine control.</p>
+      <div class="hp-sub">Reading it</div>
+      <dl class="hp-list">
+        <div><dt>Beam numbers</dt><dd>Whole inches. The <b>small digits</b> are a hundred thou (0.100″) each, and the <b>short lines</b> between digits are 25 thou (0.025″) each. Read them all at the vernier’s 0 line.</dd></div>
+        <div><dt>The vernier</dt><dd>Adds the thou: find the one vernier line that meets a beam line exactly. Its number is the thou, 0 to 24.</dd></div>
+        <div><dt>Reading</dt><dd class="eq">Inches + hundred thou + 25-thou lines + vernier. For example 1″ + 300 thou + 50 thou + 12 thou = 1.362″, said “one inch, three hundred sixty-two thou.”</dd></div>
+      </dl>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag the slider or thumb wheel</b> to move the jaws.</li>
+        <li><b>Scroll over the thumb wheel</b> for one-thou (0.001″) steps.</li>
+        <li><b>Click the lock screw</b> to lock it.</li>
+        <li><b>Hold Shift</b> for fine control.</li>
+      </ul>
       </div>
-      <p><b>Fine adjust</b> slows every control down about 10×: the slider covers a 0.100″ window, and the wheel steps 0.0001″, so it takes several steps to move the needle to the next mark.</p>
-      <p><b>Keys:</b> ←→ 0.001″ (0.0001″ in fine adjust), Shift+←→ 0.010″, PgUp/PgDn 0.100″, F fine adjust, L lock slider, <span data-inst="dial">B lock bezel, Z zero bezel, </span>A auto measure, Esc dismiss.</p>
+      <div class="hp-sub">Keys</div>
+      <dl class="hp-keys">
+        <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>0.001″ (0.0001″ in fine adjust)</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>←</kbd> <kbd>→</kbd></dt><dd>0.010″</dd></div>
+        <div><dt><kbd>PgUp</kbd> <kbd>PgDn</kbd></dt><dd>0.100″</dd></div>
+        <div><dt><kbd>F</kbd></dt><dd>Fine adjust</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd>Lock the slider</dd></div>
+        <div data-inst="dial"><dt><kbd>B</kbd></dt><dd>Lock the bezel</dd></div>
+        <div data-inst="dial"><dt><kbd>Z</kbd></dt><dd>Zero the bezel</dd></div>
+        <div><dt><kbd>A</kbd></dt><dd>Auto measure</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Dismiss</dd></div>
+      </dl>
+      <p class="hp-note"><b>Fine adjust</b> slows every control down about 10×: the slider covers a 0.100″ window, and the wheel steps 0.0001″, so it takes several steps to move the needle to the next mark.</p>
     </section>
   </aside>
 
@@ -276,12 +306,12 @@ if (location.protocol === 'file:'){
 <script src="js/caliper.js?v=63"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
-<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=1"><\/script>
 <script src="js/guide.js?v=70"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 <script src="js/flat-units.js?v=50"><\/script>
-<script src="js/version.js?v=59"><\/script>
+<script src="js/version.js?v=60"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -296,7 +326,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/micrometer.css?v=55">
+<link rel="stylesheet" href="css/micrometer.css?v=57">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -391,11 +421,30 @@ if (location.protocol === 'file:'){
 
     <section class="help">
       <h2>Reading the scales</h2>
-      <p><b>Frame size</b> is the starting inch: a 2–3″ micrometer adds 2.0000″ to what the scales show.</p>
-      <p><b>Sleeve numbers</b> are a hundred thou (0.100″) each; each line between them adds 25 thou (0.025″). <b>Thimble lines</b> add one thou (0.001″) each; one turn is 25 thou.</p>
-      <p><b>Vernier lines</b> on top of the sleeve: the one that lines up with a thimble line gives the tenths digit (0.0001″ each).</p>
-      <p><b>Mouse:</b> drag the thimble or ratchet to turn, click the lock lever, drag the sample in and out. Shift for fine control.</p>
-      <p><b>Keys:</b> ↑↓ 0.001″, Shift+↑↓ 0.0001″, PgUp/PgDn 0.025″, R ratchet, L lock, A auto measure, Esc dismiss.</p>
+      <div class="hp-sub">Reading it</div>
+      <dl class="hp-list">
+        <div><dt>Frame size</dt><dd>The starting inch: a 2–3″ micrometer adds 2.0000″ to what the scales show.</dd></div>
+        <div><dt>Sleeve</dt><dd>Numbers are a hundred thou (0.100″) each. Each line between them adds 25 thou (0.025″).</dd></div>
+        <div><dt>Thimble</dt><dd>Lines add one thou (0.001″) each. One turn is 25 thou.</dd></div>
+        <div><dt>Vernier</dt><dd>Lines on top of the sleeve: the one that lines up with a thimble line gives the tenths digit (0.0001″ each).</dd></div>
+      </dl>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag the thimble or ratchet</b> to turn it.</li>
+        <li><b>Click the lock lever</b> to hold the reading.</li>
+        <li><b>Drag the sample</b> in and out of the faces.</li>
+        <li><b>Hold Shift</b> for fine control.</li>
+      </ul>
+      <div class="hp-sub">Keys</div>
+      <dl class="hp-keys">
+        <div><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>0.001″</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>0.0001″</dd></div>
+        <div><dt><kbd>PgUp</kbd> <kbd>PgDn</kbd></dt><dd>0.025″</dd></div>
+        <div><dt><kbd>R</kbd></dt><dd>Ratchet</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd>Lock</dd></div>
+        <div><dt><kbd>A</kbd></dt><dd>Auto measure</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Dismiss</dd></div>
+      </dl>
     </section>
   </aside>
 
@@ -499,11 +548,11 @@ if (location.protocol === 'file:'){
 <script src="js/micrometer.js?v=89"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
-<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=1"><\/script>
 <script src="js/guide.js?v=70"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=59"><\/script>
+<script src="js/version.js?v=60"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -518,7 +567,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/depth.css?v=55">
+<link rel="stylesheet" href="css/depth.css?v=57">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -622,11 +671,30 @@ if (location.protocol === 'file:'){
 
     <section class="help">
       <h2>Reading the scales</h2>
-      <p><b>Rod size</b> is the starting inch: a 2–3″ rod adds 2.000″ to what the scales show.</p>
-      <p><b>The sleeve runs backwards.</b> Numbers count toward the base, and the thimble <i>covers</i> the reading as the rod goes down. Read the last number the thimble has covered (0.100″ each), then the covered lines past it (0.025″ each).</p>
-      <p><b>Thimble lines</b> add 0.001″ each; one turn is 0.025″ (40 TPI).</p>
-      <p><b>Mouse:</b> drag the thimble or ratchet to turn, click the knurled clamp ring above the base, drag the part under the base. Shift for fine control.</p>
-      <p><b>Keys:</b> ↑↓ 0.001″, Shift+↑↓ 0.010″, PgUp/PgDn 0.025″, R ratchet, L lock, A auto measure, C section view, Esc dismiss.</p>
+      <div class="hp-sub">Reading it</div>
+      <dl class="hp-list">
+        <div><dt>Rod size</dt><dd>The starting inch: a 2–3″ rod adds 2.000″ to what the scales show.</dd></div>
+        <div><dt>The sleeve runs backwards</dt><dd>Numbers count toward the base, and the thimble <i>covers</i> the reading as the rod goes down. Read the last number the thimble has covered (0.100″ each), then the covered lines past it (0.025″ each).</dd></div>
+        <div><dt>Thimble</dt><dd>Lines add 0.001″ each. One turn is 0.025″ (40 TPI).</dd></div>
+      </dl>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag the thimble or ratchet</b> to turn it.</li>
+        <li><b>Click the knurled clamp ring</b> above the base to hold the reading.</li>
+        <li><b>Drag the part</b> under the base.</li>
+        <li><b>Hold Shift</b> for fine control.</li>
+      </ul>
+      <div class="hp-sub">Keys</div>
+      <dl class="hp-keys">
+        <div><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>0.001″</dd></div>
+        <div><dt><kbd>Shift</kbd> + <kbd>↑</kbd> <kbd>↓</kbd></dt><dd>0.010″</dd></div>
+        <div><dt><kbd>PgUp</kbd> <kbd>PgDn</kbd></dt><dd>0.025″</dd></div>
+        <div><dt><kbd>R</kbd></dt><dd>Ratchet</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd>Lock</dd></div>
+        <div><dt><kbd>A</kbd></dt><dd>Auto measure</dd></div>
+        <div><dt><kbd>C</kbd></dt><dd>Section view</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Dismiss</dd></div>
+      </dl>
     </section>
   </aside>
 
@@ -735,11 +803,11 @@ if (location.protocol === 'file:'){
 <script src="js/depth.js?v=54"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
-<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=1"><\/script>
 <script src="js/guide.js?v=70"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=59"><\/script>
+<script src="js/version.js?v=60"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -754,7 +822,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/height.css?v=55">
+<link rel="stylesheet" href="css/height.css?v=57">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -836,10 +904,28 @@ if (location.protocol === 'file:'){
     </section>
     <section class="help">
       <h2>Reading a vernier height gage</h2>
-      <p><b>Inch (left):</b> the main scale is in 0.050″ steps. Take the last line below the vernier 0, then add the vernier line that lines up exactly with a main-scale line — each one is 0.001″.</p>
-      <p><b>Metric (right):</b> whole millimeters from the main scale, plus the lined-up vernier line × 0.02 mm. The vernier's big numbers are tenths of a millimeter.</p>
-      <p><b>Mouse:</b> drag the part to slide it around the plate (the scriber lifts to 0.100″ above its tallest point; the face it will land on turns green, and holding still for a moment or letting go measures it), drag the slider or scriber to move it, drag or scroll the fine-feed nut, click a clamp knob to lock it, turn the knob at the top of the beam to shift the main scale.</p>
-      <p><b>Keys:</b> ↑↓ 0.001″ (0.02 mm in millimeters; the fine nut when the unit is clamped), Shift for 0.050″ (1 mm), F fine adjust, U / S clamps, V vernier view.</p>
+      <div class="hp-sub">Reading it</div>
+      <dl class="hp-list">
+        <div><dt>Inch <small>left</small></dt><dd>The main scale is in 0.050″ steps. Take the last line below the vernier 0, then add the vernier line that lines up exactly with a main-scale line. Each one is 0.001″.</dd></div>
+        <div><dt>Metric <small>right</small></dt><dd>Whole millimeters from the main scale, plus the lined-up vernier line × 0.02 mm. The vernier’s big numbers are tenths of a millimeter.</dd></div>
+      </dl>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag the part</b> to slide it around the plate. The scriber lifts to 0.100″ above its tallest point, and the face it will land on turns green. Hold still for a moment, or let go, to measure it.</li>
+        <li><b>Drag the slider or scriber</b> to move it.</li>
+        <li><b>Drag or scroll the fine-feed nut</b> for small moves.</li>
+        <li><b>Click a clamp knob</b> to lock it.</li>
+        <li><b>Turn the knob at the top of the beam</b> to shift the main scale.</li>
+      </ul>
+      <div class="hp-sub">Keys</div>
+      <dl class="hp-keys">
+        <div><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>0.001″ (0.02 mm in millimeters; the fine nut when the unit is clamped)</dd></div>
+        <div><dt><kbd>Shift</kbd></dt><dd>0.050″ steps (1 mm)</dd></div>
+        <div><dt><kbd>F</kbd></dt><dd>Fine adjust</dd></div>
+        <div><dt><kbd>U</kbd></dt><dd>Clamp the upper unit</dd></div>
+        <div><dt><kbd>S</kbd></dt><dd>Clamp the slider</dd></div>
+        <div><dt><kbd>V</kbd></dt><dd>Vernier view</dd></div>
+      </dl>
     </section>
   </aside>
 
@@ -933,12 +1019,12 @@ if (location.protocol === 'file:'){
 <script src="js/height.js?v=55"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
-<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=1"><\/script>
 <script src="js/guide.js?v=70"><\/script>
 <script src="js/tips.js?v=51"><\/script>
 
-<script src="js/version.js?v=59"><\/script>
+<script src="js/version.js?v=60"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -953,7 +1039,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=63">
+<link rel="stylesheet" href="css/telescopic.css?v=65">
 <link rel="stylesheet" href="css/icons.css?v=51">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -1024,11 +1110,32 @@ if (location.protocol === 'file:'){
 
     <section class="help">
       <h2>Using the gauge</h2>
-      <p><b>Unlock</b> the knurled sleeve and the springs push both rods out. <b>Insert</b> it tilted, then <b>rock</b> the handle across the bore.</p>
-      <p>The heads span <b>D ÷ cos θ</b>, so they’re shortest when the gauge is square. <b>Lock</b> it there and take it out.</p>
-      <p>In a hurry? <b>Auto measure</b> does the whole job for you. Touch anything to take over.</p>
-      <p><b>Mouse:</b> the camera always follows the gauge. Drag empty space to swing the view, right-drag or Shift-drag to pan, scroll or pinch to zoom. Drag the gauge to rock it (<b>Rock left and right</b>) or to move it down into the hole and back up (<b>Move up and down</b>). Click the knurled sleeve to lock or unlock.</p>
-      <p><b>Keys:</b> <kbd>A</kbd> auto measure, <kbd>L</kbd> lock, <kbd>I</kbd> insert, <kbd>M</kbd> measure, <kbd>R</kbd> reset, <kbd>←</kbd><kbd>→</kbd> rock, <kbd>↑</kbd><kbd>↓</kbd> depth.</p>
+      <div class="hp-sub">The steps</div>
+      <ol class="hp-steps">
+        <li><b>Unlock</b> the knurled sleeve, and the springs push both rods out.</li>
+        <li><b>Insert</b> it tilted, then <b>rock</b> the handle across the bore.</li>
+        <li>The heads span <b>D ÷ cos θ</b>, so they’re shortest when the gauge is square.</li>
+        <li><b>Lock</b> it there and take it out, then measure across the heads.</li>
+      </ol>
+      <p class="hp-note">In a hurry? <b>Auto measure</b> does the whole job for you. Touch anything to take over.</p>
+      <div class="hp-sub">Mouse</div>
+      <ul class="hp-acts">
+        <li><b>Drag empty space</b> to swing the view. The camera always follows the gauge.</li>
+        <li><b>Right-drag or Shift-drag</b> to pan.</li>
+        <li><b>Scroll or pinch</b> to zoom.</li>
+        <li><b>Drag the gauge</b> to rock it (<i>Rock left and right</i>) or to move it down into the hole and back up (<i>Move up and down</i>).</li>
+        <li><b>Click the knurled sleeve</b> to lock or unlock.</li>
+      </ul>
+      <div class="hp-sub">Keys</div>
+      <dl class="hp-keys">
+        <div><dt><kbd>A</kbd></dt><dd>Auto measure</dd></div>
+        <div><dt><kbd>L</kbd></dt><dd>Lock</dd></div>
+        <div><dt><kbd>I</kbd></dt><dd>Insert</dd></div>
+        <div><dt><kbd>M</kbd></dt><dd>Measure</dd></div>
+        <div><dt><kbd>R</kbd></dt><dd>Reset</dd></div>
+        <div><dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Rock</dd></div>
+        <div><dt><kbd>↑</kbd> <kbd>↓</kbd></dt><dd>Depth</dd></div>
+      </dl>
     </section>
   </aside>
 
@@ -1146,17 +1253,17 @@ if (location.protocol === 'file:'){
 <script src="js/holo.js?v=50"><\/script>
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
-<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/range-fill.js?v=51"><\/script>
 <script src="js/tgauge.js?v=59"><\/script>
 <script src="js/quips.js?v=1"><\/script>
-<script src="js/telescopic.js?v=68"><\/script>
+<script src="js/telescopic.js?v=69"><\/script>
 <script src="js/tips.js?v=51"><\/script>
-<script src="js/version.js?v=59"><\/script>
+<script src="js/version.js?v=60"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
-<script src="js/version.js?v=59"></script>
+<script src="js/version.js?v=60"></script>
 <script src="js/changelog.js?v=53"></script>
 <script src="js/mobile-notice.js?v=1"></script>
 <script src="js/shell.js?v=57"></script>
