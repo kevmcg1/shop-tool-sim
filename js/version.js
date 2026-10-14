@@ -3,8 +3,13 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.2.6',
+  version: '1.2.7',
   changelog: [
+    { v: '1.2.7', date: '2026-10-14', title: 'A fresh walkthrough', items: [
+      'How do I use it? now opens with a different friendly line every time, and its wording is warmer and more confident.',
+      'The telescopic gauge walkthrough follows real shop practice more closely, including checking the tool you measure with.',
+      'Examine labels pop in one at a time on every tool, and the BEST tag never overlaps anything.'
+    ] },
     { v: '1.2.6', date: '2026-10-14', title: 'Smoother labels', items: [
       'On the telescopic gauge, the BEST tag now eases in and glides from one size to the next.',
       'Part labels and Examine labels pop in one at a time, like bubbles.'

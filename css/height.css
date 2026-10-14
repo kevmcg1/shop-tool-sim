@@ -519,3 +519,12 @@ aside .row{align-items:stretch}
 aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{display:flex;align-items:center;justify-content:center;min-height:40px;text-align:center;line-height:1.25}
 /* tooltips are drawn by js/tips.js (one card on the page itself, never cut off): no element draws its own */
 [data-tip]::after{content:none!important;display:none!important}
+
+/* ---- Examine labels pop in one at a time (js popTags): the dot pops, the line draws in, then the label grows out of its dot ---- */
+.xdot{scale:1;transition:opacity .2s,scale .5s cubic-bezier(.3,1.6,.4,1)}
+.xdot.pre{scale:0}
+.xl{scale:1;transition:opacity .2s,scale .6s cubic-bezier(.3,1.45,.4,1)}
+.xl.pre{scale:.1;visibility:hidden}
+.xlayer line{transition:stroke-opacity .3s ease}
+.xlayer line.pre{stroke-opacity:0}
+@media (prefers-reduced-motion: reduce){ .xdot,.xl,.xlayer line{transition:none} }

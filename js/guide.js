@@ -27,7 +27,7 @@
 
   // said where each tool's minimap (the flat view) first comes up
   const MINIMAP_NOTE = 'You won’t have this in real life, this is just your <b>minimap</b> you can use to make things easier to see.\nFeel free to either hide it or maximize it to see it more up close.';
-  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: 'Hi. I built this, and I’ll be honest: I was bad at this when I started.\nMy first readings were off by a whole line, and I didn’t even know it.\nYou’ll catch on way faster than I did.\nWe’ll do one real measurement, one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.' });
+  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: () => (window.__quip ? window.__quip.cur : 'Hi, and welcome.\nI’ll walk you through it.') + '\nWe’ll do one real measurement, one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.' });
   // Every walkthrough starts with the habit that matters most: clean the contact points, then check that the lowest
   // value really reads the lowest value. The part comes off first, so nothing is in the way of closing up.
   // Closes the tool all the way once the part is off (the jaws, the spindle, the depth rod; the height gage comes down
@@ -77,7 +77,7 @@
   };
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
   // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
-  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing, and I wish someone had told me sooner.\nYou won’t get the same number every time you measure. I didn’t either.\nI used to think I was doing it wrong. I wasn’t. That’s just how it is.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.' };
+  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nIf your readings differ a little, you’re not doing it wrong. That’s simply how measuring works.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.' };
   const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Ready to try one on your own?\nClick <b>Practice</b>. The answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.\nIt’s also good, if not better, to have in-person experience with these tools.\nThese online tools are really just a way to get practice if you don’t have access to one in person for whatever reason.' };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
@@ -95,7 +95,7 @@
   const TOURS = {
     dial: [
       INTRO('dial caliper'),
-      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
       { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so look at the beam first.\nThe slider edge sits right on the beam’s 0.\nNo inch number has been passed.\nThat’s the first zero.' + now('vA') },
       { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the lines', text: () => 'Now the hundred-thou lines.\nNot a single one has been passed.\nZero lines, zero thou.' + now('vB') },
       { spot: 'dial', view: 'dial', hl: 'dial', title: 'Zero on the dial', text: () => 'Now the dial.\nThe needle points straight at 0.\nIf yours ever drifts, turn the bezel to bring it back.' + now('vC') },
@@ -116,7 +116,7 @@
     vern: u => [
       CHOOSE,
       INTRO('vernier caliper'),
-      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the vernier’s 0 should sit right on the beam’s 0.\nIt reads 0 and nothing else.' + zeroNote()),
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the vernier’s 0 should sit right on the beam’s 0.\nIt reads 0 and nothing else.' + zeroNote()),
       { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so look at the beam first.\nThe vernier’s 0 sits right on the beam’s 0.\nNo inch number has been passed.' + now('vA') },
       { spot: 'vern', view: 'dial', hl: 'vern', title: 'Zero on the vernier', text: () => 'Now the vernier.\nIts 0 line meets the beam’s 0 line exactly.\nThat’s the line that lines up, so there are zero thou to add.' + now('vV') },
       { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the beam’s 0.\nThe magnifier shows it up close.' },
@@ -143,7 +143,7 @@
     ],
     mic: [
       INTRO('outside micrometer'),
-      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the anvil and spindle faces with a clean cloth.\nEven a speck of grit changes the reading.\nNow watch the spindle close all the way.\nAt the lowest value, it should read exactly the frame size.\nThat’s 0.0000″ on the 0–1″ micrometer.' + zeroNote()),
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the anvil and spindle faces with a clean cloth.\nEven a speck of grit changes the reading.\nNow watch the spindle close all the way.\nAt the lowest value, it should read exactly the frame size.\nThat’s 0.0000″ on the 0–1″ micrometer.' + zeroNote()),
       { spot: 'a', view: 'scale', hl: 'num', title: 'Zero on the sleeve', text: () => 'Spindle closed, so look at the sleeve first.\nThe thimble’s edge sits right at the sleeve’s start.\nNothing is showing past the frame size.' + now('vA') },
       { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Now the thimble.\nIts 0 line sits right on the index line.\nThat’s the zero.' + now('vC') },
       { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', title: 'Zero on the vernier', text: () => 'And the vernier.\nIts 0 line lines up with a thimble line.\nZero tenths to add.' + now('vD') },
@@ -169,7 +169,7 @@
     ],
     depth: [
       INTRO('depth micrometer'),
-      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and run the rod down to it.\nAt the lowest value, it should read exactly 0.\nNow watch the rod wind all the way back.'),
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and run the rod down to it.\nAt the lowest value, it should read exactly 0.\nNow watch the rod wind all the way back.'),
       { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Rod all the way in, so look at the thimble.\nIts 0 line sits right on the center line.\nThat’s the zero.' + now('vC') },
       { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe thimble line sits right on the center line.' },
       { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
@@ -198,7 +198,7 @@
     height: u => [
       CHOOSE,
       INTRO('height gage'),
-      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the scriber and the base with a clean cloth.\nA little grit under either throws the zero off.\nWatch the scriber come down onto a clean flat surface.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the scriber and the base with a clean cloth.\nA little grit under either throws the zero off.\nWatch the scriber come down onto a clean flat surface.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
       ...(u === 'mm' ? [
         { spot: 'mvernLine', side: 'left', box: [180, 90], frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so look at the vernier.\nIts 0 line meets the main scale’s 0 line.\nThat’s the zero.' + nowMM('mVern') },
         { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the main scale’s 0.' },
@@ -507,6 +507,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
 
   function start(){
     if (root) return;
+    if (window.__quip) window.__quip.next();   // a fresh opening line each time the walkthrough starts
     // leave practice and examination first: both hide the answers the walkthrough points at
     const b = document.body;
     if (b.classList.contains('exam') && $('exitExam')) $('exitExam').click();
