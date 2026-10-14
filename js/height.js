@@ -1231,6 +1231,13 @@ function makeTag(){
   $('xsvg').appendChild(ln); $('xlayer').appendChild(dot); $('xlayer').appendChild(box);
   return { dot, box, ln, b: box.querySelector('b'), sm: box.querySelector('small') };
 }
+// the labels come in one at a time, each popping out of its dot like a bubble: the dot pops, then the line draws and the label grows out of the dot (css: .pre)
+function popTags(tags){
+  tags.forEach((t, i) => {
+    t.dot.classList.add('pre'); t.box.classList.add('pre'); t.ln.classList.add('pre');
+    setTimeout(() => { if (!t.box.isConnected) return; t.dot.classList.remove('pre'); setTimeout(() => { t.ln.classList.remove('pre'); t.box.classList.remove('pre'); }, 160); }, i*170);
+  });
+}
 function dropTag(t){ t.dot.remove(); t.box.remove(); t.ln.remove(); }
 const clampTag = (v, a, b) => Math.max(a, Math.min(b, v));
 function placeTag(t, p, nrm, off, placed){
@@ -1273,7 +1280,7 @@ function placeTag(t, p, nrm, off, placed){
     }
     placed.push({ x: bx, y: by, w: bw, h: bh });
   }
-  t.dot.style.transform = `translate(${sx}px,${sy}px)`;
+  t.dot.style.transform = `translate(${sx}px,${sy}px)`; t.dot.style.transformOrigin = t.box.style.transformOrigin = sx + 'px ' + sy + 'px';   // (the pop grows out of the dot)
   t.box.style.transform = `translate(${bx}px,${by}px)`;
   // end the leader on the point of the label nearest its dot
   t.ln.setAttribute('x1', sx); t.ln.setAttribute('y1', sy);
@@ -1308,7 +1315,7 @@ function setExam(on){
   if (on){
     if (state.practice) setPractice(false);
     examTags = EXAM.map(([title, sub]) => { const t = makeTag(); t.b.textContent = title; t.sm.textContent = sub; return t; });
-    setSpin(true); setLabels(true);
+    popTags(examTags); setSpin(true); setLabels(true);
     setTimeout(() => setView('iso'), 60);
   } else {
     examTags.forEach(dropTag); examTags = [];
@@ -1317,7 +1324,7 @@ function setExam(on){
   }
 }
 function setSpin(on){ controls.autoRotate = on; controls.autoRotateSpeed = 0.8; $('spinBtn').setAttribute('aria-pressed', String(on)); }
-function setLabels(on){
+function setLabels(on){if (on && !examLabels) popTags(examTags); 
   examLabels = on; $('labelsBtn').setAttribute('aria-pressed', String(on));
   examTags.forEach(t => { t.dot.hidden = t.box.hidden = !on; t.ln.style.display = on ? '' : 'none'; });
 }

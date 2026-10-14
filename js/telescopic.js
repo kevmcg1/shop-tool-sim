@@ -952,7 +952,7 @@ async function runAuto(tool){
 
 /* ================= SHOW ME ================= */
 const G={on:false,i:0,done:false,t:0,saved:null,nav:0};
-const tolerance={title:'Perfect isn’t the goal',text:()=>'One more thing, and I wish someone had told me sooner.\nYou won’t get the same number every time you measure. I didn’t either.\nI used to think I was doing it wrong. I wasn’t. That’s just how it is.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.\nIn the shop you measure a hole two or three times, in a few spots, and compare.\nIf the readings agree, you can trust the size.'};
+const tolerance={title:'Perfect isn’t the goal',text:()=>'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nIf your readings differ a little, you’re not doing it wrong. That’s simply how measuring works.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.\nIn the shop you measure a hole two or three times, in a few spots, and compare.\nIf the readings agree, you can trust the size.'};
 const gaugeBoxL=()=>{const b=gaugeBox();return{x:b.x-175,y:b.y,w:b.w+350,h:b.h+44};};   // ...with room each side, and below the hub, for its names
 const gaugeBox=()=>{const g=S.g,pts=[[-S.curL/2,0,0],[S.curL/2,0,0],[0,g.hl,0],[0,-g.rb,0]],b=cv.getBoundingClientRect();
  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;pts.forEach(p=>{_v.set(...p);pivot.localToWorld(_v);_v.project(camera);
@@ -960,38 +960,40 @@ const gaugeBox=()=>{const g=S.g,pts=[[-S.curL/2,0,0],[S.curL/2,0,0],[0,g.hl,0],[
  return{x:x0-24,y:y0-24,w:x1-x0+48,h:y1-y0+48};};
 const GSTEPS=[
  {title:'Let’s measure a hole',view:'overview',enter:()=>{S.partChanged=false;if(S.inserted||S.unlocked||S.lockInfo)resetGauge();},
-  text:()=>'Hi. I built this, and I’ll be honest: I was bad at this when I started.\nMy first holes measured way off, and I didn’t even know it.\nYou’ll catch on way faster than I did.\nA telescopic gauge doesn’t show a number itself. It copies the size of a hole, then you measure the gauge with a micrometer.\nWe’ll go one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.'},
- {title:'First, clean and check zero',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
-  text:()=>'Quick habit first, and one I skipped for way too long: wipe the hole, both contact heads and the rods with a clean cloth.\nChips, coolant or a speck of grit can throw the reading off by thousandths.\nNow watch the gauge close up all the way.\nAt the lowest value, it should read exactly its shortest length.\nThe rods should slide freely, with no sticking.'},
- {title:'Zero on the heads',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
-  text:()=>'Rods all the way in.\nEach head sits right at the end of its tube.\nNothing sticks out past them.\nThat’s the closed position, the lowest value.'},
- {title:'Zero in the bottom bar',view:'gauge',zero:true,target:'#reading .value',
-  text:()=>'Now the number.\nThe bottom bar reads <b>'+fmtLen(S.g.min)+'</b>.\nThat’s gauge '+S.g.name+'’s shortest length, spot on.\nIf it read anything else, the rods would be sticking.\nNice. It’s ready to go.'},
+  text:()=>(window.__quip?window.__quip.cur:'Hi, and welcome.\nI’ll walk you through it.')+'\nA telescopic gauge doesn’t show a number itself. It copies the size of a hole, then you measure the gauge with a micrometer or caliper.\nWe’ll go one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.'},
+ {title:'First, clean and check the gauge',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
+  text:()=>'Quick habit first, and a very good one: wipe the hole, both contact heads and the rods with a clean cloth.\nChips, coolant or a speck of grit can throw the reading off by thousandths.\nA telescopic gauge has no zero to set. What you check is that it moves freely.\nWatch it close up all the way: the rods should slide smoothly, with no sticking or grit.'},
+ {title:'The rods move freely',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
+  text:()=>'Rods all the way in.\nEach head sits right at the end of its tube, and nothing sticks out past them.\nThat’s the closed position, the bottom of this gauge’s range.\nOn a real one, you also press a head in with a finger: it should spring back evenly.'},
+ {title:'Where its range begins',view:'gauge',zero:true,target:'#reading .value',
+  text:()=>'Now the number.\nThe bottom bar reads <b>'+fmtLen(S.g.min)+'</b>.\nThat’s gauge '+S.g.name+'’s shortest length, the bottom of its range.\nIt can measure holes from there up to <b>'+fmtLen(S.g.max)+'</b>.\nA hole smaller than that is too small for this gauge. Nice, it’s ready to go.'},
  {title:'Pick a part',target:'#sampleSel',done:()=>S.partChanged,text:()=>'Now pick the part with the hole.\nOpen the <b>Part</b> list and choose one.\nPoint at a name to see a preview of the part.\nIts size is hidden, just like on a real job.',hint:'Waiting for you to pick a part…'},
  {title:'Clean the bore too',view:'overview',target:'#view',next:'Next',
-  text:()=>'Wipe the hole too, where the heads will touch the wall.\nChips, oil or a burr in the bore read as extra size.\nA clean cloth round the wall, and you’re set.'},
+  text:()=>'Wipe the hole too, where the heads will touch the wall.\nChips, oil or a burr in the bore read as extra size.\nThen check roughly how big it is, with a scale or a caliper. That tells you which gauge to reach for.'},
  {title:'Meet the gauge',view:'gauge',target:gaugeBoxL,labels:true,
-  text:()=>'This is a T-handle telescopic gauge.\nThe short round hub joins the handle to the cross-bar.\nA spring-loaded rod slides out of each tube.\nThe flat-looking ends are the contact heads.\nThe plain handle is for your fingers.\nThe knurled end of the handle is the knob that locks the rods.'},
+  text:()=>'This is a T-handle telescopic gauge.\nThe short round hub joins the handle to the cross-bar.\nA spring-loaded rod slides out of each tube.\nThe ends are the contact heads. They look flat, but they’re slightly domed, so only a small spot touches the wall.\nThe plain handle is for your fingers.\nThe knurled end of the handle is the knob that locks the rods.'},
  {title:'Choose the size',target:'#gset',view:'gauge',
-  text:()=>'A set has six gauges, A to F.\nPick the one whose range holds your hole, with the hole near the middle of that range.\nNear the top, the rods are stretched and the springs go weak, so you lose the feel.\nThis hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+S.g.name+'</b> ('+fmtRange(S.g)+').\nNot sure? Auto-pick has your back.'},
+  text:()=>'A set has six gauges, A to F.\nPick the gauge whose range holds your hole. The smallest one that covers it is the best choice.\nKeep the hole away from the very ends of the range: nearly closed there’s no room to rock, and nearly fully out the rods run long and lose their feel.\nThis hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+S.g.name+'</b> ('+fmtRange(S.g)+').\nIn the shop you’d size the hole with a scale or caliper first. Auto-pick does that estimate for you.'},
  {title:'Push the heads in, lock, and slide it in',view:'travel',target:'#btnInsert',done:()=>S.inserted&&S.insertT>.9,
-  text:()=>'To get through the opening, the heads have to be pushed in and the knob locked.\nPress <b>Insert in hole</b> and watch: the arrows push both heads in, the knob locks, and then it slides in, one head first.\nKeep the handle in line with the hole, not leaning sideways.',hint:'Waiting for you to insert it…'},
+  text:()=>'To get through the opening, the heads have to be pushed in with the knob locked, a little narrower than the hole.\nPress <b>Insert in hole</b> and watch: the arrows push both heads in, the knob locks, and the gauge slides in, one head first.\nIn your hand you’d tilt it and put one head in, then the other.\nKeep the handle in line with the hole, not leaning sideways.',hint:'Waiting for you to insert it…'},
  {title:'Unlock inside the bore',view:'hole',target:'#btnLock',done:()=>S.inserted&&S.unlocked&&S.insertT>.9,
-  text:()=>'Now it’s down in the bore, so unlock the knob.\nPress the lit <b>Unlock knob</b> button.\nOr click the knurled knob on the gauge itself.\nThe springs push both heads out until they touch the wall.\nThat’s how the gauge copies the hole.',hint:'Waiting for you to unlock it…'},
+  text:()=>'Now it’s down in the bore, so unlock the knob.\nPress the lit <b>Unlock knob</b> button, or click the knurled knob on the gauge itself.\nThe springs push both heads out until they touch opposite walls.\nThat’s how the gauge copies the hole.',hint:'Waiting for you to unlock it…'},
  {title:'Rock through square',view:'hole',target:'#rockWrap',done:()=>S.seenPos&&S.seenNeg,
-  text:()=>'Now rock the handle gently back and forth.\nDrag the gauge, use the slider, or tap the arrow keys.\nDon’t push it or hold it off to one side: let the gauge find the middle itself.\nTilted, the heads span a longer chord.\nSquare, they’re at their shortest.\nThat shortest length is the true diameter.\nSwing past square to both sides.',hint:'Rock it a little to each side…'},
+  text:()=>'Now rock the handle gently back and forth, along the line of the heads.\nDrag the gauge, use the slider, or tap the arrow keys.\nLet the springs do the work: don’t push the gauge or hold it off to one side.\nTilted, the heads span a longer chord. Square to the hole’s axis, they’re at their shortest.\nThat shortest length is the true diameter.\nSwing past square to both sides, and the shortest point is the one in the middle.',hint:'Rock it a little to each side…'},
  {title:'Square it up and lock',view:'hole',target:'#btnLock',square:true,
   done:()=>!!(S.lockInfo&&S.lockInfo.inHole)&&!S.unlocked&&Math.abs(S.lockInfo.tilt)<=SQUARE_TOL,
   text:()=>{const li=S.lockInfo,d=li&&li.inHole?Math.abs(li.tilt/D2R):null;
-   return 'Bring the handle to perfectly straight, 0.0°.\nThis step waits until it is dead square.\nThen lock the knob while the gauge is still in the hole.\nLock while tilted and you freeze a too-long reading.\nLock it snug and firm. A weak lock lets the rods creep after you take it out.'+(d==null?'':d<=SQUARE_TOL/D2R?'\n<b>Locked perfectly square. Nice work.</b>':'\nThat one’s '+d.toFixed(1)+'° off, so it reads long. That’s the most common slip with these gauges, and I made it a lot. Unlock the knob, straighten the handle to 0.0° and lock it again.');},
+   return 'Bring the handle to perfectly straight, 0.0°.\nThis step waits until it is dead square.\nThen lock the knob while the gauge is still in the hole.\nLock while tilted and you freeze a too-long reading.\nLock it snug and firm. A weak lock lets the rods creep after you take it out.'+(d==null?'':d<=SQUARE_TOL/D2R?'\n<b>Locked perfectly square. Nice work.</b>':'\nThat one’s '+d.toFixed(1)+'° off, so it reads long. That’s the most common slip with these gauges, and it’s easy to fix. Unlock the knob, straighten the handle to 0.0° and lock it again.');},
   hint:()=>{const li=S.lockInfo,dl=Math.abs(S.tilt/D2R);
    if(li&&li.inHole&&!S.unlocked)return'Locked '+Math.abs(li.tilt/D2R).toFixed(1)+'° off square. Unlock it, straighten the handle and lock again…';
    if(!S.inserted)return'Waiting for the gauge to be in the hole…';
    return dl<=SQUARE_TOL/D2R?'Straight at 0.0°. Now lock the knob…':'Handle is '+dl.toFixed(1)+'° off. Bring it to 0.0°…';}},
  {title:'Take it out',view:'travel',target:'#btnInsert',done:()=>!S.inserted&&S.insertT<.05&&!S.unlocked&&!!(S.lockInfo&&S.lockInfo.inHole),
-  text:()=>'Tilt the handle and lift the gauge out, so the heads clear the wall.\nPress <b>Take it out</b>.\nThe size is locked in by now, and tilting doesn’t change it.\nDon’t touch the knob or squeeze the heads, or you’ll lose the size.',hint:'Waiting for you to take it out…'},
+  text:()=>'Tilt the handle slightly and lift the gauge out, so the heads clear the wall.\nPress <b>Take it out</b>.\nThe size stays locked in while you do. Don’t touch the knob or squeeze the heads.\nOn a real gauge the heads drag lightly on the way out. That’s normal, and the lock holds them.',hint:'Waiting for you to take it out…'},
+ {title:'Check the tool you’ll read it with',view:'gauge',next:'Next',
+  text:()=>'Before you measure the gauge, check the tool you’ll read it with.\nClose it on its own, with nothing between the faces, and it should read zero.\nThe gauge is only as good as the tool that reads it.\nIn this simulator the tool is already set, so a quick look is all it needs.'},
  {title:'A light touch',view:'gauge',target:gaugeBoxL,labels:true,
-  text:()=>'Next you’ll measure across the two round heads.\nHold the gauge square between the tool’s faces.\nClose the tool with a very light touch, using the ratchet on a micrometer.\nSqueeze too hard and the rods slide in, so you read short.'},
+  text:()=>'Next you’ll measure across the two round heads.\nHold the gauge square between the tool’s faces, and rock it slightly to find the largest reading. The heads are domed, so it reads longest when the faces meet their high points.\nClose the tool with a very light touch, using the ratchet on a micrometer.\nSqueeze too hard and the rods slide in, so you read short.\nMeasure two or three times and compare.'},
  tolerance,
  {title:'Measure the gauge',view:'gauge',choose:true,
   text:()=>'The gauge has copied the hole.\nNow measure the gauge itself, across its two round heads.\nWhich tool do you want to use?\nThe screen splits, and the gauge flies over the border to it.\nIt’s also good, if not better, to have in-person experience with these tools.\nThese online tools are really just a way to get practice if you don’t have access to one in person for whatever reason.'},
@@ -1019,6 +1021,7 @@ function guideBuild(){
 }
 function guideStart(){
  if(!gdRoot)guideBuild();
+ if(window.__quip)window.__quip.next();   // a fresh opening line each time the walkthrough starts
  ensureHome();G.on=true;G.saved={labels:S.labels};gdRoot.hidden=false;document.body.classList.add('guiding');
  guideGo(0);
 }
