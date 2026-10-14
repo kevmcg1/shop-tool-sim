@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.2.5',
+  version: '1.2.6',
   changelog: [
+    { v: '1.2.6', date: '2026-10-14', title: 'Smoother labels', items: [
+      'On the telescopic gauge, the BEST tag now eases in and glides from one size to the next.',
+      'Part labels and Examine labels pop in one at a time, like bubbles.'
+    ] },
     { v: '1.2.5', date: '2026-10-14', title: 'Quick controls and better views', items: [
       'The telescopic gauge has quick controls at the bottom left like the other tools, its Examine button works again, and its Hole and Top views now show the hole.',
       'Sidebar categories have a new look, side-by-side buttons are the same height, and the gauge arrows are smaller and further apart.',
