@@ -1,9 +1,9 @@
-// The measuring table: a precision-ground inspection surface plate. Dark gunmetal steel with the fine crescent marks a
-// surface grinder leaves, a soft sheen that catches the room, chamfered edges and a stamped grade mark. Everything is
+// The measuring table: a precision-ground inspection surface plate. Dark gray steel, even and quiet (a hint of the grinder's sweep,
+// no fine marks to shimmer), a low sheen, chamfered edges and a stamped grade mark. Everything is
 // drawn here, so each tool that has a table (the Telescopic gauge's bench, the height gage's table) shows the same one.
 //
 //   const P = window.__plate(THREE);
-//   P.material(repeat)            a MeshStandardMaterial with the ground finish (repeat: tiles per mm, 1/220 by default)
+//   P.material(repeat)            a MeshStandardMaterial with the ground finish (repeat: tiles per mm, 1/220 by default); it has a map only (no bump or roughness maps)
 //   P.slab(width, depth, thick)   a chamfered slab, top face at y = 0, going down; its text is drawn on the front
 window.__plate = function(T){
   const rng = seed => () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0)/4294967296; };
@@ -28,34 +28,26 @@ window.__plate = function(T){
   function textures(){
     if (cache.t) return cache.t;
     const rand = rng(20261012);
-    // colour: gunmetal, a little uneven, scored by the grinding
+    // colour: dark, even gray steel. The grinding is only a ghost of a texture (a handful of barely-there wide sweeps and a slow, soft unevenness):
+    // fine detail is what shimmers when the camera moves, so there is none, and no bump or roughness maps either.
     const [cc, g] = canvas();
-    g.fillStyle = '#5b6068'; g.fillRect(0, 0, SIZE, SIZE);
-    for (let i = 0; i < 70; i++){                 // broad, soft unevenness in the sheen
-      const x = rand()*SIZE, y = rand()*SIZE, r = 80 + rand()*260, l = rand() < 0.5;
-      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, l ? 'rgba(255,255,255,.035)' : 'rgba(0,0,0,.05)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = '#2f3236'; g.fillRect(0, 0, SIZE, SIZE);
+    for (let i = 0; i < 12; i++){                 // broad, soft unevenness
+      const x = rand()*SIZE, y = rand()*SIZE, r = 160 + rand()*320, l = rand() < 0.5;
+      const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, l ? 'rgba(255,255,255,.006)' : 'rgba(0,0,0,.012)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = gr; g.fillRect(0, 0, SIZE, SIZE);
     }
-    marks(g, rand, 900, 0.015, 0.022, 1.2, 2.6);
-    marks(g, rand, 300, 0.01, 0.014, 2, 4);
-    for (let i = 0; i < 40000; i++){ const v = rand() < 0.5 ? 255 : 0; g.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',' + (0.02 + rand()*0.05).toFixed(3) + ')'; g.fillRect(rand()*SIZE, rand()*SIZE, 1, 1); }
-    // roughness: smooth ground steel (dark) that the marks scuff up a little (lighter)
-    const [rc, r] = canvas();
-    r.fillStyle = '#4a4a4a'; r.fillRect(0, 0, SIZE, SIZE);
-    marks(r, rng(7), 900, 0.035, 0.0, 1.2, 2.8);
-    for (let i = 0; i < 30000; i++){ const v = 60 + rand()*110 | 0; r.fillStyle = 'rgba(' + v + ',' + v + ',' + v + ',.12)'; r.fillRect(rand()*SIZE, rand()*SIZE, 1, 1); }
-    // bump: the marks as very fine scratches
-    const [bc, b] = canvas();
-    b.fillStyle = '#808080'; b.fillRect(0, 0, SIZE, SIZE);
-    marks(b, rng(11), 900, 0.05, 0.05, 1.2, 2.6);
+    marks(g, rand, 7, 0.003, 0.005, 6, 10);
     const tex = (c, srgb) => { const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = 8; if (srgb && 'sRGBEncoding' in T) t.encoding = T.sRGBEncoding; else if (srgb && T.SRGBColorSpace) t.colorSpace = T.SRGBColorSpace; return t; };
-    return cache.t = { map: tex(cc, true), roughnessMap: tex(rc), bumpMap: tex(bc) };
+    return cache.t = { map: tex(cc, true), roughnessMap: null, bumpMap: null };
   }
-  // the ground-steel finish; `repeat` is how many tiles per unit of the surface's own texture coordinates
+  // the ground-steel finish; `repeat` is how many tiles per unit of the surface's own texture coordinates.
+  // Mostly matte (low metalness, high roughness, a dim reflection of the room), so the top stays the same dark gray from every angle
+  // instead of flashing pale where it mirrors the lights.
   function material(repeat){
     const tx = textures(), k = repeat || 1/220;
-    ['map', 'roughnessMap', 'bumpMap'].forEach(n => tx[n].repeat.set(k, k));
-    return new T.MeshStandardMaterial({ color: 0xffffff, map: tx.map, roughnessMap: tx.roughnessMap, bumpMap: tx.bumpMap, bumpScale: 0.07, metalness: 0.82, roughness: 0.62, envMapIntensity: 0.9, side: T.DoubleSide });
+    tx.map.repeat.set(k, k);
+    return new T.MeshStandardMaterial({ color: 0xffffff, map: tx.map, bumpScale: 0, metalness: 0.15, roughness: 0.72, envMapIntensity: 0.22, side: T.DoubleSide });
   }
   // the stamped grade mark, drawn flat on the plate near its front edge
   function stamp(){
@@ -75,7 +67,7 @@ window.__plate = function(T){
     const geo = new T.ExtrudeGeometry(sh, { depth: thick - 2*b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 1, curveSegments: 1 });
     geo.rotateX(Math.PI/2); geo.translate(0, -b, 0);
     const top = material(1/220);
-    const side = new T.MeshStandardMaterial({ color: 0x2c3036, metalness: 0.7, roughness: 0.5, envMapIntensity: 0.6 });
+    const side = new T.MeshStandardMaterial({ color: 0x2c3036, metalness: 0.25, roughness: 0.6, envMapIntensity: 0.3 });
     const mesh = new T.Mesh(geo, [top, side]);
     const label = new T.Mesh(new T.PlaneGeometry(230, 21.5), new T.MeshBasicMaterial({ map: stamp(), transparent: true, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -2 }));
     label.rotation.x = -Math.PI/2; label.position.set(-w/2 + 135, 0.15, d/2 - 26);

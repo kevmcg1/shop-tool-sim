@@ -409,7 +409,7 @@ ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 // Shop graphics: a precision-ground surface plate under the tool (js/plate.js) while it is on; plain shadow only when it is off
 // (built the first time it is needed: its textures take a while to paint, and most visits never turn Shop graphics on)
 let shopTable = null;
-function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4);  { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.bumpScale = 0.04; top.envMapIntensity = 0.3; top.color.setRGB(0.28, 0.285, 0.3); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); { const c = center(), D = dims(); shopTable.position.set(c.x, D.bottom - 0.335, 0); } return shopTable; }
+function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4);  { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.envMapIntensity = 0.3; top.color.setRGB(0.25, 0.25, 0.25); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); { const c = center(), D = dims(); shopTable.position.set(c.x, D.bottom - 0.335, 0); } return shopTable; }
 try { if (localStorage.getItem('pt-real-finish') === '1') makeShopTable(); } catch (e) {}
 function shopTableOpts(){ if (realFinish) makeShopTable(); return shopTable ? (realFinish ? { show: [shopTable] } : { hide: [shopTable] }) : {}; }
 
@@ -1266,7 +1266,7 @@ function renderFeats(){
     const t = TYPES[f.type];
     return `<div class="fcard${S.sel === f.id ? ' sel' : ''}" style="--c:${t.c}">
       <button class="fhead" data-select="${f.id}" aria-pressed="${S.sel === f.id}" title="Slide this feature between the faces"><i class="sw" style="--c:${t.c}"></i><span class="fname">${esc(f.label)}</span><span class="ftype">${t.name}</span></button>
-      ${S.revealed ? `<div class="fres">Actual ${S.vals[f.id].toFixed(4)}″</div>` : ''}</div>`;
+      ${S.revealed ? `<div class="fres"><span>Actual size</span><b>${S.vals[f.id].toFixed(4)}″</b></div>` : ''}</div>`;
   }).join('');
 }
 

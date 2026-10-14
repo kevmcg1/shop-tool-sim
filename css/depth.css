@@ -458,7 +458,6 @@ button.primary,.pgo:not(.alt){border-color:var(--accent)!important;color:var(--a
 button[aria-pressed="true"],button[aria-checked="true"],#view .ib[aria-pressed="true"],#view .pbtn[aria-pressed="true"],.cine .pbtn[aria-pressed="true"]{border-color:var(--accent)!important;color:var(--accent)!important}
 #lockBtn[aria-pressed="true"],#bezelLockBtn[aria-pressed="true"],#lockQuick[aria-pressed="true"],button.lock[aria-pressed="true"]{border-color:var(--warn)!important;color:var(--warn)!important}
 .tgl[aria-pressed="true"] em{color:var(--accent)!important;opacity:1!important}
-.fcard.sel{background:transparent!important}
 .fhead,.fhead:hover{border:0!important}
 button:disabled{opacity:.4}
 .reveal{margin:0 0 12px}
@@ -676,3 +675,28 @@ aside #lockBtn[aria-pressed="true"]:hover,aside #bezelLockBtn[aria-pressed="true
 #view .hlsw[aria-pressed="false"] i{opacity:1}
 #view button.primary{background:color-mix(in srgb,var(--accent) 14%,#0e1013)!important}
 #view button.primary:hover{background:color-mix(in srgb,var(--accent) 24%,#0e1013)!important}
+
+/* ---- the Sample / Part panel: a quiet list of feature cards. A thin bar in the feature's own color on the left, a round marker that fills
+   when it is the one being measured, and its kind as a small tag; hover and selection ease in. ---- */
+.sub-h{margin:16px 0 0;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#feats{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+#feats>.note{margin:0}
+.sample-sec .note{margin:12px 0 0;font-size:12px;line-height:1.5}
+.fcard{position:relative;display:block;margin:0;padding:0;border:1px solid var(--line);border-radius:10px;background:var(--raise);overflow:hidden;
+  transition:border-color .2s ease,background-color .2s ease,box-shadow .2s ease}
+.fcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--c,var(--accent));opacity:.5;transition:opacity .2s ease,width .2s ease}
+.fcard:hover{background:var(--raise-2);border-color:color-mix(in srgb,var(--c,var(--accent)) 40%,var(--line))}
+.fcard:hover::before{opacity:.85}
+.fcard.sel{background:color-mix(in srgb,var(--c,var(--accent)) 9%,var(--raise));border-color:color-mix(in srgb,var(--c,var(--accent)) 60%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--c,var(--accent)) 22%,transparent)}
+.fcard.sel::before{opacity:1;width:4px}
+.fhead,.fhead:hover,.fcard .fhead[aria-pressed="true"]{display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:11px 12px 11px 17px;border:0!important;border-radius:0;background:none!important;color:var(--ink)!important;text-align:left;cursor:pointer}
+.fhead:focus-visible{outline:2px solid var(--c,var(--accent));outline-offset:-3px}
+.sw{position:relative;width:14px;height:14px;flex:none;box-sizing:border-box;border-radius:50%;border:2px solid color-mix(in srgb,var(--c,var(--accent)) 65%,transparent);background:transparent;transition:border-color .2s ease,background-color .2s ease}
+.sw::after{content:"";position:absolute;inset:2px;border-radius:50%;background:var(--c,var(--accent));transform:scale(0);transition:transform .22s cubic-bezier(.3,1.4,.4,1)}
+.fcard.sel .sw{border-color:var(--c,var(--accent))}
+.fcard.sel .sw::after{transform:scale(1)}
+.fname{flex:1;min-width:0;font-size:13px;font-weight:600;line-height:1.3;color:var(--ink)}
+.ftype{flex:none;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c,var(--accent)) 14%,transparent);color:var(--c,var(--accent));font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;line-height:1.5}
+.fcard .fres{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0;padding:8px 12px 9px 17px;border-top:1px solid var(--line);font-size:12px;font-weight:500;color:var(--muted)}
+.fcard .fres b{font-size:13.5px;font-weight:650;color:var(--ink);font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion: reduce){ .fcard,.fcard::before,.sw,.sw::after{transition:none} }

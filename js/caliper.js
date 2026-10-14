@@ -124,7 +124,7 @@ scene.add(ground);
 // Shop graphics: a precision-ground surface plate under the tool (js/plate.js) while it is on; plain shadow only when it is off
 // (built the first time it is needed: its textures take a while to paint, and most visits never turn Shop graphics on)
 let shopTable = null;
-function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4); t.position.set(CENTER.x, -2.935, 0); { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.bumpScale = 0.04; top.envMapIntensity = 0.3; top.color.setRGB(0.28, 0.285, 0.3); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); return shopTable; }
+function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4); t.position.set(CENTER.x, -2.935, 0); { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.envMapIntensity = 0.3; top.color.setRGB(0.4, 0.4, 0.4); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); return shopTable; }
 try { if (localStorage.getItem('pt-real-finish') === '1') makeShopTable(); } catch (e) {}
 function shopTableOpts(){ if (realFinish) makeShopTable(); return shopTable ? (realFinish ? { show: [shopTable] } : { hide: [shopTable] }) : {}; }
 
@@ -1290,6 +1290,7 @@ function hullMat(tool) {
 let autoAfter = false;   // a gauge from the lab is measured as soon as it is on the caliper
 let tgHeld = false;      // ...unless the lab's own gauge is being drawn over this one: it flies in and stays the gauge on the caliper
 let tgGhost = false;     // (this part is then only a stand-in: it measures and casts its shadow, and the lab's gauge is what is seen)
+let tgNat = false;       // the lab's gauge has landed: this view draws it itself now (same depth as the jaws, so they hide what they should)
 const GHOST_MAT = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
 function ghostPart(obj, on){
   obj.traverse(o => {
@@ -2623,7 +2624,8 @@ function newSample(type, then) {
   tgGhost = false;
   buildSample(type);
   const def = PARTS[type];
-  if (def && type === 'tgauge' && tgHeld && sample.obj){ tgGhost = true; ghostPart(sample.obj, true); }   // (tgHeld stays set until the person picks another part, so a second load in a row is no different from the first)
+  if (type !== 'tgauge') tgNat = false;
+  if (def && type === 'tgauge' && tgHeld && sample.obj && !tgNat){ tgGhost = true; ghostPart(sample.obj, true); }   // (tgHeld stays set until the person picks another part, so a second load in a row is no different from the first)
   if (def) {
     const to = clearTarget();
     if (partClear()) state.animQ = [{ to, speed: 6 }];
@@ -2646,7 +2648,7 @@ window.__tgLoad = function(p, opts) {
   if (!p || !(p.mm > 0)) return;
   if (state.practice) setPractice(false);
   const hold = !!(opts && opts.hold);
-  tgHeld = hold;
+  tgHeld = hold; tgNat = false;
   autoAfter = !hold;
   tgGaugeIdx = window.__TG ? window.__TG.GAUGES.findIndex(g => g.name === p.gauge) : -1;
   forcedSize = Math.min(PARTS.tgauge.range[1] + 0.2, p.mm / 25.4);
@@ -2674,14 +2676,20 @@ function tgPose(obj, axisLocal, handleLocal){
   const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
   return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
 }
-window.__tgSpot = () => (sample.type === 'tgauge' && tgGhost && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;
+window.__tgSpot = () => (sample.type === 'tgauge' && (tgGhost || (tgNat && tgHeld)) && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;
 // the lab's gauge has landed on this one (it stays drawn over it): start measuring it
 window.__tgReveal = () => {
-  if (sample.type === 'tgauge' && sample.obj && tgGhost){ autoMeasure(); if (tgNote){ toast('From the gauge lab, locked at ' + tgNote.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'); tgNote = null; } }
+  if (sample.type === 'tgauge' && sample.obj && (tgGhost || tgNat)){ autoMeasure(); if (tgNote){ toast('From the gauge lab, locked at ' + tgNote.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'); tgNote = null; } }
   else if (tgHeld){ tgHeld = false; autoAfter = true; }
 };
 // the lab's gauge can't be drawn over this one any more (the part changed, or the pose was lost): show this one's own
 window.__tgShow = () => { if (sample.type === 'tgauge' && sample.obj && tgGhost){ ghostPart(sample.obj, false); tgGhost = false; invalidate(120); } };
+// the lab's gauge has landed: this view draws it itself from now on, in this scene with the jaws, slider and scale in front of or behind it as a real
+// object would be (the lab's own canvas draws over everything). Says whether it could.
+window.__tgNative = () => {
+  if (sample.type !== 'tgauge' || !sample.obj || !tgHeld || !(tgGhost || tgNat)) return false;
+  window.__tgShow(); tgNat = true; invalidate(120); return true;
+};
 // Changing the part: the caliper lets go of the old one first, the way you would by hand: outside jaws open a
 // little, inside jaws close a little, and the depth rod goes all the way back in. Then the old part dissolves
 // away and the new one comes in. Asking again while it is letting go just changes which part comes next.
@@ -3326,7 +3334,7 @@ function bindUI() {
     const t = (5 + Math.floor(Math.random() * 36)) * (Math.random() < 0.5 ? -1 : 1);
     state.bezel = t / 100 * TAU; toast('Bezel knocked off zero — close the jaws and zero it');
   });
-  $('sampleSel').addEventListener('change', e => { tgHeld = false; changePart(e.target.value); });
+  $('sampleSel').addEventListener('change', e => { tgHeld = false; tgNat = false; changePart(e.target.value); });
   $('newVals').addEventListener('click', () => changePart(sample.type));
   $('revealBtn').addEventListener('click', () => { state.revealed = !state.revealed; refreshPartCard(); });
   document.querySelectorAll('[data-hl]').forEach(c => c.addEventListener('change', () => { state.hl[c.dataset.hl] = c.checked; hlKey = ''; flatKey = ''; updateOutline(); }));
