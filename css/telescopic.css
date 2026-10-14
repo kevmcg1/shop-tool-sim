@@ -308,7 +308,7 @@ body.exam .cine{height:58px}
 .cine .cc{display:flex;gap:8px}
 .cine .chint{color:#9ba1aa;font-size:12.5px}
 body.exam aside,body.exam .reading,body.exam .actions,body.exam .views,body.exam .hud,body.exam .toast,body.exam .dockhint{display:none!important}
-body.exam .app{grid-template-columns:0 minmax(0,1fr)}
+body.exam .app{grid-template-columns:minmax(0,1fr)}   /* (the side panel is display:none, so the 3D view is the only column) */
 body.exam #view{height:100vh;height:100dvh}
 @media (max-width:860px){.cine .pbtn span.lbl{display:none}.cine{padding:0 10px}.cine .ct{font-size:20px}}
 @media (prefers-reduced-motion: reduce){.cine{transition:none}}
@@ -335,3 +335,25 @@ body.practice .pract{display:flex}
 .pcard .fres{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink)}
 
 .pcard small{display:block;margin-top:2px}
+
+/* ---- the sidebar's categories: Roboto, upper-case italic, over a thin gradient rule in the section's own color ---- */
+aside h2{position:relative;margin:0 0 14px;padding:0 0 9px;font-family:"Roboto","Inter",system-ui,sans-serif;font-style:italic;font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;line-height:1.2}
+aside h2::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--sc,#8a8f97) 0%,color-mix(in srgb,var(--sc,#8a8f97) 45%,#5b93ea) 42%,transparent 100%)}
+/* ...and the sidebar's buttons: side by side they are always the same height, whatever their wording */
+aside .row{align-items:stretch}
+aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{display:flex;align-items:center;justify-content:center;min-height:40px;text-align:center;line-height:1.25}
+
+/* ---- the quick controls at the bottom left of the 3D view, as on the other tools ---- */
+.quick{position:absolute;left:12px;bottom:12px;display:flex;gap:6px;z-index:2;flex-wrap:wrap;transition:filter .25s}
+.ib.lock[aria-pressed="true"]{border-color:var(--warn);color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,#0e1013)}
+.goto{display:flex;gap:6px;align-items:center}
+.goto input{width:150px;height:36px;padding:0 10px;border-radius:8px;background:rgba(10,11,13,.5);color:#fff;border:1px solid rgba(255,255,255,.34);font:inherit;font-size:13px;transition:border-color .22s ease,background-color .22s ease}
+.goto input:hover{border-color:rgba(255,255,255,.6)}
+.goto input:focus{border-color:var(--accent);outline:none;background:rgba(10,11,13,.7)}
+.goto input::placeholder{color:rgba(255,255,255,.55)}
+.goto .ib{width:auto;padding:0 13px;font-weight:600;font-size:13px}
+body.panel-off .reading{display:none!important}
+body.exam .quick{display:none!important}
+@media (max-width:560px){ .goto input{width:112px} .hud{bottom:58px!important} }
+/* tooltips are drawn by js/tips.js (one card on the page itself, never cut off): no element draws its own */
+[data-tip]::after{content:none!important;display:none!important}

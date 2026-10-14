@@ -3,8 +3,13 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.2.4',
+  version: '1.2.5',
   changelog: [
+    { v: '1.2.5', date: '2026-10-14', title: 'Quick controls and better views', items: [
+      'The telescopic gauge has quick controls at the bottom left like the other tools, its Examine button works again, and its Hole and Top views now show the hole.',
+      'Sidebar categories have a new look, side-by-side buttons are the same height, and the gauge arrows are smaller and further apart.',
+      'Opening and closing the side panel on the telescopic gauge is smooth.'
+    ] },
     { v: '1.2.4', date: '2026-10-14', title: 'A calmer table and tidier panels', items: [
       'The measuring table is now an even dark gray with barely any marks, so it no longer flashes light and dark when you rotate the view.',
       'The Sample and Part panels have cleaner feature cards, and the telescopic gauge uses the same tooltips as the other tools (never cut off by the window).',
@@ -15,18 +20,18 @@ window.__SHOP = {
       'The telescopic gauge has the same top-left buttons as the other tools: the side panel, Examine and Practice.'
     ] },
     { v: '1.2.2', date: '2026-10-14', title: 'A slimmer gauge and a longer walkthrough', items: [
-      'The telescopic gauge is slimmer and plainer, copied from a photo of a real set, and its top-left card is easier to read.',
+      'The telescopic gauge has a slimmer, plainer look, and its top-left card is easier to read.',
       'The gauge now lands on the micrometer or caliper at the same angle it flew in at, and How do I use it? carries on there to show the same number on both sides.',
       'On the height gage, How do I use it? now pans down to the plate at zero, and every checkbox is now round and animated.'
     ] },
     { v: '1.2.1', date: '2026-10-13', title: 'Split-screen measuring and a truer gauge', items: [
       'Measure, Auto measure and the How do I use it? walkthrough now open the micrometer or caliper beside the gauge, with the gauge on it at its exact locked length.',
-      'The telescopic gauge is redrawn from a real one, and the micrometer and calipers use the very same model.',
+      'The telescopic gauge has a new look, and the micrometer and calipers use the very same model.',
       'Dev mode now grades how smoothly each tool runs and tests every control.'
     ] },
     { v: '1.2.0', date: '2026-10-12', title: 'Shop graphics, a better gauge, faster loading', items: [
       'A new Shop graphics button gives every tool a real machine-shop look, with a ground surface plate under it.',
-      'The telescopic gauge looks like a real one, and a Measure button carries it to the micrometer or caliper you choose.',
+      'The telescopic gauge has a better look, and a Measure button carries it to the micrometer or caliper you choose.',
       'Tools load faster, and every icon now moves when you point at it.'
     ] },
     { v: '1.1.0', date: '2026-10-12', title: 'Telescopic gauge', items: [
