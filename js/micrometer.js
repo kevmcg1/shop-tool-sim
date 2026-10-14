@@ -25,6 +25,7 @@ const CORE = (function(){
   }
   function prep(prims, s){
     return prims.map((p, i) => {
+      if (p.deco) return { k: 'none', i, p };   // for looks only (a gauge's handle): never touches the faces or the frame
       if (p.t === 'box'){
         const cs = [];
         for (const X of [p.x0, p.x1]) for (const Y of [p.y0, p.y1]) for (const Z of [p.z0, p.z1]) cs.push(xf([X, Y, Z], s));
@@ -46,6 +47,7 @@ const CORE = (function(){
     let contact = false, dxmin = Infinity, dxmax = -Infinity, top = null, blocked = false;
     const pts = [], touching = [];
     for (const q of pr){
+      if (q.k === 'none') continue;
       let r = null;
       if (q.k === 'box'){
         const Z0 = q.Z0 + partZ, Z1 = q.Z1 + partZ;
@@ -112,6 +114,7 @@ const CORE = (function(){
   function zExtent(S, id){
     let lo = Infinity, hi = -Infinity;
     for (const q of getPrep(S, id)){
+      if (q.k === 'none') continue;
       if (q.k === 'cx'){ lo = Math.min(lo, q.Zc - q.ro); hi = Math.max(hi, q.Zc + q.ro); }
       else { lo = Math.min(lo, q.Z0); hi = Math.max(hi, q.Z1); }
     }
@@ -196,6 +199,16 @@ const CORE = (function(){
         return { prims: [{ t: 'cz', hex: true, af: v.af, r: v.af/2/C30, z0: -0.4, z1: 0.4, mat: 'brass', tags: { A: 'af' } }],
           setups: { A: {} }, targets: { af: { s: 'A', z: 0 } } };
       } },
+    tgauge: { name: 'Telescopic gauge', avail: B => B <= 5,
+      feats: B => [['len', 'length', 'Length across the heads', B + 0.45]],
+      make(v){
+        // a gauge locked to the size of a bore (js/tgauge.js): the two round heads, their rods and the tubes are one
+        // turned body lying along the measuring axis; the hub and the handle are for looks only
+        const TG = window.__TG, k = 1/TG.MM, mm = v.len*TG.MM, b = TG.body(mm, k), mat = { steel: 'ground', knurl: 'turned' };
+        const prims = [{ t: 'cz', r: b.g.rr*k, z0: 0, z1: b.len, prof: b.prof, mat: 'ground', tags: { A: 'len' } }];
+        // (the prim is what gets measured; what is drawn is the lab's own gauge, the whole of it: tgVisual, built in newSample)
+        return { prims, tgVisual: mm, setups: { A: { ry: true } }, targets: { len: { s: 'A', z: 0, hl: [0] } } };
+      } },
     gauge: { name: 'Gage block (fractional)', ref: true, feats: B => [['g', 'reference', `${(B + 0.25).toFixed(4)}″ gage block`, B + 0.25]], make: gaugeMake },
     std: { name: 'Setting standard', ref: true, avail: B => B >= 1,
       feats: B => [['s', 'reference', `${B}.0000″ setting standard`, B]],
@@ -212,16 +225,17 @@ const CORE = (function(){
   }
 
   function available(B){ return Object.keys(DEFS).filter(k => !DEFS[k].avail || DEFS[k].avail(B)); }
-  function makeSample(key, B, rnd){
+  function makeSample(key, B, rnd, fixed){
     const Dd = DEFS[key];
     const feats = Dd.feats(B).map(([id, type, label, nom]) => ({ id, type, label, nom, valid: !!Dd.ref || (nom >= B + 0.03 && nom <= B + 0.97) }));
     const vals = {};
     feats.forEach(f => {
-      if (Dd.ref || !f.valid) vals[f.id] = f.nom;
+      if (fixed && fixed[f.id] != null){ vals[f.id] = f.nom = fixed[f.id]; f.valid = f.nom >= B && f.nom <= B + 1; }
+      else if (Dd.ref || !f.valid) vals[f.id] = f.nom;
       else vals[f.id] = Math.round((f.nom + (Math.floor(rnd()*201) - 100)/1e4)*1e4)/1e4;
     });
     const m = Dd.make(vals, B);
-    return { key, name: Dd.name, ref: !!Dd.ref, feats, vals, prims: m.prims, setups: m.setups, targets: m.targets, prep: {} };
+    return { key, name: Dd.name, ref: !!Dd.ref, feats, vals, prims: m.prims, tgVisual: m.tgVisual, setups: m.setups, targets: m.targets, prep: {} };
   }
   function hlPrims(S, featId, setupId){
     const t = S.targets[featId];
@@ -353,10 +367,11 @@ const camera = new T.OrthographicCamera(-1, 1, 1, -1, 0.01, 200);
 scene.add(camera);
 
 function center(){ const D = dims(); return new T.Vector3((D.armL + S0 + 2.7)/2, (0.45 + D.bottom)/2, 0); }
+let rsW = 0, rsH = 0, rsD = 0;
 function resize(){
   const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-  renderer.setPixelRatio(dprCur);
-  renderer.setSize(w, h, false);
+  // (setting the canvas size, even to what it already is, throws its pixels away and makes them again: only when it really changed)
+  if (w !== rsW || h !== rsH || dprCur !== rsD){ rsW = w; rsH = h; rsD = dprCur; renderer.setPixelRatio(dprCur); renderer.setSize(w, h, false); }
   const D = dims(), W = S0 + 2.9 - D.armL, H = 0.65 - D.bottom;
   const a = w/h, vh = Math.max(H*1.25, W*1.1/a);
   camera.left = -vh*a/2; camera.right = vh*a/2; camera.top = vh/2; camera.bottom = -vh/2;
@@ -391,6 +406,12 @@ const hemi = new T.HemisphereLight(0xffffff, 0x30343a, 0.35); scene.add(hemi);
 [key, rimL, hemi].forEach(l => l.layers.enable(1));
 const ground = new T.Mesh(new T.PlaneGeometry(120, 120), new T.ShadowMaterial({ opacity: 0.38 }));
 ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+// Shop graphics: a precision-ground surface plate under the tool (js/plate.js) while it is on; plain shadow only when it is off
+// (built the first time it is needed: its textures take a while to paint, and most visits never turn Shop graphics on)
+let shopTable = null;
+function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4);  { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.bumpScale = 0.04; top.envMapIntensity = 0.3; top.color.setRGB(0.28, 0.285, 0.3); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); { const c = center(), D = dims(); shopTable.position.set(c.x, D.bottom - 0.335, 0); } return shopTable; }
+try { if (localStorage.getItem('pt-real-finish') === '1') makeShopTable(); } catch (e) {}
+function shopTableOpts(){ if (realFinish) makeShopTable(); return shopTable ? (realFinish ? { show: [shopTable] } : { hide: [shopTable] }) : {}; }
 
 function applyGfx(name){
   gfx = GFX[name]; dprCur = dprCeil = gfx.maxDpr;
@@ -424,6 +445,7 @@ function placeLights(){
   sc.left = -s; sc.right = s; sc.top = s; sc.bottom = -s; sc.near = 0.1; sc.far = 40; sc.updateProjectionMatrix();
   rimL.position.set(c.x - 4, c.y + 3, c.z - 7); rimL.target.position.copy(c);
   ground.position.set(c.x, D.bottom - 0.3, 0);
+  if (shopTable) shopTable.position.set(c.x, D.bottom - 0.335, 0);
   renderer.shadowMap.needsUpdate = true;
 }
 
@@ -523,10 +545,10 @@ const M = {
 };
 M.frameD = M.frame.clone(); M.frameD.side = T.DoubleSide;
 M.carbideD = M.carbide.clone(); M.carbideD.side = T.DoubleSide;
-/* ---------- clear markings by default; the realistic metal finish is a setting ----------
+/* ---------- clear markings by default; Shop graphics is a setting ----------
    The turned and brushed finish puts streaks and reflections behind the graduations and makes them
    harder to read, so by default the surfaces that carry markings are a plain, even matte grey.
-   "Realistic metal finish" in the sidebar brings the real finish back; the choice is remembered. */
+   "Shop graphics" in the sidebar brings the real finish back; the choice is remembered. */
 const CLEAR_MATS = () => [[M.satin, 0xe2e4e7]];
 let realFinish = false;
 try { realFinish = localStorage.getItem('pt-real-finish') === '1'; } catch (e) {}
@@ -549,8 +571,13 @@ function applyFinish() {
 }
 function bindFinish() {
   const c = document.getElementById('realChk');
-  c.checked = realFinish;
-  c.addEventListener('change', () => { realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {} applyFinish(); });
+  c.checked = realFinish; if (realFinish) makeShopTable(); if (shopTable) shopTable.visible = realFinish;
+  c.addEventListener('change', () => {
+    realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {}
+    // the new look is painted over the old one, sweeping across the tool, and nothing disappears (js/dissolve.js)
+    const fx = window.__toolFx;
+    if (fx) fx.paint(applyFinish, shopTableOpts()); else { applyFinish(); if (realFinish) makeShopTable(); if (shopTable) shopTable.visible = realFinish; }
+  });
   applyFinish();
 }
 // sample finishes
@@ -1014,15 +1041,32 @@ function wholeMesh(prims){
   const merged = T.BufferGeometryUtils.mergeBufferGeometries(geos, true);
   return new T.Mesh(merged, prims.map(p => PM[p.mat] || PM.turned));
 }
+// the gauge as the lab draws it (js/tgauge.js): cross-bar along the measuring axis (z), handle standing up, full length, same metal
+// a stand-in draws nothing (and writes no depth) but still measures, picks and casts its shadow
+function ghostGauge(obj, on){
+  obj.traverse(o => {
+    if (!o.isMesh) return;
+    if (on){ if (!o.userData.realMat) o.userData.realMat = o.material; o.material = PM_GHOST; }
+    else if (o.userData.realMat){ o.material = o.userData.realMat; o.userData.realMat = null; }
+  });
+}
+function tgVisualGroup(mm){
+  const TG = window.__TG, r = TG.group(T, mm, TG.materials(T), { handle: 'up' });
+  r.obj.rotation.y = -Math.PI/2; r.obj.position.z = r.len/2;
+  return r.obj;
+}
 function primMesh(p){
   let g;
-  if (p.t === 'box') g = roundedBox(p.x0, p.x1, p.y0, p.y1, p.z0, p.z1, 0.012);
+  if (p.t === 'cy'){ g = turnedGeo(p.prof, 48); g.rotateX(-Math.PI/2); g.translate(0, 0, p.zs || 0); }   // a turned piece standing up along y
+  else if (p.t === 'box') g = roundedBox(p.x0, p.x1, p.y0, p.y1, p.z0, p.z1, 0.012);
   else if (p.hex){
     g = new T.CylinderGeometry(p.r, p.r, p.z1 - p.z0, 6, 1);
     g.rotateX(Math.PI/2); g.translate(0, 0, (p.z0 + p.z1)/2);
   } else if (p.t === 'rz'){
     const c = p.cham || 0.01, ri = p.ri, ro = p.ro, a = p.z0, b = p.z1;
     g = turnedGeo([[ri + c, a], [ro - c, a, 1], [ro, a + c, 1], [ro, b - c, 1], [ro - c, b, 1], [ri + c, b, 1], [ri, b - c, 1], [ri, a + c, 1], [ri + c, a]], 72);
+  } else if (p.prof){
+    g = turnedGeo(p.prof, 72);
   } else {
     const c = p.cham || 0, r = p.r, a = p.z0, b = p.z1;
     g = turnedGeo([[0, a], [r - c, a, 1], [r, a + c, 1], [r, b - c, 1], [r - c, b, 1], [0, b]], 72);
@@ -1045,7 +1089,7 @@ function removeSample(){
   const old = partG, gone = () => { disposeTree(old); if (old.parent) old.parent.remove(old); };
   if (old.userData.gone) gone();
   else Dissolve.out(old, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, done: gone });
-  partG = setupG = flipG = null; primMeshes = []; hullMeshes = []; hullFeat = '';
+  partG = setupG = flipG = null; primMeshes = []; hullMeshes = []; hullFeat = ''; tgVis = null; tgGhost = false; tgLab = false;
 }
 // A new part: the old one dissolves away completely first, with the micrometer held still where it is, so
 // nothing ever moves through a part that is still there. Then the spindle opens right up, clear of anything
@@ -1053,6 +1097,10 @@ function removeSample(){
 // then; "Show me" waits on it before sliding the part in). Asking again meanwhile just changes the part.
 let partWait = null, partReady = Promise.resolve();
 const noMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+let forcedVals = null;   // sizes handed in from the telescopic gauge lab for the next sample
+let guideHands = null, guideHandsOn = false, guideHandsOff = false, handsFree = false;   // "Show me": the hands that show how to hold the micrometer
+let tgGaugeIdx = -1;   // which gauge of the set the lab handed over (its letter), so it is drawn as that one
+let tgHold = false, tgPend = null, tgVis = null, tgGhost = false, tgLen = 0, tgLab = false, tgNat = false;   // tgLab: the gauge is the lab's; tgNat: this view draws it itself now (not a stand-in)   // the lab's own gauge is drawn over this one (it flies in and stays): this one is then only a stand-in
 function newSample(key, keepSel, swapped){
   if (partWait){ partWait.key = key; partWait.keepSel = keepSel; return; }
   if (partG && partG.visible && !partG.userData.gone && !noMotion()){   // (one still hidden, waiting to come in, just goes)
@@ -1074,18 +1122,30 @@ function newSample(key, keepSel, swapped){
   removeSample();
   state.seq = null; state.partTarget = null;
   if (key === 'none' || !CORE.DEFS[key]){ state.sample = null; state.ev = null; renderFeats(); updateAll(); return; }
-  const S = CORE.makeSample(key, B, Math.random);
+  const force = tgHold && tgGaugeIdx >= 0 && key === 'tgauge' && window.__TG ? tgGaugeIdx : -1;
+  if (force >= 0) window.__TG.force(force);
+  let S;
+  try { S = CORE.makeSample(key, B, Math.random, forcedVals && forcedVals.key === key ? forcedVals.vals : null); } finally { if (force >= 0) window.__TG.force(-1); }
+  forcedVals = null;
   S.guesses = {}; S.results = {}; S.revealed = S.ref;
   const valid = S.feats.filter(f => f.valid);
   S.sel = keepSel && valid.some(f => f.id === prevSel) ? prevSel : valid[0].id;
   state.sample = S;
   partG = new T.Group(); setupG = new T.Group(); flipG = new T.Group();
   partG.add(setupG); setupG.add(flipG);
-  const whole = S.prims.length > 1 ? wholeMesh(S.prims) : null;
+  const whole = !S.tgVisual && S.prims.length > 1 ? wholeMesh(S.prims) : null;
+  tgVis = null; tgGhost = false; tgLab = false;
+  if (S.tgVisual){
+    if (force >= 0) window.__TG.force(force);
+    try { tgVis = tgVisualGroup(S.tgVisual); } finally { if (force >= 0) window.__TG.force(-1); }
+    flipG.add(tgVis);   // the lab's own gauge, drawn whole, in place of the measured body
+    if (tgHold){ tgLab = true; if (!tgNat){ tgGhost = true; ghostGauge(tgVis, true); } }   // (tgHold stays set until the person picks another part, so a second load in a row is no different from the first)   // ...or, when the lab's gauge is drawn over it, just a stand-in: it measures and casts its shadow
+  }
+  const ghosted = tgGhost;
   if (whole){ flipG.add(pickable(whole, 'part')); whole.userData.ownGeo = true; }
   primMeshes = S.prims.map(p => {
     const m = primMesh(p);
-    if (whole){ m.material = PM_GHOST; m.userData.noShadow = true; }
+    if (whole || S.tgVisual){ m.material = PM_GHOST; m.userData.noShadow = true; }
     flipG.add(pickable(m, 'part'));
     if (p.label){
       const small = p.x1 - p.x0 < 0.3;
@@ -1103,12 +1163,12 @@ function newSample(key, keepSel, swapped){
   renderFeats();
   // after another part: clear the way first, the spindle opening right up, and the part builds in once it has
   const g = partG, fx = { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } };
-  if (!swapped || state.locked || state.reading >= 1 - 1e-7 || noMotion()){ Dissolve.in(g, fx); partReady = Promise.resolve(); return; }
+  if (!swapped || state.locked || state.reading >= 1 - 1e-7 || noMotion()){ if (!ghosted) Dissolve.in(g, fx); partReady = Promise.resolve(); return; }
   g.visible = false;
   stopAnim(); openForMove();
   partReady = new Promise(done => {
     const t0 = performance.now();
-    const go = () => { if (g.visible || partG !== g) return done(); g.visible = true; invalidate(); Dissolve.in(g, fx); done(); };
+    const go = () => { if (g.visible || partG !== g) return done(); g.visible = true; invalidate(); if (!ghosted) Dissolve.in(g, fx); done(); };
     const wait = () => { if (g.visible) return; if (partG !== g) return done(); if (state.anim && performance.now() - t0 < 2500) requestAnimationFrame(wait); else go(); };
     requestAnimationFrame(wait);
     setTimeout(go, 2600);   // a timer backs up the frame callbacks, which stop while the page is not being painted
@@ -1464,7 +1524,7 @@ function setExam(on){
   document.body.classList.toggle('exam', on);
   if (on){
     if (state.practice) setPractice(false);
-    endCoach(); closeTut();
+    endCoach();
     examTags = EXAM.map(([title, sub]) => { const t = makeTag(false); t.b.textContent = title; t.sm.textContent = sub; return t; });
     examTags[5].sm.textContent = `This frame reads ${B}.0000″ to ${B + 1}.0000″`;
     setSpin(true); setLabels(true);
@@ -2138,12 +2198,6 @@ function checkPractice(){
 }
 
 /* ---------- tutorial ---------- */
-function openTut(){ $('tut').hidden = false; $('tutClose').focus({ preventScroll: true }); $('tut').scrollTop = 0; }
-function closeTut(){
-  if ($('tut').hidden) return;
-  $('tut').hidden = true;
-  try { localStorage.setItem('mic-tutorial-seen', '1'); } catch (e) {}
-}
 
 /* ---------- flat (unrolled) sleeve view ---------- */
 let flatOpen = true, flatKey = '', flatSpots = {};
@@ -2296,7 +2350,7 @@ function drawFlat(){
   // vernier lines along the top of the sleeve
   for (let j = 0; j < 10; j++){
     const y = Math.round(Y(VERN0 + j*VSTEP)*2)/2;
-    if (show && hl.vernier && j === d) hot(22, y, ex, y, HLC.vernier); else seg(22, y, ex, y, 1.1, '#111');
+    seg(22, y, ex, y, 1.1, show && hl.vernier && j === d ? HLC.vernier : '#111');   // (the matching vernier line is only coloured, never wider than the rest)
     txt(String(j), 11, y, 10, '#111');
   }
   // thimble graduations
@@ -2308,7 +2362,7 @@ function drawFlat(){
     const y = Math.round(Y(th)*2)/2, L = v % 5 === 0 ? 0.26 : 0.16, x1 = X(L);
     const onV = show && hl.vernier && v === (c + 3 + d) % 25;
     const onT = show && hl.thimble && v === c;
-    if (onV) hot(ex + 2, y, x1, y, HLC.vernier);
+    if (onV) seg(ex + 2, y, x1, y, 1.2, HLC.vernier);
     else if (onT) hot(ex + 2, y, x1, y, HLC.thimble);
     else seg(ex + 2, y, x1, y, 1.2, '#111');
     if (v % 5 === 0) txt(String(v), X(0.33), y, 12, '#111');
@@ -2477,7 +2531,7 @@ function setRange(nb){
 }
 
 /* ---------- camera ---------- */
-let controls, camTween = null;
+let controls, sv = null, camTween = null;   // (sv: the smooth wheel zoom, js/smooth.js)
 
 /* ---------- iso view that fits: everything on the table (tool, part, blocks) sized into the open
    screen area between the floating buttons and the flat view, whatever the window shape ---------- */
@@ -2564,6 +2618,13 @@ function toolBox(iso){
   if (hide) partG.visible = false;
   const box = fitBox(scene);
   if (hide) partG.visible = true;
+  // the lab's gauge, drawn over its stand-in, is framed with the tool: the cross-bar and the first stretch of the handle (a tall one runs off the top)
+  if (handsShown() && guideHands && guideHands.group.visible) box.union(guideHands.fitBox());   // "Show me": the hands holding it
+  if (tgLab && tgVis){
+    tgVis.updateWorldMatrix(true, true);
+    const gb = new T.Box3().setFromObject(tgVis), o = new T.Vector3().setFromMatrixPosition(tgVis.matrixWorld);
+    gb.max.y = Math.min(gb.max.y, o.y + 1.4); box.union(gb);
+  }
   return box;
 }
 function setView(name, instant){
@@ -2813,7 +2874,7 @@ function bindUI(){
   document.querySelectorAll('[data-units]').forEach(b => b.addEventListener('click', () => setUnits(b.dataset.units)));
   setUnits(units);
   bindFolds();
-  $('sampleSel').addEventListener('change', e => newSample(e.target.value));
+  $('sampleSel').addEventListener('change', e => { tgHold = false; tgNat = false; newSample(e.target.value); });
   $('newVals').addEventListener('click', () => { if (state.sampleKey !== 'none') newSample(state.sampleKey, true); });
   $('revealBtn').addEventListener('click', () => { if (state.sample){ state.sample.revealed = !state.sample.revealed; renderFeats(); } });
   const feats = $('feats');
@@ -2841,9 +2902,6 @@ function bindUI(){
   $('labelsBtn').addEventListener('click', () => setLabels(!examLabels));
   bindSplit(); applyRH();
   $('randomBtn').addEventListener('click', loadPractice);
-  $('tutBtn').addEventListener('click', openTut);
-  $('tutClose').addEventListener('click', closeTut);
-  $('tut').addEventListener('click', e => { if (e.target.id === 'tut') closeTut(); });
   $('flatMaxBtn').addEventListener('click', () => setFlatMax(!flatMax));
   if (flatMax) setTimeout(() => setFlatMax(true), 0);
   $('flatBtn').addEventListener('click', () => {
@@ -2862,10 +2920,9 @@ function bindUI(){
   $('guess').addEventListener('input', () => { if (state.pRevealed){ state.pRevealed = false; state.pErr = []; flatKey = ''; updateAll(); } });
   $('gfxSel').addEventListener('change', e => applyGfx(e.target.value));
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape'){ endCoach(true); closeTut(); if (state.exam) setExam(false); return; }
+    if (e.key === 'Escape'){ endCoach(true);if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     let d = 0;
     if (e.key === 'ArrowUp') d = e.shiftKey ? 0.0001 : 0.001;
     else if (e.key === 'ArrowDown') d = e.shiftKey ? -0.0001 : -0.001;
@@ -2941,7 +2998,7 @@ function tick(now){
     if (partG) partG.position.set(state.sxV, 0, state.partZ);
     shadowPending = true;
   }
-  const camMoved = stepCam(dt) | controls.update();
+  const camMoved = stepCam(dt) | controls.update() | (sv ? sv.step() : 0);
   updateUI();
   updateHighlights();
   drawFlat();
@@ -3038,6 +3095,245 @@ window.__guideArrow = on => {
   };
   requestAnimationFrame(step);
 };
+// "Show me" shows how to hold the micrometer, with two hands (js/hands.js), in two ways the person can pick between:
+//   1. the frame rests on the left palm (under its left side, the fingers curled up round the back), and the right thumb, first and middle finger
+//      turn the ratchet, the other two fingers clenched;
+//   2. the right hand holds the micrometer (frame in the palm, thumb and first finger up at the ratchet), the left hand holds the part.
+// Each hand's grip is found by searching (H.fit) for fingers that touch what they should and never go into the tool (toolSDF is the tool
+// as a distance function), starting from the grips below, which were found for the 0–1″ micrometer and are fitted again for the others.
+// The camera fits the grip, and the ratchet is turned a little back and forth in option 1, the way it is by hand.
+const GH = { scale: 0.8, turn: 0.32,
+  R1: [1.45, 0.575, 0.751, 0.468, -2.217, -1.99, 1.75, 1.361, 0.181, 1.75, 1.591, 0, 1.658, 1.672, 1.413, 1.718, 1.75, 1.646, 1.07, -1.07, -0.87, 1.489, -1.174, 0.25, 0.578, -1.2, -1.191],
+  L1: [0.144, -0.979, 1.11, -1.341, 0.325, 0.495, 1.154, 0.286, 1.75, 1.239, 0.52, 1.61, 1.58, 1.75, 1.017, 1.635, 0.559, 1.219, -0.24, -0.896, -0.82, 0.719, -1.126, -0.987, 0.46, -0.621, -1.193],
+  R2: [0.635, -1.204, -0.335, 2.769, 2.537, 3.047, 1.327, 0.225, 0.087, 1.601, 1.75, 0, 0.854, 1.75, 1.374, 0.625, 1.75, 1.316, 1.118, 0.305, -0.059, -0.226, -0.266, -0.606, -0.057, 0.641, 0.6],
+  L2: [-0.204, 1.581, -1.01, 0.693, 0.622, 2.009, 1.662, 1.266, 0.029, 1.691, 1.401, 1.75, 1.709, 1.1, 1.606, 1.494, 1.175, 0.005, 0.914, -0.967, -1.159, 1.452, -1.142, -0.789, 1.5, 0.981, 0.118] };
+let guideHandsOpt = 1;
+try { guideHandsOff = localStorage.getItem('pt-hands-off') === '1'; if (localStorage.getItem('pt-hold-opt') === '2') guideHandsOpt = 2; } catch (e) {}
+// the micrometer as a distance function in the world (negative inside it): the frame as a slab, and the round parts along the spindle
+function toolSDF(){
+  const D = dims(), face = B - S0, tx = thG.position.x, zh = 0.2*D.zs;
+  const poly = cPath(new T.Shape(), 0, D).getPoints(40), n = poly.length;
+  const sdPoly = (px, py) => {
+    let d = (px - poly[0].x)**2 + (py - poly[0].y)**2, s = 1;
+    for (let i = 0, j = n - 1; i < n; j = i++){
+      const ex = poly[j].x - poly[i].x, ey = poly[j].y - poly[i].y, wx = px - poly[i].x, wy = py - poly[i].y;
+      const t = Math.max(0, Math.min(1, (wx*ex + wy*ey)/(ex*ex + ey*ey))), bx = wx - ex*t, by = wy - ey*t;
+      d = Math.min(d, bx*bx + by*by);
+      const c0 = poly[i].y >= py, c1 = poly[j].y < py, c2 = ex*wy > ey*wx;
+      if ((c0 && c1 && c2) || (!c0 && !c1 && !c2)) s = -s;
+    }
+    return s*Math.sqrt(d);
+  };
+  const cyl = (p, x0, x1, r) => { const a = Math.abs(p.x - (x0 + x1)/2) - (x1 - x0)/2, b = Math.hypot(p.y, p.z) - r; return Math.min(Math.max(a, b), 0) + Math.hypot(Math.max(a, 0), Math.max(b, 0)); };
+  const lever = new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + 0.05);
+  const frame = p => { const q = sdPoly(p.x, p.y), c = Math.abs(p.z) - zh; return Math.min(Math.max(q, c), 0) + Math.hypot(Math.max(q, 0), Math.max(c, 0)); };   // the frame
+  const rest = p => {
+    let d = cyl(p, -0.32, 0, 0.15);                                                          // the anvil
+    d = Math.min(d, cyl(p, D.hubR - 0.01, D.hubR + 0.09, 0.33));                             // the hub ring
+    d = Math.min(d, cyl(p, D.hubR, S0 + 1.1, SLV_R));                                        // the sleeve
+    d = Math.min(d, cyl(p, tx + face, tx + 0.95, SP_R));                                     // the spindle
+    d = Math.min(d, cyl(p, tx, tx + 1.13, KN_R + 0.003));                                    // the thimble
+    d = Math.min(d, cyl(p, tx + 1.12, tx + 1.645, 0.27));                                    // the ratchet
+    d = Math.min(d, p.distanceTo(lever) - 0.15);                                             // the spindle lock
+    return d;
+  };
+  const all = p => Math.min(frame(p), rest(p));
+  all.frame = frame; all.rest = rest;      // (a hand can be asked to touch the frame only)
+  return all;
+}
+// the part between the faces, as a box (or where one would be, when there is none)
+function guidePartBox(){
+  const b = partG ? new T.Box3().setFromObject(partG) : new T.Box3();
+  if (!b.isEmpty() && isFinite(b.min.x)) return b;
+  const x0 = 0, x1 = thG.position.x + (B - S0);
+  return new T.Box3(new T.Vector3(Math.min(x0, x1), -0.3, -0.3), new T.Vector3(Math.max(x0, x1) + 0.3, 0.3, 0.3));
+}
+const boxDist = (b, p) => { const dx = Math.max(b.min.x - p.x, 0, p.x - b.max.x), dy = Math.max(b.min.y - p.y, 0, p.y - b.max.y), dz = Math.max(b.min.z - p.z, 0, p.z - b.max.z); return Math.hypot(dx, dy, dz); };
+// what each hand is after, as a cost (0 is a perfect grip)
+function holdCosts(){
+  const D = dims(), sdf = toolSDF(), rc = guideRatchetCenter(), bottom = D.bottom, cx = D.cx, zf = 0.2*D.zs;
+  const V = () => new T.Vector3(), tt = V(), ti = V(), heel = V(), pc = V(), tp = V(), nq = V(), dq = V();
+  const tipR = (h, n) => h.tipRadius(n)*0.95;
+  const shared = (h, s) => 120*h.penetration(s, 0.01);
+  const tuck = (h, names, c0) => { let c = 0; for (const n of names){ const j = h.fingers[n].joints; for (let i = 0; i < 2; i++) c += c0*Math.max(0, 1.1 - j[i].rotation.x)**2; } return c; };
+  // option 1, right hand: only the thumb, first finger and middle finger turn the ratchet (the thumb on top, the other two under it, one
+  // a little round the front of it); the ring and little finger are clenched into the palm, the heel of the hand out to the right
+  const R1 = h => {
+    const a = 20*Math.PI/180, b = 70*Math.PI/180, rt = tipR(h, 'thumb'), ri = tipR(h, 'index'), rm = tipR(h, 'middle');
+    const Tt = V().set(rc.x, rc.y + (0.27 + rt)*Math.cos(a), rc.z + (0.27 + rt)*Math.sin(a)), Ti = V().set(rc.x, rc.y - (0.27 + ri)*Math.cos(a), rc.z + (0.27 + ri)*Math.sin(a));
+    const Tm = V().set(rc.x, rc.y - (0.27 + rm)*Math.cos(b), rc.z + (0.27 + rm)*Math.sin(b));
+    h.tip('thumb', tt); h.tip('index', ti); h.tip('middle', tp); h.at(0, 0.3, 0, heel);
+    let c = 25*(tt.distanceToSquared(Tt) + ti.distanceToSquared(Ti) + tp.distanceToSquared(Tm)) + shared(h, sdf) + 5*(Math.max(0, rc.x + 1.0 - heel.x)**2 + Math.max(0, heel.y - (rc.y - 0.2))**2);
+    for (const n of ['ring', 'pinky']){ const j = h.fingers[n].joints, w = [1.4, 1.65, 1.35]; for (let i = 0; i < 3; i++) c += 3*Math.max(0, w[i] - j[i].rotation.x)**2; }
+    return c;
+  };
+  // option 1, left hand: the palm is under the left side of the frame, face up, with the frame resting on it; the fingers go back and
+  // curl up round the back of the frame, and the thumb rests on the front of it. They touch the frame and nothing else of the tool.
+  const L1 = h => {
+    h.tip('thumb', tt); h.at(0, 0.3, 0, heel); h.at(0, 1.9, 0, pc);
+    const k = h.group.scale.x, Tt = V().set(cx - 0.2, bottom + 0.3, zf + tipR(h, 'thumb'));
+    let c = 30*tt.distanceToSquared(Tt) + shared(h, sdf) + 60*h.penetration(sdf.rest, 0.2);
+    c += 12*((pc.x - (cx - 0.55))**2 + (pc.y - (bottom - 0.5*k - 0.04))**2) + 4*pc.z**2;
+    nq.set(0, 0, 1).applyQuaternion(h.group.quaternion); dq.set(0, 1, 0).applyQuaternion(h.group.quaternion);
+    c += 14*Math.max(0, 0.92 - nq.y)**2 + 8*Math.max(0, dq.z + 0.55)**2;
+    for (const n of ['index', 'middle', 'ring', 'pinky']){
+      h.tip(n, tp);
+      c += 4*Math.max(0, tp.z + 0.35)**2 + 10*Math.max(0, sdf.frame(tp) - tipR(h, n) - 0.05)**2 + 2*Math.max(0, (bottom + 0.15) - tp.y)**2 + 2*Math.max(0, tp.y - (bottom + 1.9))**2 + 2*Math.max(0, Math.abs(tp.x - (cx - 0.3)) - 1.5)**2;
+    }
+    return c;
+  };
+  // option 2, right hand: frame in the palm (the heel of the hand under the frame), the last fingers round the front of the frame by the anvil,
+  // the thumb and first finger along the barrel up to the ratchet
+  // (the hand stays behind the frame and barrel, so the scale faces the viewer: nothing may be in front of the sleeve and thimble)
+  const keep = new T.Box3(new T.Vector3(D.hubR - 0.3, -0.75, 0.12), new T.Vector3(thG.position.x + 1.15, 0.75, 3));
+  const sdfR2 = p => Math.min(sdf(p), boxDist(keep, p));
+  const R2 = h => {
+    const rt = tipR(h, 'thumb'), ri = tipR(h, 'index');
+    const Ti = V().set(rc.x, rc.y + (0.27 + ri)*0.95, rc.z + (0.27 + ri)*0.3), Tt = V().set(rc.x, rc.y - (0.27 + rt)*0.8, rc.z + (0.27 + rt)*0.6);
+    h.tip('thumb', tt); h.tip('index', ti); h.at(0, 0.3, 0, heel); h.at(0, 1.9, 0, pc);
+    let c = 25*(tt.distanceToSquared(Tt) + ti.distanceToSquared(Ti)) + shared(h, sdfR2) + 8*Math.max(0, pc.z + 0.35)**2;
+    c += 8*Math.max(0, sdf(pc) - 0.6*h.group.scale.x - 0.08)**2 + 6*(Math.max(0, heel.y - (bottom + 0.2))**2 + Math.max(0, Math.abs(heel.x - (cx + 0.4)) - 1.0)**2);
+    for (const n of ['middle', 'ring', 'pinky']){
+      const j = h.fingers[n].joints; for (let i = 0; i < 2; i++) c += 1.5*Math.max(0, 1.25 - j[i].rotation.x)**2;
+      h.tip(n, tp); c += 4*Math.max(0, (zf + 0.08) - tp.z)**2 + 2*((tp.x - (cx - 0.9))**2 + (tp.y - (bottom + 1.2))**2)*0.5;
+    }
+    return c;
+  };
+  // option 2, left hand: thumb on top of the part, first finger under it, near its free end (the end sticking out toward the viewer, if it is long),
+  // the others tucked, the heel of the hand up, to the left and toward the viewer
+  const box = guidePartBox(), bc = box.getCenter(V()), hz = (box.max.z - box.min.z)/2;
+  const pz = hz > 0.55 ? (box.max.z > -box.min.z ? box.max.z - 0.4 : box.min.z + 0.4) : bc.z;
+  const L2 = (h, other) => {
+    const sd = p => Math.min(sdf(p), boxDist(box, p), other ? other(p) : 1e9);
+    const rt = tipR(h, 'thumb'), ri = tipR(h, 'index');
+    const Tt = V().set(bc.x, box.max.y + rt, pz), Ti = V().set(bc.x, box.min.y - ri, pz);
+    h.tip('thumb', tt); h.tip('index', ti); h.at(0, 0.3, 0, heel);
+    let c = 25*(tt.distanceToSquared(Tt) + ti.distanceToSquared(Ti)) + shared(h, sd);
+    c += 5*(Math.max(0, heel.x - (bc.x - 0.3))**2 + Math.max(0, (box.max.y + 0.8) - heel.y)**2 + (pz >= 0 ? Math.max(0, (pz + 0.5) - heel.z)**2 : Math.max(0, heel.z - (pz - 0.5))**2)) + tuck(h, ['middle', 'ring', 'pinky'], 0.3);
+    return c;
+  };
+  return { R1, L1, R2, L2, base: { frame: { pos: new T.Vector3(cx, bottom, 0), quat: new T.Quaternion() }, ratchet: { pos: rc.clone(), quat: new T.Quaternion() }, part: { pos: bc.clone(), quat: new T.Quaternion() } } };
+}
+function buildGuideHands(){
+  const H = window.__hands(T);
+  const sc = GH.scale*(1 + 0.06*B);                       // a bigger frame is a bigger tool: the hands grow a little with it
+  const L = H.hand({ left: true, scale: sc }), R = H.hand({ scale: sc });
+  const holder = new T.Group(); holder.add(L.group, R.group);
+  holder.userData.for = ratchetG;
+  const g = { group: holder, L, R, userData: { for: ratchetG }, k: 0, rc0: new T.Vector3(), pb0: new T.Vector3(), still: 0 };
+  g.place = () => {
+    holder.updateMatrixWorld(true);
+    const C = holdCosts(), opt = guideHandsOpt;
+    ratchetG.rotation.x = 0; g.k = 0;
+    if (opt === 1){
+      H.fit(L, C.base.frame, C.L1, { init: GH.L1, good: 0.5 });
+      H.fit(R, C.base.ratchet, C.R1, { init: GH.R1, good: 3 });
+    } else {
+      H.fit(R, C.base.frame, C.R2, { init: GH.R2, good: 30 });
+      const rs = R.solid();   // (the right hand is where it is: the left keeps out of it)
+      const r = H.fit(L, C.base.part, h => C.L2(h, rs), GH.L2 ? { init: GH.L2, iters: 1500, good: 1 } : { restarts: 3, iters: 1500 });
+      g.fitL2 = r.x;
+    }
+    L.rebuild(); R.rebuild();
+    g.rc0.copy(guideRatchetCenter()); g.pb0.copy(guidePartBox().getCenter(new T.Vector3())); g.still = 0;
+    renderer.shadowMap.needsUpdate = true;
+  };
+  g.fitBox = () => {
+    const b = new T.Box3(), p = new T.Vector3();
+    [L, R].forEach(h => { ['index', 'middle', 'pinky', 'thumb'].forEach(n => b.expandByPoint(h.tip(n, p))); b.expandByPoint(h.at(0, 0.3, 0, p)); b.expandByPoint(h.at(0, 1.9, 0, p)); });
+    return b.expandByScalar(0.9*sc);   // (room for the backs of the hands)
+  };
+  scene.add(holder);
+  holder.updateMatrixWorld(true);
+  g.place();
+  return g;
+}
+// The hands show up two ways: in "Show me" (the step asks for them; the person can hide them there, and that is remembered), and on
+// their own, from the Hands button, any time outside "Show me" (handsFree). The button is always there.
+function guiding(){ return document.body.classList.contains('guiding'); }
+function handsShown(){ return guideHandsOn ? !guideHandsOff : (handsFree && !guiding()); }
+function syncHandsBtn(){
+  const b = document.getElementById('handsBtn'); if (!b) return;
+  const show = guideHandsOn ? !guideHandsOff : handsFree;
+  b.style.display = '';
+  b.setAttribute('aria-pressed', String(show));
+  const s = b.querySelector('span'); if (s) s.textContent = show ? 'Hide hands' : 'Show hands';
+  document.dispatchEvent(new CustomEvent('hands-visibility'));
+}
+// bring the 3D hands in line with what is wanted: built and fitted when shown, put away when not
+function applyHands(){
+  if (!handsShown()){
+    guideHandsLoop++;
+    if (guideHands){ guideHands.group.visible = false; guideHands.k = 0; }
+    if (ratchetG) ratchetG.rotation.x = 0;
+    syncHandsBtn(); renderer.shadowMap.needsUpdate = true; dirty = true; return;
+  }
+  if (!window.__hands) return;
+  if (guideHands && guideHands.userData.for !== ratchetG){ scene.remove(guideHands.group); guideHands = null; }
+  if (!guideHands) guideHands = buildGuideHands(); else guideHands.place();
+  guideHands.group.visible = true;
+  syncHandsBtn();
+  setView('iso');   // (the camera fits the grip too)
+  runGuideHands();
+  renderer.shadowMap.needsUpdate = true; dirty = true;
+}
+{ const b = document.getElementById('handsBtn'); if (b) b.addEventListener('click', () => {
+  if (guideHandsOn) window.__guideHandsHide(!guideHandsOff);
+  else { handsFree = !handsFree; applyHands(); }
+}); }
+{ const c = document.getElementById('handsChk'); if (c){ c.checked = !guideHandsOff; c.addEventListener('change', () => window.__guideHandsHide(!c.checked)); document.addEventListener('hands-visibility', () => { c.checked = !guideHandsOff; }); } }
+window.__guideHands = on => {
+  const was = guideHandsOn;
+  guideHandsOn = !!on;
+  if (!on && !was && !handsFree){ syncHandsBtn(); return; }   // (a step with no hands, and none showing: nothing to do)
+  if (!on && !was && guiding()) return;                        // (free hands stay put during the walkthrough's other steps)
+  applyHands();
+};
+// the hands can be hidden in "Show me" (the choice is remembered); the camera then fits the tool alone
+window.__guideHandsHidden = () => guideHandsOff;
+window.__guideHandsHide = hide => {
+  guideHandsOff = !!hide;
+  try { localStorage.setItem('pt-hands-off', guideHandsOff ? '1' : '0'); } catch (e) {}
+  if (!guideHandsOn){ syncHandsBtn(); return; }
+  applyHands();
+  setView('iso');
+};
+// which way to hold it: 1 or 2 (the choice is remembered)
+window.__guideHandsOption = () => guideHandsOpt;
+window.__guideHandsSetOption = n => {
+  guideHandsOpt = n === 2 ? 2 : 1;
+  try { localStorage.setItem('pt-hold-opt', String(guideHandsOpt)); } catch (e) {}
+  document.dispatchEvent(new CustomEvent('hands-visibility'));
+  if (!guideHands || !handsShown()) return;
+  guideHands.place(); runGuideHands(); setView('iso'); dirty = true;
+};
+syncHandsBtn();
+let guideHandsLoop = 0;
+function runGuideHands(){
+  const id = ++guideHandsLoop, t0 = performance.now(), V3 = new T.Vector3();
+  const step = t => {
+    if (id !== guideHandsLoop || !handsShown() || !guideHands || !guideHands.group.visible) return;
+    if (guideHands.userData.for !== ratchetG){ applyHands(); return; }   // (the frame was changed: the hands are made again)
+    const rc = guideRatchetCenter(), g = guideHands, pb = guidePartBox().getCenter(V3);
+    const dx = rc.x - g.rc0.x, moved = Math.abs(dx) > 1e-4 || pb.distanceTo(g.pb0) > 1e-3;
+    if (moved){        // the thimble is travelling (or the part): the grip is fitted again once it stops
+      if (guideHandsOpt === 1 && Math.abs(dx) > 1e-4) g.R.group.position.x += dx;
+      g.rc0.copy(rc); g.pb0.copy(pb); g.still = t;
+    } else if (g.still && t - g.still > 350){ g.place(); }
+    if (guideHandsOpt === 1 && !moved){
+      // the right hand turns with the ratchet about its axis, a little at a time, back and forth
+      const k = Math.sin((t - t0)/1000*2.0)*GH.turn, dk = k - g.k;
+      const q = new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), dk);
+      const rel = g.R.group.position.clone().sub(rc).applyQuaternion(q);
+      g.R.group.position.copy(rc).add(rel);
+      g.R.group.quaternion.premultiply(q);
+      ratchetG.rotation.x += dk; g.k = k;
+    }
+    dirty = true;
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 // the middle of the ratchet itself (not the band or the glow on it)
 function guideRatchetCenter(){
   const b = new T.Box3();
@@ -3090,6 +3386,51 @@ window.__guideRefit = () => {
   if (drag || state.anim || vernAimed < 0 || Math.round(state.reading*1e4) === vernAimed) return;
   aimVernier();
 };
+// The Telescopic gauge lab hands over a gauge it has locked (length in millimetres): the micrometer whose frame
+// holds that size is built, with the gauge on it at exactly that length. The shell calls this once the tool has loaded.
+// With opts.hold, the gauge is built and set down by the faces but kept out of sight (and not measured) until __tgReveal: the lab's own
+// gauge flies over to the spot __tgSpot gives, and this one takes over exactly there.
+window.__tgLoad = (p, opts) => {
+  if (!p || !(p.mm > 0)) return;
+  tgHold = !!(opts && opts.hold); tgNat = false; tgPend = null;
+  tgGaugeIdx = window.__TG ? window.__TG.GAUGES.findIndex(g => g.name === p.gauge) : -1; tgLen = Math.round(p.mm/25.4*1e4)/1e4;
+  const inch = p.mm/25.4, nb = Math.max(0, Math.min(3, Math.floor(inch + 1e-9)));
+  if (state.practice) setPractice(false);
+  forcedVals = { key: 'tgauge', vals: { len: inch } };
+  state.sampleKey = 'tgauge';
+  const done = () => {
+    $('sampleSel').value = 'tgauge'; setView('iso');
+    // the gauge slides in between the faces and the spindle comes down onto its heads, ready to read
+    const msg = () => { goToFeature('len', true); updateAll(); toast('From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Read the length across its heads, with a light touch.'); };
+    partReady.then(() => { if (state.sample && state.sample.key === 'tgauge'){ if (tgGhost) tgPend = msg; else msg(); } });
+  };
+  if (nb !== B) swapRange(nb, done); else { newSample('tgauge'); done(); }
+};
+
+// Where the gauge is, as this window's camera sees it: where its origin (the middle of the cross-bar) falls on screen, how many pixels a
+// millimetre is there, and which way its cross-bar and handle point (unit vectors in the camera's own axes). The lab's gauge flies to
+// exactly this and turns to match, so it is the same gauge that goes on being measured.
+function tgPose(obj, axisLocal, handleLocal){
+  if (!obj) return null;
+  obj.updateWorldMatrix(true, true); camera.updateMatrixWorld(true);
+  const r = renderer.domElement.getBoundingClientRect(), v = new T.Vector3();
+  const scr = p => { v.copy(p).project(camera); return [r.left + (v.x + 1)/2*r.width, r.top + (1 - v.y)/2*r.height]; };
+  const o = new T.Vector3().setFromMatrixPosition(obj.matrixWorld), right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  const [x, y] = scr(o), [x2, y2] = scr(o.clone().addScaledVector(right, 1/25.4));   // (the scene is in inches)
+  const qi = camera.quaternion.clone().invert();
+  const dir = l => { const d = l.clone().transformDirection(obj.matrixWorld).applyQuaternion(qi); return [d.x, d.y, d.z]; };
+  // how this camera's perspective leans things at that spot (the slope of the ray through it): the lab's gauge is drawn by another camera, and needs it to look the same
+  const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
+  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
+}
+window.__tgSpot = () => (state.sample && state.sample.key === 'tgauge' && tgLab &&Math.abs((state.sample.vals && state.sample.vals.len) - tgLen) < 1e-3 && tgVis && !partWait) ? tgPose(tgVis, new T.Vector3(1, 0, 0), new T.Vector3(0, 1, 0)) : null;
+// the lab's gauge has landed on this one (it stays drawn over it): start measuring it
+window.__tgReveal = () => { const go = tgPend; tgPend = null; if (go) go(); };
+// the lab's gauge can't be drawn over this one any more (the part changed, or the pose was lost): show this one's own
+window.__tgShow = () => { if (tgVis && tgGhost){ ghostGauge(tgVis, false); tgGhost = false; invalidate(); } };
+// the lab's gauge has landed: this view draws it itself from now on (same camera, light, depth and shadows as the micrometer, so it sits
+// between the faces as a real object would). Says whether it could.
+window.__tgNative = () => { if (!tgVis || !tgLab) return false; window.__tgShow(); tgNat = true; invalidate(); return true; };
 // "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
 // reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
 window.__guideSpot = name => {
@@ -3182,10 +3523,11 @@ function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   atlas =makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
   controls = new T.OrbitControls(camera, el);
-  controls.enableDamping = true; controls.dampingFactor = 0.14;
+  controls.enableDamping = true; controls.dampingFactor = 0.09;
   if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, el);   // turn round what is under the pointer (js/pivot.js)
   controls.screenSpacePanning = true;
   controls.minZoom = 0.3; controls.maxZoom = 60; controls.zoomSpeed = 1.3;
+  sv = window.__smoothView ? window.__smoothView({ camera, controls, el, wake: () => invalidate() }) : null;
   controls.addEventListener('start', () => { camTween = null; if (state.exam && controls.autoRotate) setSpin(false); });
   controls.addEventListener('change', invalidate);
   bindUI();
@@ -3193,6 +3535,15 @@ function start(){
   setRange(0);
   bindFinish();
   setView('iso', true);
+  // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
+  if (window.__holo) window.__holo.attach({ THREE: T, select: $('sampleSel'),
+    caption: v => CORE.DEFS[v] ? [CORE.DEFS[v].name, 'Frame ' + B + '–' + (B + 1) + '″'] : ['No sample', ''],
+    build: v => {
+      if (!CORE.DEFS[v]) return null;
+      const S = CORE.makeSample(v, B, Math.random), g = new T.Group();
+      if (S.prims.length > 1) g.add(wholeMesh(S.prims)); else S.prims.forEach(p => g.add(primMesh(p)));
+      return g;
+    } });
   window.__load ? window.__load.done() : $('loading').remove();
   Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });   // builds in now, and goes and comes back as tools are switched
 

@@ -79,8 +79,8 @@
   window.addEventListener('resize', closeOpen);
 })();
 
-// the realistic finish setting, easy to find: a lit row at the top of its section, and a button
-// with the view buttons over the 3D view that works the same checkbox
+// Shop graphics, easy to find: a lit row at the top of its section, and a button with the view buttons over the 3D view that works
+// the same checkbox. On: the realistic machine-shop look (real metal finishes, a ground surface plate under the tool). Off: plain solid colours.
 (function(){
   const chk = document.getElementById('realChk'); if (!chk) return;
   const row = chk.closest('label'), note = row.nextElementSibling, sec = row.closest('section');
@@ -89,14 +89,19 @@
   sec.insertBefore(row, h2 ? h2.nextSibling : sec.firstChild);
   if (note && note.classList.contains('note')){ note.classList.add('real-note'); row.after(note); }
   const views = document.querySelector('#view .views'); if (!views) return;
+  if (!document.getElementById('sgStyle')){
+    const st = document.createElement('style'); st.id = 'sgStyle';
+    st.textContent = '.ib.shop-gfx{width:auto;padding:0 12px 0 10px;gap:7px;display:inline-flex;align-items:center;justify-content:center;font:500 12.5px/1 "Inter",system-ui,sans-serif;letter-spacing:0}.ib.shop-gfx i{font-size:14px}.ib.shop-gfx span{white-space:nowrap}';
+    document.head.appendChild(st);
+  }
   const b = document.createElement('button');
-  b.type = 'button'; b.className = 'ib'; b.id = 'realBtn';
-  b.innerHTML = '<i class="fa-solid fa-gem"></i>';
+  b.type = 'button'; b.className = 'ib shop-gfx'; b.id = 'realBtn';
+  b.innerHTML = '<i class="fa-solid fa-industry" data-icon="industry"></i><span>Shop graphics</span>';
   views.appendChild(b);
   const sync = () => {
-    const on = chk.checked, t = on ? 'Clear markings' : 'Realistic metal finish';
-    b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', t);
-    b.dataset.tip = t + (on ? '\nBack to plain, easy-to-read surfaces.' : '\nShows the real turning and grinding marks.');
+    const on = chk.checked;
+    b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', 'Shop graphics: ' + (on ? 'on' : 'off'));
+    b.dataset.tip = 'Shop graphics: ' + (on ? 'on' : 'off') + (on ? '\nThe real machine-shop look. Click for plain solid colours.' : '\nMakes everything look like the real thing in a machine shop.');
   };
   b.addEventListener('click', () => { chk.checked = !chk.checked; chk.dispatchEvent(new Event('change', { bubbles: true })); sync(); });
   chk.addEventListener('change', sync);

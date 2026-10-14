@@ -121,12 +121,19 @@ rim.position.copy(CENTER).add(new T.Vector3(2, 6, -12));
 const ground = new T.Mesh(new T.PlaneGeometry(80, 80), new T.ShadowMaterial({ opacity: 0.35 }));
 ground.rotation.x = -Math.PI / 2; ground.position.set(CENTER.x, -2.9, 0); ground.receiveShadow = true;
 scene.add(ground);
+// Shop graphics: a precision-ground surface plate under the tool (js/plate.js) while it is on; plain shadow only when it is off
+// (built the first time it is needed: its textures take a while to paint, and most visits never turn Shop graphics on)
+let shopTable = null;
+function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4); t.position.set(CENTER.x, -2.935, 0); { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.bumpScale = 0.04; top.envMapIntensity = 0.3; top.color.setRGB(0.28, 0.285, 0.3); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); return shopTable; }
+try { if (localStorage.getItem('pt-real-finish') === '1') makeShopTable(); } catch (e) {}
+function shopTableOpts(){ if (realFinish) makeShopTable(); return shopTable ? (realFinish ? { show: [shopTable] } : { hide: [shopTable] }) : {}; }
 
 let booted = false;
+let rsW = 0, rsH = 0, rsD = 0;
 function resize() {
   const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-  renderer.setPixelRatio(dprCur);
-  renderer.setSize(w, h, false);
+  // (setting the canvas size, even to what it already is, throws its pixels away and makes them again: only when it really changed)
+  if (w !== rsW || h !== rsH || dprCur !== rsD){ rsW = w; rsH = h; rsD = dprCur; renderer.setPixelRatio(dprCur); renderer.setSize(w, h, false); }
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   // resizing clears the canvas, so draw straight away rather than show a blank frame (not while loading:
@@ -643,10 +650,10 @@ const wheel = new THREE.Group(); wheel.position.set(2.5, -0.44, 0); wheel.userDa
 })();
 
 
-/* ---------- clear markings by default; the realistic metal finish is a setting ----------
+/* ---------- clear markings by default; Shop graphics is a setting ----------
    The turned and brushed finish puts streaks and reflections behind the graduations and makes them
    harder to read, so by default the surfaces that carry markings are a plain, even matte grey.
-   "Realistic metal finish" in the sidebar brings the real finish back; the choice is remembered. */
+   "Shop graphics" in the sidebar brings the real finish back; the choice is remembered. */
 const CLEAR_MATS = () => [[steel, 0xd3d6da], [steelV, 0xd3d6da], [steelSlider, 0xc9cdd1], [vernPlateMat, 0xe4e6e9]];
 let realFinish = false;
 try { realFinish = localStorage.getItem('pt-real-finish') === '1'; } catch (e) {}
@@ -669,8 +676,13 @@ function applyFinish() {
 }
 function bindFinish() {
   const c = document.getElementById('realChk');
-  c.checked = realFinish;
-  c.addEventListener('change', () => { realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {} applyFinish(); });
+  c.checked = realFinish; if (realFinish) makeShopTable(); if (shopTable) shopTable.visible = realFinish;
+  c.addEventListener('change', () => {
+    realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {}
+    // the new look is painted over the old one, sweeping across the tool, and nothing disappears (js/dissolve.js)
+    const fx = window.__toolFx;
+    if (fx) fx.paint(applyFinish, shopTableOpts()); else { applyFinish(); if (realFinish) makeShopTable(); if (shopTable) shopTable.visible = realFinish; }
+  });
   applyFinish();
 }
 
@@ -683,6 +695,7 @@ const M = {
   aluGreen: new THREE.MeshStandardMaterial({ color: 0x4f9670, metalness: 0.5, roughness: 0.45, side: THREE.DoubleSide }),
   steelBar: new THREE.MeshStandardMaterial({ color: 0xaeb3b8, metalness: 0.95, roughness: 1, map: brushMap, roughnessMap: brushRough, bumpMap: brushRough, bumpScale: 0.3 }),
   blue: new THREE.MeshStandardMaterial({ color: 0x5b9dff, metalness: 0.2, roughness: 0.5 }),
+  dark: new THREE.MeshStandardMaterial({ color: 0x23282e, metalness: 0.6, roughness: 0.5, side: THREE.DoubleSide }),
 };
 // parts get a shop-floor finish: grey metal that scatters most of the light, with soft broad
 // highlights, instead of a chrome mirror of the dark room. Only lapped faces stay fairly bright.
@@ -746,6 +759,16 @@ const PARTS = {
       const g = new THREE.Group();
       g.add(mesh(zAxis(new THREE.LatheGeometry(V2([[ri, -L / 2], [ro, -L / 2], [ro, L / 2], [ri, L / 2], [ri, -L / 2]]), 96)), M.alu));
       return { obj: g, ext: D };
+    } },
+
+  tgauge: { tool: 'od', label: 'Telescopic gauge', what: 'locked length across the heads', range: [0.33, 5.9], keep: true,
+    hint: 'Close the outside jaws on the two round heads, not on the tube.',
+    build(L) {
+      // (drawn as the very gauge the lab handed over, by its letter, even when its length is on the edge between two gauges' ranges)
+      const TG = window.__TG; if (tgGaugeIdx >= 0) TG.force(tgGaugeIdx);
+      let made; try { made = TG.group(THREE, L*25.4, TG.materials(THREE), { handle: 'down' }); } finally { TG.force(-1); }
+      const { obj, hr } = made;
+      return { obj, ext: Math.max(0.5, 2*hr) };
     } },
 
   ring: { tool: 'id', label: 'Ring gauge', what: 'bore', range: [0.5, 2.0], hint: 'Open the inside jaws until they touch the bore.',
@@ -1264,6 +1287,18 @@ function hullMat(tool) {
     side: T.BackSide, clipping: true, clippingPlanes: secPlanes()
   }));
 }
+let autoAfter = false;   // a gauge from the lab is measured as soon as it is on the caliper
+let tgHeld = false;      // ...unless the lab's own gauge is being drawn over this one: it flies in and stays the gauge on the caliper
+let tgGhost = false;     // (this part is then only a stand-in: it measures and casts its shadow, and the lab's gauge is what is seen)
+const GHOST_MAT = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+function ghostPart(obj, on){
+  obj.traverse(o => {
+    if (!o.isMesh || o.userData.hull || o.userData.cap) return;
+    if (on){ if (!o.userData.realMat) o.userData.realMat = o.material; o.material = GHOST_MAT; }
+    else if (o.userData.realMat){ o.material = o.userData.realMat; o.userData.realMat = null; }
+  });
+}
+let forcedSize = null;   // a size handed in from the telescopic gauge lab (inches) instead of a random one
 function buildSample(type) {
   if (sample.obj) {
     // the old part dissolves out where it was (one still waiting off the caliper, or one already dissolved
@@ -1274,13 +1309,14 @@ function buildSample(type) {
   sample = { type, tool: null, size: 0, obj: null };
   const def = PARTS[type];
   if (!def) { refreshPartCard(); return; }
-  const size = rnd(...def.range);
+  const size = forcedSize != null && type === 'tgauge' ? forcedSize : rnd(...def.range);
+  forcedSize = null;
   const { obj, ext } = def.build(size);
   // a part made of several pieces is merged into one solid (one mesh, one finish)
   {
     const solids = []; obj.updateMatrixWorld(true);
     obj.traverse(o => { if (o.isMesh && !o.material.transparent) solids.push(o); });
-    if (solids.length > 1){
+    if (solids.length > 1 && !def.keep){
       const geos = solids.map(o => { const g = (o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone()).applyMatrix4(o.matrixWorld);
         Object.keys(g.attributes).forEach(k => { if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k); });
         if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count*2), 2));
@@ -1823,7 +1859,8 @@ function updateUI() {
 }
 
 /* ================================================================== camera views */
-let controls, camTween = null;
+let controls, sv = null, camTween = null;   // (sv: the smooth wheel zoom, js/smooth.js)
+let wheelSkip = () => false;               // true when the wheel is over the thumb wheel, which turns it instead of zooming
 function showAns() { return !state.practice || state.pRevealed; }
 function viewFor(name) {
   // portrait screens need extra distance so the whole caliper, jaws to depth rod, stays in frame
@@ -2070,7 +2107,7 @@ function setExam(on) {
   document.body.classList.toggle('exam', on);
   if (on) {
     if (state.practice) setPractice(false);
-    closeTut();
+
     examTags = examList().map(([title, sub]) => { const t = makeTag(false); t.b.textContent = title; t.sm.textContent = sub; return t; });
     setSpin(true); setLabels(true);
   } else {
@@ -2361,7 +2398,7 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   const LEN = m => m % 10 === 0 ? 42 : m % 5 === 0 ? 30 : 20;
   for (let m = Math.max(0, Math.floor(P - ex / k)); m <= Math.min(180, Math.ceil(P + (W - ex) / k)); m++) {
     const x = Xm(m), isT = show && hl.tenth && m === M.whole, isV = show && hl.vern && m === jm;
-    seg(x, yE, x, yE + LEN(m), isT || isV ? 2.4 : m % 5 === 0 ? 1.3 : 1, isV ? HLC.vern : isT ? HLC.tenth : '#111');
+    seg(x, yE, x, yE + LEN(m), isV ? 1.3 : isT ? 2.4 : m % 5 === 0 ? 1.3 : 1, isV ? HLC.vern : isT ? HLC.tenth : '#111');
     if (m % 10 === 0) {
       if (show && hl.inch && m / 10 === M.cm) { g.strokeStyle = HLC.inch; g.lineWidth = 2.5; g.strokeRect(x - 12, yE + 46, 24, 26); }
       txt(String(m / 10), x, yE + 59, 19, '#111');
@@ -2369,7 +2406,7 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   }
   for (let q = 0; q <= 20; q++) {
     const x = ex + q * 1.95 * k, isV = show && hl.vern && q === M.vern;
-    seg(x, yE, x, yE - (q % 2 === 0 ? 19 : 12), isV ? 2.6 : 1.1, isV ? HLC.vern : '#111');
+    seg(x, yE, x, yE - (q % 2 === 0 ? 19 : 12), 1.1, isV ? HLC.vern : '#111');
     if (q % 2 === 0) txt(String(q / 2), x, yE - 30, 10, '#111');
   }
   // the aligned line gets its own tag when it has no number printed
@@ -2407,14 +2444,14 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   for (let m = Math.floor(vC - 4); m <= Math.ceil(vC + 4); m++) {
     if (m < 0) continue;
     const x = Lx(m), hot = show && hl.vern && m === jm;
-    seg(x, lm, x, lm + 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm + 28, 1.6, hot ? HLC.vern : '#111');
     txt(String(m), x, lm + 40, hot ? 13 : m % 10 === 0 ? 12 : 10.5, hot ? HLC.vern : '#111');
   }
   for (let q = 0; q <= 20; q++) {
     const x = Lx(P + q * 1.95);
     if (x < -20 || x > W + 20) continue;
     const hot = show && hl.vern && q === M.vern;
-    seg(x, lm, x, lm - 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm - 28, 1.6, hot ? HLC.vern : '#111');
     txt(q % 2 === 0 ? String(q / 2) : '·', x, lm - 38, hot ? 13 : 12, hot ? HLC.vern : '#111');
   }
   const pill = (s, x, y, align) => {
@@ -2506,7 +2543,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   for (let i = Math.floor((vC - 0.05) / VDIV); i <= Math.ceil((vC + 0.05) / VDIV); i++) {
     if (i < 0) continue;
     const x = Lx(i * VDIV), hot = show && hl.vern && i === j;
-    seg(x, lm, x, lm - (i % 4 === 0 ? 28 : 20), hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm - (i % 4 === 0 ? 28 : 20), 1.6, hot ? HLC.vern : '#111');
     const lab = i % 40 === 0 ? i / 40 + '″' : i % 4 === 0 ? String((i / 4) % 10) : '';
     if (lab) txt(lab, x, lm - 40, hot ? 13 : 12, hot ? HLC.vern : '#111');
   }
@@ -2514,7 +2551,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
     const x = Lx(pos + m * VSTEP);
     if (x < -20 || x > W + 20) continue;
     const hot = show && hl.vern && m === A.vern;
-    seg(x, lm, x, lm + 28, hot ? 3.4 : 2.2, hot ? HLC.vern : '#111');
+    seg(x, lm, x, lm + 28, 1.6, hot ? HLC.vern : '#111');
     txt(String(m), x, lm + 40, hot ? 13 : 12, hot ? HLC.vern : '#111');
   }
   // labels on dark pills so the lines behind them never make them hard to read
@@ -2559,7 +2596,7 @@ function unstagePart() {
   if (!sample.staged) return;
   sample.staged = false;
   cal.add(sample.obj);
-  Dissolve.in(sample.obj, { frame: () => invalidate(120) });
+  if (!tgGhost) Dissolve.in(sample.obj, { frame: () => invalidate(120) });
   updateOutline();
   lastKey = ''; hlKey = ''; flatKey = '';
   frameForPart();   // the part is on the caliper now: frame the measuring
@@ -2583,8 +2620,10 @@ function newSample(type, then) {
     return;
   }
   if (state.sliderLocked) setSliderLock(false);
+  tgGhost = false;
   buildSample(type);
   const def = PARTS[type];
+  if (def && type === 'tgauge' && tgHeld && sample.obj){ tgGhost = true; ghostPart(sample.obj, true); }   // (tgHeld stays set until the person picks another part, so a second load in a row is no different from the first)
   if (def) {
     const to = clearTarget();
     if (partClear()) state.animQ = [{ to, speed: 6 }];
@@ -2593,11 +2632,56 @@ function newSample(type, then) {
   else setPos(state.pos, true);
   lastKey = ''; hlKey = ''; flatKey = '';
   if (def) toast(def.hint);
-  if (def && !sample.staged) Dissolve.in(sample.obj, { frame: () => invalidate(120) });   // already clear of the jaws: in it comes
+  if (def && !sample.staged && !tgGhost) Dissolve.in(sample.obj, { frame: () => invalidate(120) });   // already clear of the jaws: in it comes
   if (!def || !sample.staged) frameForPart();   // no part: back to the whole tool
   if (then) then();
+  if (autoAfter && type === 'tgauge'){ autoAfter = false; setTimeout(() => autoMeasure(), 500); }
 }
 function removePart() { $('sampleSel').value = 'none'; changePart('none'); }
+// The Telescopic gauge lab hands over a gauge it has locked (length in millimetres): it goes on the caliper at
+// exactly that size, ready to be measured. The shell calls this once the tool has loaded.
+// With opts.hold, the gauge is built and parked in its place but kept out of sight (and not measured) until __tgReveal: the lab's own
+// gauge flies over to the spot __tgSpot gives, and this one takes over exactly there.
+window.__tgLoad = function(p, opts) {
+  if (!p || !(p.mm > 0)) return;
+  if (state.practice) setPractice(false);
+  const hold = !!(opts && opts.hold);
+  tgHeld = hold;
+  autoAfter = !hold;
+  tgGaugeIdx = window.__TG ? window.__TG.GAUGES.findIndex(g => g.name === p.gauge) : -1;
+  forcedSize = Math.min(PARTS.tgauge.range[1] + 0.2, p.mm / 25.4);
+  tgSize = forcedSize;
+  $('sampleSel').value = 'tgauge';
+  changePart('tgauge');
+  if (!hold) setTimeout(() => toast('From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'), 900);
+  else tgNote = p.mm;
+};
+let tgNote = null, tgSize = 0, tgGaugeIdx = -1;   // tgGaugeIdx: which gauge of the set the lab handed over
+
+// Where the gauge is, as this window's camera sees it: where its origin (the middle of the cross-bar) falls on screen, how many pixels a
+// millimetre is there, and which way its cross-bar and handle point (unit vectors in the camera's own axes). The lab's gauge flies to
+// exactly this and turns to match, so it is the same gauge that goes on being measured.
+function tgPose(obj, axisLocal, handleLocal){
+  if (!obj) return null;
+  obj.updateWorldMatrix(true, true); camera.updateMatrixWorld(true);
+  const r = renderer.domElement.getBoundingClientRect(), v = new T.Vector3();
+  const scr = p => { v.copy(p).project(camera); return [r.left + (v.x + 1)/2*r.width, r.top + (1 - v.y)/2*r.height]; };
+  const o = new T.Vector3().setFromMatrixPosition(obj.matrixWorld), right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+  const [x, y] = scr(o), [x2, y2] = scr(o.clone().addScaledVector(right, 1/25.4));   // (the scene is in inches)
+  const qi = camera.quaternion.clone().invert();
+  const dir = l => { const d = l.clone().transformDirection(obj.matrixWorld).applyQuaternion(qi); return [d.x, d.y, d.z]; };
+  // how this camera's perspective leans things at that spot (the slope of the ray through it): the lab's gauge is drawn by another camera, and needs it to look the same
+  const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
+  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
+}
+window.__tgSpot = () => (sample.type === 'tgauge' && tgGhost && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;
+// the lab's gauge has landed on this one (it stays drawn over it): start measuring it
+window.__tgReveal = () => {
+  if (sample.type === 'tgauge' && sample.obj && tgGhost){ autoMeasure(); if (tgNote){ toast('From the gauge lab, locked at ' + tgNote.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'); tgNote = null; } }
+  else if (tgHeld){ tgHeld = false; autoAfter = true; }
+};
+// the lab's gauge can't be drawn over this one any more (the part changed, or the pose was lost): show this one's own
+window.__tgShow = () => { if (sample.type === 'tgauge' && sample.obj && tgGhost){ ghostPart(sample.obj, false); tgGhost = false; invalidate(120); } };
 // Changing the part: the caliper lets go of the old one first, the way you would by hand: outside jaws open a
 // little, inside jaws close a little, and the depth rod goes all the way back in. Then the old part dissolves
 // away and the new one comes in. Asking again while it is letting go just changes which part comes next.
@@ -2898,7 +2982,7 @@ function vizVern(A, Y) {
     if (xv < 2 || xv > W - 2) continue;
     if (isY) yVisible = true;
     const col = isA ? VZ.ok : isY ? VZ.bad : VZ.ink;
-    v.line(xv, edge, xv, edge + (hot ? 26 : m % 5 === 0 ? 20 : 14), col, hot ? 2.6 : 1.2, isY ? '4 3' : '');
+    v.line(xv, edge, xv, edge + (hot ? 26 : m % 5 === 0 ? 20 : 14), col, 1.2, isY ? '4 3' : '');
     if (m % 5 === 0 || hot) v.text(m, xv, edge + 38, { col, size: hot ? 12.5 : 10, weight: hot ? 700 : 600, maxShift: 8 });
   }
   v.text('Beam', 8, 10, { anchor: 'start', size: 9, col: VZ.mute, alts: [[0, 8]] });
@@ -2983,7 +3067,7 @@ function vizMMVern(A, Y) {
     if (xv < 2 || xv > W - 2) continue;
     if (isY) yVisible = true;
     const col = isA ? VZ.ok : isY ? VZ.bad : VZ.ink;
-    v.line(xv, edge, xv, edge + (hot ? 26 : m % 2 === 0 ? 20 : 14), col, hot ? 2.6 : 1.2, isY ? '4 3' : '');
+    v.line(xv, edge, xv, edge + (hot ? 26 : m % 2 === 0 ? 20 : 14), col, 1.2, isY ? '4 3' : '');
     if (m % 2 === 0 || hot) v.text(hot && m % 2 ? `line ${m}` : String(m / 2), xv, edge + 38, { col, size: hot ? 12.5 : 10, weight: hot ? 700 : 600, maxShift: 8 });
   }
   v.text('Millimeters', 8, 10, { anchor: 'start', size: 9, col: VZ.mute, alts: [[0, 8]] });
@@ -3109,12 +3193,6 @@ function checkPractice() {
 }
 
 /* ================================================================== tutorial */
-function openTut() { $('tut').hidden = false; $('tutClose').focus({ preventScroll: true }); $('tut').scrollTop = 0; }
-function closeTut() {
-  if ($('tut').hidden) return;
-  $('tut').hidden = true;
-  try { localStorage.setItem('caliper-tutorial-seen', '1'); } catch (e) {}
-}
 
 /* ================================================================== pointer */
 const pointer = new T.Vector2(), raycaster = new T.Raycaster();
@@ -3188,6 +3266,7 @@ function bindPointer() {
   const endDrag = e => { if (!drag) return; drag = null; canvas.style.cursor = 'grab'; try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
+  wheelSkip = e => { const p = pick(e); return !!(p && p.role === 'wheel'); };
   canvas.addEventListener('wheel', e => {
     const p = pick(e);
     if (!p || p.role !== 'wheel') return;
@@ -3247,7 +3326,7 @@ function bindUI() {
     const t = (5 + Math.floor(Math.random() * 36)) * (Math.random() < 0.5 ? -1 : 1);
     state.bezel = t / 100 * TAU; toast('Bezel knocked off zero — close the jaws and zero it');
   });
-  $('sampleSel').addEventListener('change', e => changePart(e.target.value));
+  $('sampleSel').addEventListener('change', e => { tgHeld = false; changePart(e.target.value); });
   $('newVals').addEventListener('click', () => changePart(sample.type));
   $('revealBtn').addEventListener('click', () => { state.revealed = !state.revealed; refreshPartCard(); });
   document.querySelectorAll('[data-hl]').forEach(c => c.addEventListener('change', () => { state.hl[c.dataset.hl] = c.checked; hlKey = ''; flatKey = ''; updateOutline(); }));
@@ -3266,9 +3345,6 @@ function bindUI() {
   $('exitExam').addEventListener('click', () => setExam(false));
   $('spinBtn').addEventListener('click', () => setSpin(!controls.autoRotate));
   $('labelsBtn').addEventListener('click', () => setLabels(!examLabels));
-  $('tutBtn').addEventListener('click', openTut);
-  $('tutClose').addEventListener('click', closeTut);
-  $('tut').addEventListener('click', e => { if (e.target.id === 'tut') closeTut(); });
   $('flatMaxBtn').addEventListener('click', () => setFlatMax(!flatMax));
   if (flatMax) setTimeout(() => setFlatMax(true), 0);
   $('flatBtn').addEventListener('click', () => {
@@ -3292,10 +3368,9 @@ function bindUI() {
   }
   bindSplit(); applyRH(); applySliderRange();
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeTut(); if (state.exam) setExam(false); return; }
+    if (e.key === 'Escape') {if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     const sm = state.fine ? FINE.key : 0.001, bg = state.fine ? FINE.keyBig : 0.01;
     let d = 0;
     if (e.key === 'ArrowRight') d = e.shiftKey ? bg : sm;
@@ -3353,7 +3428,7 @@ function loop(now) {
   if (state.cut) updateSection();
   const tweening = !!camTween;
   stepCam(dt);
-  const camMoved = controls.update() || tweening;
+  const cu = controls.update(), svMoved = sv ? sv.step() : false, camMoved = cu || tweening || svMoved;
   updateUI(); updateHighlights(); drawFlat();
   const sig = state.pos + '|' + state.bezel + '|' + lockTopKnob.rotation.y + '|' + lockBotKnob.rotation.y + '|' + state.cut + '|' + sample.type + '|' + sample.size;
   const changed = sig !== lastSig; lastSig = sig;
@@ -3449,9 +3524,10 @@ async function start() {
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   bindPointer();
   controls = new OrbitControls(camera, canvas);
-  controls.enableDamping = true; controls.dampingFactor = 0.12;
+  controls.enableDamping = true; controls.dampingFactor = 0.09;
   if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, canvas);   // turn round what is under the pointer (js/pivot.js)
   controls.minDistance = 1; controls.maxDistance = 60;
+  sv = window.__smoothView ? window.__smoothView({ camera, controls, el: canvas, skip: e => wheelSkip(e), wake: () => invalidate() }) : null;
   controls.addEventListener('start', () => { camTween = null; curView = null; if (state.exam && controls.autoRotate) setSpin(false); });
   bindUI();
   { const g = autoGfx(); $('gfxSel').value = g; applyGfx(g); }
@@ -3465,6 +3541,10 @@ async function start() {
   await new Promise(r => setTimeout(r));
   try { await renderer.compileAsync(scene, camera); } catch (e) {}
   booted = true;
+  // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
+  if (window.__holo) window.__holo.attach({ THREE, select: $('sampleSel'),
+    caption: v => PARTS[v] ? [PARTS[v].label, TOOL[PARTS[v].tool].name + ' · ' + PARTS[v].what] : ['No part', ''],
+    build: v => { const d = PARTS[v]; return d ? d.build((d.range[0] + d.range[1])/2).obj : null; } });
   window.__load ? window.__load.done() : $('loading').remove();
   Dissolve.tool(cal, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
 

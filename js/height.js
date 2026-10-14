@@ -120,10 +120,11 @@ scene.environmentIntensity = 0.7;
 const VIEW_H = 700, CAM_BACK = 4000;
 const camera = new T.OrthographicCamera(-1, 1, 1, -1, 1, 20000);
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; controls.dampingFactor = 0.1;
+controls.enableDamping = true; controls.dampingFactor = 0.09;
 if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, renderer.domElement);   // turn round what is under the pointer (js/pivot.js)
 controls.screenSpacePanning = true;
 controls.minZoom = 0.25; controls.maxZoom = 40;
+const sv = window.__smoothView ? window.__smoothView({ camera, controls, el: renderer.domElement, wake: () => invalidate() }) : null;   // the smooth wheel zoom (js/smooth.js)
 
 const key = new T.DirectionalLight(0xffffff, 1.35);
 key.position.set(260, 900, 520);
@@ -230,11 +231,13 @@ const M = {
 };
 M.knurl = knurlMat(22, 3);
 
-/* ---------- clear markings by default; the realistic metal finish is a setting ----------
+/* ---------- clear markings by default; Shop graphics is a setting ----------
    The turned and brushed finish puts streaks and reflections behind the graduations and makes them
    harder to read, so by default the surfaces that carry markings are a plain, even matte grey.
-   "Realistic metal finish" in the sidebar brings the real finish back; the choice is remembered. */
-const CLEAR_MATS = () => [[M.beam, 0xe2e4e7], [M.plate, 0xe8eaec]];
+   "Shop graphics" in the sidebar brings the real finish back; the choice is remembered. */
+const CLEAR_MATS = () => [[M.beam, 0xe2e4e7], [M.plate, 0xe8eaec], [M.granite, 0x6a6e75]];
+const shopTable = null;
+function shopTableOpts(){ return {}; }
 let realFinish = false;
 try { realFinish = localStorage.getItem('pt-real-finish') === '1'; } catch (e) {}
 function applyFinish() {
@@ -257,7 +260,12 @@ function applyFinish() {
 function bindFinish() {
   const c = document.getElementById('realChk');
   c.checked = realFinish;
-  c.addEventListener('change', () => { realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {} applyFinish(); });
+  c.addEventListener('change', () => {
+    realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {}
+    // the new look is painted over the old one, sweeping across the tool, and nothing disappears (js/dissolve.js)
+    const fx = window.__toolFx;
+    if (fx) fx.paint(applyFinish, shopTableOpts()); else { applyFinish(); }
+  });
   applyFinish();
 }
 
@@ -388,7 +396,12 @@ function setTable(off, instant){
 function buildGage(){
   atlas = makeAtlas([...Array(51).keys()].map(String).concat(['12 in.', '30cm', '0.02mm', 'IN']));
 
-  // granite surface plate
+  // the table: a precision-ground inspection surface plate (js/plate.js), dark steel with fine grinding marks and a soft sheen
+  if (window.__plate){
+    const pm = window.__plate(T).material(0.004), m = M.granite;
+    m.map = pm.map; m.roughnessMap = pm.roughnessMap; m.bumpMap = pm.bumpMap; m.bumpScale = pm.bumpScale;
+    m.metalness = pm.metalness; m.roughness = pm.roughness; m.envMapIntensity = pm.envMapIntensity; m.color.set(0xffffff); m.needsUpdate = true;
+  }
   const plate = box(GRANITE.x0, GRANITE.x1, -60, 0, GRANITE.z0, GRANITE.z1, M.granite);
   plate.castShadow = false; plate.userData.noFit = true;
   root.add(plate); tableMesh = plate;
@@ -1599,8 +1612,6 @@ el.addEventListener('wheel', e => {
 }, { capture: true, passive: false });
 
 /* ---------- tutorial ---------- */
-function openTut(){ $('tut').hidden = false; setTimeout(() => { $('tutClose').focus({ preventScroll: true }); $('tut').scrollTop = 0; }, 30); }
-function closeTut(){ if ($('tut').hidden) return; $('tut').hidden = true; try { localStorage.setItem('height-tutorial-seen', '1'); } catch (e) {} }
 
 
 /* ---------- fine adjust: every control moves about ten times slower, for hairline settings ---------- */
@@ -1763,18 +1774,14 @@ function bindUI(){
     flatKey = ''; drawFlatHG();
   });
   window.addEventListener('resize', resize);
-  $('tutBtn').addEventListener('click', openTut);
-  $('tutClose').addEventListener('click', closeTut);
-  $('tut').addEventListener('click', e => { if (e.target === $('tut')) closeTut(); });
   $('guess').addEventListener('keydown', e => { if (e.key === 'Enter') checkPractice(); });
   $('nextBtn').addEventListener('click', loadPractice);
   $('pfb').addEventListener('click', e => { const b = e.target.closest('[data-show]'); if (b) showMe(...b.dataset.show.split(':')); });
   $('pUnit').addEventListener('change', () => { $('guess').placeholder = $('pUnit').value === 'in' ? '0.000' : '0.00'; });
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape'){ closeTut(); if (state.exam) setExam(false); return; }
+    if (e.key === 'Escape'){if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown'){
       const s = e.key === 'ArrowUp' ? 1 : -1;
       state.seq = null;
@@ -1968,22 +1975,22 @@ function drawFlatHG(){
   for (let j = Math.max(0, Math.ceil(vLo/IN_MAIN)); j*IN_MAIN <= vHi; j++){
     const y = Y(j*IN_MAIN); if (y < 20) continue;
     const L = j % 20 === 0 ? 26 : j % 10 === 0 ? 20 : j % 2 === 0 ? 14 : 9, hot = show && hl.imain && j === I.mainIdx;
-    seg(X0, y, X0 + (hot ? L + 6 : L), hot ? 3 : 1.1, hot ? C.imain : '#111');
+    seg(X0, y, X0 + (hot ? L + 6 : L), hot ? 1.8 : 1.1, hot ? C.imain : '#111');
     if (j % 20 === 0) txt(String(j/20), X0 + 40, y, 15, '#111'); else if (j % 4 === 0) txt(String((j/2) % 10), X0 + 32, y, 9, '#222');
   }
   // metric main scale, on the right edge: 1 mm lines, centimeters numbered
   for (let m = Math.max(0, Math.ceil(vLo)); m <= vHi; m++){
     const y = Y(m); if (y < 20) continue;
     const L = m % 10 === 0 ? 26 : m % 5 === 0 ? 18 : 12, hot = show && hl.mmain && m === Mm.mainIdx;
-    seg(X1 - (hot ? L + 6 : L), y, X1, hot ? 3 : 1, hot ? C.mmain : '#111');
+    seg(X1 - (hot ? L + 6 : L), y, X1, hot ? 1.8 : 1, hot ? C.mmain : '#111');
     if (m % 10 === 0) txt(String(m/10), X1 - 40, y, 15, '#111');
   }
   // the two verniers, riding on the slider: 50 lines each, starting at the vernier 0
   for (let v = 0; v <= 50; v++){
     const yi = y0 - v*IN_VDIV*K, ym = y0 - v*MM_VDIV*K;
     const hi = show && hl.ivern && v === I.k, hm = show && hl.mvern && v === Mm.k;
-    if (yi >= 20){ seg(X0 - (v % 5 === 0 ? 20 : 12), yi, X0, hi ? 3 : 1.1, hi ? C.ivern : '#111'); if (v % 5 === 0) txt(String(v), X0 - 32, yi, 10, hi ? '#0b5a2a' : '#1a1a1a'); }
-    if (ym >= 20){ seg(X1, ym, X1 + (v % 5 === 0 ? 20 : 12), hm ? 3 : 1.1, hm ? C.mvern : '#111'); if (v % 5 === 0) txt(String(v/5), X1 + 32, ym, 10, hm ? '#0b2f66' : '#1a1a1a'); }
+    if (yi >= 20){ seg(X0 - (v % 5 === 0 ? 20 : 12), yi, X0, 1.1, hi ? C.ivern : '#111'); if (v % 5 === 0) txt(String(v), X0 - 32, yi, 10, hi ? '#0b5a2a' : '#1a1a1a'); }
+    if (ym >= 20){ seg(X1, ym, X1 + (v % 5 === 0 ? 20 : 12), 1.1, hm ? C.mvern : '#111'); if (v % 5 === 0) txt(String(v/5), X1 + 32, ym, 10, hm ? '#0b2f66' : '#1a1a1a'); }
   }
   // where each reading mark sits, for "Show me" (js/guide.js): a box round it, in flat-view units
   {
@@ -2045,12 +2052,12 @@ function drawLoupeHG(R, I, Mm, show, C){
     g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(0, mid - 0.75, W, 1.5);
     for (let j = Math.max(0, Math.floor((vC - span)/r.main)); j*r.main <= vC + span; j++){
       const x = X(j*r.main), on = hot && j === r.idx + r.k;
-      seg(x, mid, top + 18, on ? 3 : 1.8, on ? r.col : '#111');
+      seg(x, mid, top + 18, 1.5, on ? r.col : '#111');
     }
     for (let v = 0; v <= 50; v++){
       const x = X(R + v*r.vdiv); if (x < -10 || x > W + 10) continue;
       const on = hot && v === r.k;
-      seg(x, mid, mid + 11, on ? 3 : 1.8, on ? r.col : '#111');
+      seg(x, mid, mid + 11, 1.5, on ? r.col : '#111');
       // the lit line is labeled with what it adds: thousandths on the inch vernier, mm on the metric one
       const t = on ? (r.name === 'Metric' ? (v*0.02).toFixed(2) : String(v)) : r.lab(v);
       if (t){ g.font = (on ? '700 11px' : '600 9.5px') + ' Inter, Arial, sans-serif'; g.fillStyle = on ? r.col : '#1a1a1a'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(t, x, mid + 16.5); }
@@ -2061,11 +2068,12 @@ function drawLoupeHG(R, I, Mm, show, C){
     g.strokeStyle = '#3a3e44'; g.lineWidth = 1; g.strokeRect(0.5, top + 0.5, W - 1, rh - 1);
   }
 }
+let rsW = 0, rsH = 0, rsD = 0;
 function resize(){
   placeFlat();
   const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-  renderer.setPixelRatio(dprCur);
-  renderer.setSize(w, h, false);
+  // (setting the canvas size, even to what it already is, throws its pixels away and makes them again: only when it really changed)
+  if (w !== rsW || h !== rsH || dprCur !== rsD){ rsW = w; rsH = h; rsD = dprCur; renderer.setPixelRatio(dprCur); renderer.setSize(w, h, false); }
   const a = w/h; camera.left = -VIEW_H/2*a; camera.right = VIEW_H/2*a; camera.top = VIEW_H/2; camera.bottom = -VIEW_H/2;
   camera.updateProjectionMatrix();
   // resizing clears the canvas, so draw straight away rather than show a blank frame
@@ -2168,7 +2176,7 @@ function tick(now){
     camera.zoom = f.z0*Math.pow(f.z1/f.z0, e); camera.updateProjectionMatrix();
     if (k >= 1) flight = null;
   }
-  const camMoved = controls.update() || !!flight;
+  const cu = controls.update(), svm = sv ? sv.step() : false, camMoved = cu || !!flight || svm;
   updateUI();
   const sig = [state.px, state.pz, state.hs, state.eps, state.g, state.delta, state.sliderLocked, state.unitLocked, state.contact, !!partG].join('|');
   const changed = sig !== lastSig; lastSig = sig;
@@ -2345,6 +2353,15 @@ async function start(){
   }
   measureFeature('s1');
   setDelta(0);
+  // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
+  if (window.__holo) window.__holo.attach({ THREE: T, select: $('partSel'),
+    caption: v => PARTS[v] ? [PARTS[v].name, PARTS[v].ref ? 'Reference part' : 'Height part'] : ['', ''],
+    build: v => {
+      const D = PARTS[v]; if (!D) return null;
+      const P = D.make(), g = new T.Group();
+      for (const { mesh } of partMeshes(P, PMAT[D.mat])) g.add(mesh);
+      return g;
+    } });
   window.__load ? window.__load.done() : $('loading').remove();
   Dissolve.tool(root, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
   requestAnimationFrame(tick);

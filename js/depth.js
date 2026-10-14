@@ -299,10 +299,11 @@ function center(){ return new T.Vector3(0, (frameTop() - 0.35)/2, 0); }
 let started = false;
 // The floating controls sit over the canvas, so the model is framed in the strip
 // between them rather than in the whole canvas.
+let rsW = 0, rsH = 0, rsD = 0;
 function resize(){
   const w = Math.max(1, wrap.clientWidth), h = Math.max(1, wrap.clientHeight);
-  renderer.setPixelRatio(dprCur);
-  renderer.setSize(w, h, false);
+  // (setting the canvas size, even to what it already is, throws its pixels away and makes them again: only when it really changed)
+  if (w !== rsW || h !== rsH || dprCur !== rsD){ rsW = w; rsH = h; rsD = dprCur; renderer.setPixelRatio(dprCur); renderer.setSize(w, h, false); }
   const padT = Math.min(104, h*0.2), padB = Math.min(64, h*0.12), padX = 10;
   const fw = Math.max(120, w - 2*padX), fh = Math.max(120, h - padT - padB);
   const S = state.sample;
@@ -464,18 +465,20 @@ const M = {
   chrome: std({ color: 0xe8eaec, metalness: 1, roughness: 0.16, side: T.DoubleSide }),
   ground: std({ color: 0xdadde1, metalness: 1, roughness: 0.2 }),
   nut: std({ color: 0x1d1e21, metalness: 0.5, roughness: 0.45 }),
-  granite: std({ color: 0x4a4e55, map: granite, bumpMap: granite, bumpScale: 0.004, metalness: 0, roughness: 0.75 }),
+  granite: std({ color: 0x4a4e55, map: granite, bumpMap: granite, bumpScale: 0.004, metalness: 0, roughness: 0.75 }),   // (given the ground-plate finish just below)
   line: new T.MeshBasicMaterial({ color: 0x050505, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, toneMapped: false }),
   pick: new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false })
 };
 M.bevel = std({ color: 0xf2f4f6, metalness: 0.5, roughness: 0.45, roughnessMap: brushed, bumpMap: brushed, bumpScale: 0.002, side: T.DoubleSide });
 M.knurlTh = knurlMat(72, 27);
 
-/* ---------- clear markings by default; the realistic metal finish is a setting ----------
+/* ---------- clear markings by default; Shop graphics is a setting ----------
    The turned and brushed finish puts streaks and reflections behind the graduations and makes them
    harder to read, so by default the surfaces that carry markings are a plain, even matte grey.
-   "Realistic metal finish" in the sidebar brings the real finish back; the choice is remembered. */
-const CLEAR_MATS = () => [[M.satin, 0xe2e4e7], [M.bevel, 0xeceef0]];
+   "Shop graphics" in the sidebar brings the real finish back; the choice is remembered. */
+const CLEAR_MATS = () => [[M.satin, 0xe2e4e7], [M.bevel, 0xeceef0], [M.granite, 0x6a6e75]];
+const shopTable = null;
+function shopTableOpts(){ return {}; }
 let realFinish = false;
 try { realFinish = localStorage.getItem('pt-real-finish') === '1'; } catch (e) {}
 function applyFinish() {
@@ -498,7 +501,12 @@ function applyFinish() {
 function bindFinish() {
   const c = document.getElementById('realChk');
   c.checked = realFinish;
-  c.addEventListener('change', () => { realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {} applyFinish(); });
+  c.addEventListener('change', () => {
+    realFinish = c.checked; try { localStorage.setItem('pt-real-finish', realFinish ? '1' : '0'); } catch (e) {}
+    // the new look is painted over the old one, sweeping across the tool, and nothing disappears (js/dissolve.js)
+    const fx = window.__toolFx;
+    if (fx) fx.paint(applyFinish, shopTableOpts()); else { applyFinish(); }
+  });
   applyFinish();
 }
 
@@ -769,6 +777,7 @@ function build(){
   pickables.length = 0; halo = [];
 
   // surface plate
+  if (window.__plate){ const pm = window.__plate(T).material(0.1), m = M.granite; m.map = pm.map; m.roughnessMap = pm.roughnessMap; m.bumpMap = pm.bumpMap; m.bumpScale = pm.bumpScale; m.metalness = pm.metalness; m.roughness = pm.roughness; m.envMapIntensity = pm.envMapIntensity; m.color.set(0xffffff); m.needsUpdate = true; }
   plateMesh = new T.Mesh(new T.BoxGeometry(26, 1.5, 16), M.granite);
   plateMesh.userData.noFit = true;
   plateMesh.position.y = -0.75; plateMesh.receiveShadow = true;
@@ -1872,7 +1881,7 @@ function setExam(on){
   document.body.classList.toggle('exam', on);
   if (on){
     if (state.practice) setPractice(false);
-    endCoach(); closeTut();
+    endCoach();
     examTags = EXAM.map(([title, sub]) => { const t = makeTag(false); t.b.textContent = title; t.sm.textContent = sub; return t; });
     examTags[2].sm.textContent = `This rod reads ${B}.000″ to ${B + 1}.000″`;
     setSpin(true); setLabels(true);
@@ -2266,12 +2275,6 @@ function startCoach(){ if (state.coach) return; state.coach = true; state.coachA
 function endCoach(restore){ if (!state.coach) return; state.coach = false; document.body.classList.remove('coaching'); if (restore) restoreCoachCam(); else coachCam = null; invalidate(); }
 
 /* ---------- tutorial ---------- */
-function openTut(){ $('tut').hidden = false; $('tutClose').focus({ preventScroll: true }); $('tut').scrollTop = 0; }
-function closeTut(){
-  if ($('tut').hidden) return;
-  $('tut').hidden = true;
-  try { localStorage.setItem('depthmic-tutorial-seen', '1'); } catch (e) {}
-}
 
 /* ---------- practice ---------- */
 const showAns = () => !state.practice || state.pRevealed;
@@ -2814,7 +2817,7 @@ function drawFlat(){
 }
 
 /* ---------- camera ---------- */
-let controls, camTween = null;
+let controls, sv = null, camTween = null;   // (sv: the smooth wheel zoom, js/smooth.js)
 
 /* ---------- iso view that fits: everything on the table (tool, part, blocks) sized into the open
    screen area between the floating buttons and the flat view, whatever the window shape ---------- */
@@ -3335,9 +3338,6 @@ function bindUI(){
   $('labelsBtn').addEventListener('click', () => setLabels(!examLabels));
   bindSplit(); applyRH();
   $('randomBtn').addEventListener('click', loadPractice);
-  $('tutBtn').addEventListener('click', openTut);
-  $('tutClose').addEventListener('click', closeTut);
-  $('tut').addEventListener('click', e => { if (e.target.id === 'tut') closeTut(); });
   $('flatMaxBtn').addEventListener('click', () => setFlatMax(!flatMax));
   if (flatMax) setTimeout(() => setFlatMax(true), 0);
   $('flatBtn').addEventListener('click', () => {
@@ -3356,10 +3356,9 @@ function bindUI(){
   $('guess').addEventListener('input', () => { if (state.pRevealed){ state.pRevealed = false; state.pErr = []; flatKey = ''; updateAll(); } });
   $('gfxSel').addEventListener('change', e => applyGfx(e.target.value));
   window.addEventListener('keydown', e => {
-    if (e.key === 'Escape'){ endCoach(true); closeTut(); if (state.exam) setExam(false); return; }
+    if (e.key === 'Escape'){ endCoach(true);if (state.exam) setExam(false); return; }
     const tag = (e.target.tagName || '').toLowerCase();
     if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
-    if (!$('tut').hidden) return;   // the tutorial is open: arrow and page keys scroll it, not the tool
     let d = 0;
     if (e.key === 'ArrowUp') d = e.shiftKey ? 0.010 : 0.001;
     else if (e.key === 'ArrowDown') d = e.shiftKey ? -0.010 : -0.001;
@@ -3459,7 +3458,7 @@ function tick(now){
     shadowPending = true;
   }
   updateGageBlocks();
-  const camMoved = stepCam(dt) | controls.update();
+  const camMoved = stepCam(dt) | controls.update() | (sv ? sv.step() : 0);
   updateUI();
   updateHighlights();
   drawFlat();
@@ -3661,10 +3660,11 @@ function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   atlas = makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
   controls = new T.OrbitControls(camera, el);
-  controls.enableDamping = true; controls.dampingFactor = 0.14;
+  controls.enableDamping = true; controls.dampingFactor = 0.09;
   if (window.__orbitPivot) window.__orbitPivot(T, controls, camera, scene, el);   // turn round what is under the pointer (js/pivot.js)
   controls.screenSpacePanning = true;
   controls.minZoom = 0.3; controls.maxZoom = 60; controls.zoomSpeed = 1.3;
+  sv = window.__smoothView ? window.__smoothView({ camera, controls, el, wake: () => invalidate() }) : null;
   controls.addEventListener('start', () => { camTween = null; camUser = true; if (state.exam && controls.autoRotate) setSpin(false); });
   controls.addEventListener('change', invalidate);
   bindUI();
@@ -3692,6 +3692,15 @@ function start(){
     [150, 400, 900, 1600].forEach(ms => setTimeout(refit, ms));
     window.addEventListener('resize', () => setTimeout(refit, 120));
   }
+  // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
+  if (window.__holo) window.__holo.attach({ THREE: T, select: $('sampleSel'),
+    caption: v => CORE.DEFS[v] ? [CORE.DEFS[v].name, 'Rod ' + B + '–' + (B + 1) + '″'] : ['No part (in hand)', ''],
+    build: v => {
+      if (!CORE.DEFS[v]) return null;
+      const S = CORE.makeSample(v, B, Math.random), geo = partGeometry(S);
+      if (!geo) return null;
+      const g = new T.Group(); g.add(new T.Mesh(geo, PM[S.mat] || PM.milled)); return g;
+    } });
   window.__load ? window.__load.done() : $('loading').remove();
   Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });   // builds in now, and goes and comes back as tools are switched
   started = true;

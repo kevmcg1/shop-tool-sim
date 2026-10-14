@@ -1,0 +1,85 @@
+/* Every icon moves in a way that fits it, when you point at it, tab to it or press it. Generated list: see the table below.
+   Icons are Font Awesome (swapped in as <svg data-icon="name">). Motion is skipped for people who ask for reduced motion. */
+svg[data-icon]{transform-box:fill-box;transform-origin:center;overflow:visible}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="computer-mouse"]{animation:ic-click .7s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="feather-pointed"]{animation:ic-feather 1.6s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="eye"]{animation:ic-blink .55s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="eye-slash"]{animation:ic-blink .55s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="vector-square"]{animation:ic-corners .6s cubic-bezier(.3,1.6,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="magnifying-glass-plus"]{animation:ic-zoom .7s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="expand"]{animation:ic-out .6s cubic-bezier(.3,1.6,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="up-right-and-down-left-from-center"]{animation:ic-out .6s cubic-bezier(.3,1.6,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="compress"]{animation:ic-in .6s cubic-bezier(.3,1.6,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="down-left-and-up-right-to-center"]{animation:ic-in .6s cubic-bezier(.3,1.6,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="cube"]{animation:ic-turn .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="angles-left"]{animation:ic-nudge-l .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="angles-right"]{animation:ic-nudge-r .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="angles-up"]{animation:ic-nudge-u .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="angles-down"]{animation:ic-nudge-d .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="xmark"]{animation:ic-spin-q .45s cubic-bezier(.3,1.4,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="tags"]{animation:ic-swing .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="rotate"]{animation:ic-spin .8s cubic-bezier(.45,0,.2,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="rotate-left"]{animation:ic-spin-back .8s cubic-bezier(.45,0,.2,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="hand-pointer"]{animation:ic-tap .6s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="graduation-cap"]{animation:ic-toss .8s ease-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="binoculars"]{animation:ic-focus .8s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="wand-magic-sparkles"]{animation:ic-wand .8s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="shuffle"]{animation:ic-shuffle .7s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="lock"]{animation:ic-rattle .5s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="lock-open"]{animation:ic-rattle .5s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="check"]{animation:ic-pop .45s cubic-bezier(.3,1.7,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="circle-check"]{animation:ic-pop .45s cubic-bezier(.3,1.7,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="arrow-right-from-bracket"]{animation:ic-exit .7s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="arrow-right"]{animation:ic-nudge-r .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="ruler-vertical"]{animation:ic-measure-v .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="ruler-horizontal"]{animation:ic-measure-h .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="ruler-combined"]{animation:ic-measure-h .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="triangle-exclamation"]{animation:ic-alert .6s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="scissors"]{animation:ic-snip .5s ease-in-out 2}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="industry"]{animation:ic-smoke 1.2s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="gauge"]{animation:ic-needle 1s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="circle-dot"]{animation:ic-pulse 1s ease-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="location-arrow"]{animation:ic-aim .8s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="keyboard"]{animation:ic-type .7s ease 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="crosshairs"]{animation:ic-lock-on .8s cubic-bezier(.3,1.4,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="puzzle-piece"]{animation:ic-fit .7s cubic-bezier(.3,1.5,.5,1) 1}
+
+@keyframes ic-click{0%,100%{transform:none}25%{transform:scale(.82) translateY(1.5px)}45%{transform:scale(1.06)}60%{transform:scale(.92) translateY(1px)}}
+@keyframes ic-feather{0%,100%{transform:rotate(-10deg) translate(0,0)}50%{transform:rotate(12deg) translate(1.5px,-2px)}}
+@keyframes ic-blink{0%,100%{transform:scaleY(1)}40%{transform:scaleY(.08)}60%{transform:scaleY(.08)}}
+@keyframes ic-corners{0%{transform:scale(1)}40%{transform:scale(.78)}100%{transform:scale(1)}}
+@keyframes ic-zoom{0%,100%{transform:scale(1) translate(0,0)}45%{transform:scale(1.28) translate(-1px,-1px)}70%{transform:scale(1.18) translate(1px,1px)}}
+@keyframes ic-out{0%{transform:scale(1)}50%{transform:scale(1.32)}100%{transform:scale(1)}}
+@keyframes ic-in{0%{transform:scale(1)}50%{transform:scale(.7)}100%{transform:scale(1)}}
+@keyframes ic-turn{0%{transform:perspective(40px) rotateY(0) rotateX(0)}50%{transform:perspective(40px) rotateY(180deg) rotateX(18deg)}100%{transform:perspective(40px) rotateY(360deg) rotateX(0)}}
+@keyframes ic-nudge-l{0%,100%{transform:translateX(0)}50%{transform:translateX(-3px)}}
+@keyframes ic-nudge-r{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+@keyframes ic-nudge-u{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes ic-nudge-d{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes ic-spin-q{0%{transform:rotate(0)}100%{transform:rotate(90deg)}}
+@keyframes ic-swing{0%,100%{transform:rotate(0);transform-origin:20% 20%}25%{transform:rotate(-18deg)}60%{transform:rotate(12deg)}80%{transform:rotate(-5deg)}}
+@keyframes ic-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes ic-spin-back{0%{transform:rotate(0)}100%{transform:rotate(-360deg)}}
+@keyframes ic-tap{0%,100%{transform:translateY(0) scale(1)}35%{transform:translateY(2.5px) scale(.88)}65%{transform:translateY(-1px) scale(1.05)}}
+@keyframes ic-toss{0%{transform:translateY(0) rotate(0)}45%{transform:translateY(-4px) rotate(-14deg)}100%{transform:translateY(0) rotate(0)}}
+@keyframes ic-focus{0%,100%{transform:scale(1,1)}35%{transform:scale(1.18,.92)}70%{transform:scale(.94,1.06)}}
+@keyframes ic-wand{0%,100%{transform:rotate(0) scale(1)}30%{transform:rotate(-22deg) scale(1.08)}60%{transform:rotate(14deg) scale(1.14)}}
+@keyframes ic-shuffle{0%,100%{transform:translateX(0) skewX(0)}30%{transform:translateX(-2.5px) skewX(12deg)}70%{transform:translateX(2.5px) skewX(-12deg)}}
+@keyframes ic-rattle{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(4deg)}}
+@keyframes ic-pop{0%{transform:scale(.55)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes ic-exit{0%,100%{transform:translateX(0)}45%{transform:translateX(4px)}60%{transform:translateX(-1px)}}
+@keyframes ic-measure-v{0%,100%{transform:scaleY(1)}35%{transform:scaleY(1.22)}70%{transform:scaleY(.92)}}
+@keyframes ic-measure-h{0%,100%{transform:scaleX(1)}35%{transform:scaleX(1.22)}70%{transform:scaleX(.92)}}
+@keyframes ic-alert{0%,100%{transform:translateX(0)}20%{transform:translateX(-2.5px)}40%{transform:translateX(2.5px)}60%{transform:translateX(-1.5px)}80%{transform:translateX(1.5px)}}
+@keyframes ic-snip{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.55)}}
+@keyframes ic-smoke{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+@keyframes ic-needle{0%{transform:rotate(0)}30%{transform:rotate(-24deg)}65%{transform:rotate(18deg)}100%{transform:rotate(0)}}
+@keyframes ic-pulse{0%{transform:scale(1)}50%{transform:scale(1.28)}100%{transform:scale(1)}}
+@keyframes ic-aim{0%,100%{transform:translate(0,0)}40%{transform:translate(2.5px,-2.5px) rotate(8deg)}}
+@keyframes ic-type{0%,100%{transform:translateY(0)}25%{transform:translateY(1.5px)}50%{transform:translateY(-.5px)}75%{transform:translateY(1px)}}
+@keyframes ic-lock-on{0%{transform:scale(1.5) rotate(45deg)}70%{transform:scale(.9) rotate(0)}100%{transform:scale(1) rotate(0)}}
+@keyframes ic-fit{0%{transform:translate(-4px,2px) rotate(-15deg)}70%{transform:translate(.5px,0) rotate(3deg)}100%{transform:none}}
+/* a few icons also react to what they stand for while a control is on */
+[aria-pressed="true"] svg[data-icon="eye-slash"],[aria-pressed="true"] svg[data-icon="eye"]{transition:opacity .25s ease}
+button svg[data-icon]{transition:filter .25s ease,opacity .25s ease}
+@media (prefers-reduced-motion: reduce){ svg[data-icon]{animation:none!important} }

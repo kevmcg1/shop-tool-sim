@@ -46,6 +46,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .tab:hover{color:var(--ink);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.07)}
 .tab[aria-selected="true"]{color:#fff;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 20%,transparent),color-mix(in srgb,var(--accent) 8%,transparent));border-color:color-mix(in srgb,var(--accent) 42%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.07)}
 .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tab-new{margin-right:8px;padding:1px 6px 0;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.09em;line-height:1.4;color:#6da4ff;background:transparent;border:1.5px solid #4f8df0}
 .tab-ink{position:absolute;left:0;top:0;height:2px;width:0;border-radius:2px;background:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 70%,transparent);pointer-events:none;opacity:0;transition:transform .38s cubic-bezier(.22,.8,.25,1),width .38s cubic-bezier(.22,.8,.25,1),opacity .2s ease}
 @media (max-width:640px){ .brand{display:none} .bar{padding:0 10px} .tab{padding:0 11px} }
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ink{transition:none} }
@@ -55,7 +56,10 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 /* Reset all, at the right end of the tool bar: fills up in red while it is held, and resets after 3 seconds;
    a note under it says what it does while it is hovered or held */
 :root{--danger:#f04a45}
-.reset-wrap{position:relative;margin-left:auto;display:flex;align-items:center}
+/* the right-hand group (Buy me a coffee, the changelog, DEV, Reset all): one row of equal-height items, evenly spaced; on a narrow screen it drops under the tabs and wraps tidily */
+.reset-wrap{position:relative;margin-left:auto;display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding:11px 0}
+.reset-wrap > .bmc,.reset-wrap > .shop-vchip,.reset-wrap > .dev-chip,.reset-wrap > .reset-all{height:32px;margin:0;box-sizing:border-box}
+@media (max-width:860px){ .bar{row-gap:0} .reset-wrap{margin-left:0;width:100%;justify-content:flex-start;padding:2px 0 11px} }
 .reset-all{position:relative;display:flex;align-items:center;gap:7px;height:32px;padding:0 13px;border-radius:9px;border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);background:transparent;color:#f3b4b1;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;transition:border-color .2s ease,color .2s ease,background-color .2s ease}
 .reset-all::before{content:"";position:absolute;inset:0;background:var(--danger);opacity:.4;transform:scaleX(var(--p,0));transform-origin:left center}
 .reset-all:hover,.reset-all:focus-visible{border-color:var(--danger);color:#fff;outline:none}
@@ -66,3 +70,51 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .reset-pop b{color:#fff;font-weight:600}
 @media (max-width:640px){ .reset-all{padding:0 10px} .reset-pop{width:min(260px,calc(100vw - 20px))} }
 @media (prefers-reduced-motion: reduce){ .reset-all,.reset-pop,.reset-pop.on{transition:none} }
+
+
+/* the Telescopic gauge tab's measuring panel: a tool's full simulator opened right beside the gauge */
+.stage iframe{transition:width .38s cubic-bezier(.22,.8,.25,1),height .38s cubic-bezier(.22,.8,.25,1)}
+.stage.docked > iframe.docked{width:calc(100% - var(--dockw,50%))}
+.dock{position:absolute;top:0;right:0;bottom:0;width:var(--dockw,50%);z-index:5;display:flex;flex-direction:column;background:var(--bg);border-left:1px solid var(--line);opacity:1;transform:none;transition:opacity .3s ease,transform .38s cubic-bezier(.22,.8,.25,1),visibility 0s linear 0s}
+.dock[hidden]{display:flex;opacity:0;transform:translateX(28px);visibility:hidden;pointer-events:none;transition:opacity .22s ease,transform .3s ease,visibility 0s linear .3s}
+.dock-bar{flex:none;display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bar);border-bottom:1px solid var(--line)}
+.dock-tabs{display:flex;gap:4px;flex-wrap:wrap}
+.dock-tabs button,.dock-x{font:600 12.5px "Inter",system-ui,sans-serif;color:var(--muted);background:transparent;border:1px solid #3d4147;border-radius:999px;padding:5px 12px;cursor:pointer;transition:background-color .22s ease,border-color .22s ease,color .22s ease}
+.dock-tabs button:hover,.dock-x:hover{color:#fff;border-color:#8a8f97;background:rgba(255,255,255,.06)}
+.dock-tabs button[aria-selected="true"]{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.dock-note{flex:1;min-width:0;text-align:right;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dock-x{width:28px;height:28px;padding:0;display:grid;place-items:center;border-radius:50%}
+.dock-body{position:relative;flex:1 1 auto;min-height:0}
+.dock-body iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;background:var(--bg)}
+.dock-body iframe.on{display:block}
+/* "See where": the screen dims with two lit windows (the panel's X, and a ghost of the sidebar), an arrow runs between them, and a note says what the X does */
+.where{position:fixed;inset:0;z-index:2000;cursor:pointer;opacity:0;transition:opacity .3s ease}
+.where.on{opacity:1}
+.where svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.where-ghost{fill:color-mix(in srgb,var(--accent) 7%,transparent);stroke:var(--accent);stroke-width:2;stroke-dasharray:7 7;opacity:0;transition:opacity .4s ease .1s}
+.where.on .where-ghost{opacity:1;animation:where-march 1.4s linear infinite}
+.where-ring{fill:none;stroke:var(--accent);stroke-width:3}
+.where-pulse{fill:none;stroke:var(--accent);stroke-width:2;opacity:0;transform-box:fill-box;transform-origin:center}
+.where.on .where-pulse{animation:where-pulse 1.6s ease-out .9s infinite}
+.where-arrow{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-dasharray:1600;stroke-dashoffset:1600;transition:stroke-dashoffset 1s cubic-bezier(.22,.8,.25,1) .25s}
+.where.on .where-arrow{stroke-dashoffset:0}
+.where-head{fill:var(--accent);opacity:0;transition:opacity .25s ease .95s}
+.where.on .where-head{opacity:1}
+.where-tag{position:absolute;display:flex;flex-direction:column;gap:1px;padding:7px 11px;border-radius:9px;background:var(--raise);border:1px solid var(--accent);font-size:12.5px;line-height:1.35;color:var(--ink);opacity:0;transform:translateY(-4px);transition:opacity .35s ease .2s,transform .35s ease .2s;pointer-events:none}
+.where.on .where-tag{opacity:1;transform:none}
+.where-tag span{color:var(--muted)}
+.where-cap{position:absolute;background:var(--raise);border:1px solid var(--accent);border-radius:10px;padding:11px 14px 12px;font-size:13px;line-height:1.45;color:var(--ink);display:flex;flex-direction:column;gap:3px;cursor:default;opacity:0;transform:translateY(6px);transition:opacity .35s ease .9s,transform .35s ease .9s;box-shadow:0 14px 34px rgba(0,0,0,.5)}
+.where.on .where-cap{opacity:1;transform:none}
+.where-cap b{font-size:14px}.where-cap span{color:var(--muted)}
+.where-btns{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.where-btns button{font:600 12.5px "Inter",system-ui,sans-serif;color:var(--muted);background:transparent;border:1px solid #3d4147;border-radius:999px;padding:5px 13px;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease}
+.where-btns button:hover,.where-btns button:focus-visible{color:#fff;border-color:#8a8f97;background:rgba(255,255,255,.06);outline:none}
+.where-btns button[data-act="close"]{color:var(--accent);border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}
+.where-btns button[data-act="close"]:hover,.where-btns button[data-act="close"]:focus-visible{background:color-mix(in srgb,var(--accent) 24%,transparent);color:#fff}
+@keyframes where-march{to{stroke-dashoffset:-28}}
+@keyframes where-pulse{0%{opacity:.75;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@media (max-width:820px){
+  .dock{top:auto;left:0;width:100%;height:56%;border-left:0;border-top:1px solid var(--line)}
+  .stage.docked > iframe.docked{width:100%;height:44%}
+}
+@media (prefers-reduced-motion: reduce){ .stage iframe,.dock,.dock[hidden],.dock-tabs button,.dock-x,.where,.where-ghost,.where-arrow,.where-head,.where-tag,.where-cap{transition:none} .where.on .where-ghost,.where.on .where-pulse{animation:none} }

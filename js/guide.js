@@ -8,14 +8,14 @@
 // it at any time, and whatever it switched on (highlight colors, panels) goes back as it was.
 (function(){
   const $ = id => document.getElementById(id);
-  const tutBtn = $('tutBtn'); if (!tutBtn) return;
+  const slot = document.querySelector('.logo-foot') || $('guideSlot'); if (!slot) return;   // where the button goes: under the range line
 
   /* ---------- which tool this is, and its walkthrough ---------- */
   const tool = $('bezelRange') ? (window.__INST === 'vern' ? 'vern' : 'dial')
     : $('zeroAdj') ? 'height' : $('cutT') ? 'depth' : $('coachChk') ? 'mic' : null;
   if (!tool) return;
   const val = id => { const e = $(id); return e ? e.textContent.trim() : ''; };
-  const now = (id, pre) => val(id) ? ` ${pre || 'Here that’s'} <b>${val(id)}${/mm|″/.test(val(id)) ? '' : '″'}</b>.` : '';
+  const now = (id, pre) => val(id) ? `\n${pre || 'Here that’s'} <b>${val(id)}${/mm|″/.test(val(id)) ? '' : '″'}</b>.` : '';
   // depth mic: the covered hundred thou and 25-thou lines, from the reading cards (null until there is a reading)
   const depA = () => { const v = parseFloat(val('vA')); return isNaN(v) ? null : Math.round(v * 10); };
   const depB = () => { const v = parseFloat(val('vB')); return isNaN(v) ? null : Math.round(v / 0.025); };
@@ -25,7 +25,22 @@
   // wait until it has been backed off and brought back into contact, by hand
   const offThenOn = () => ({ enter: s => { s.phase = 0; }, waitFor: s => { const on = touching[tool](); if (!on) s.phase = 1; return s.phase === 1 && on; } });
 
-  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: 'I’ll walk you through one real measurement on the 3D tool, one step at a time. Everything except what you need is dimmed, and the arrow points at it. Press <b>Exit</b> or <b>Esc</b> whenever you like.' });
+  // said where each tool's minimap (the flat view) first comes up
+  const MINIMAP_NOTE = 'You won’t have this in real life, this is just your <b>minimap</b> you can use to make things easier to see.\nFeel free to either hide it or maximize it to see it more up close.';
+  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: 'Hi. I built this, and I’ll be honest: I was bad at this when I started.\nMy first readings were off by a whole line, and I didn’t even know it.\nYou’ll catch on way faster than I did.\nWe’ll do one real measurement, one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.' });
+  // Every walkthrough starts with the habit that matters most: clean the contact points, then check that the lowest
+  // value really reads the lowest value. The part comes off first, so nothing is in the way of closing up.
+  // Closes the tool all the way once the part is off (the jaws, the spindle, the depth rod; the height gage comes down
+  // onto the plate and is zeroed there), so the zero can be shown on the 3D tool. The second try is for when the
+  // part was still being let go of at the first.
+  const closeUp = () => {
+    const at = (id, ms) => setTimeout(() => { const b = $(id); if (root && b && !b.disabled) b.click(); }, ms);
+    if ($('closeBtn')){ at('closeBtn', 700); at('closeBtn', 3400); }
+    else if ($('lowerBtn')){ at('lowerBtn', 700); at('zeroBtn', 3800); }
+  };
+  const CLEAN = (text, extra) => Object.assign({ target: '#closeQuick, #view', title: 'First, clean and check zero',
+    enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); } closeUp(); },
+    text }, extra);
   // "Pick a part" waits for a part to be picked from the list while the step is showing (the walkthrough
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
@@ -35,138 +50,200 @@
     partPicked = true;
     if (root && STEPS[stepI].part && !STEPS[stepI].done && partList.value !== 'none') partChosen();
   });
-  const PART = sel => ({ target: sel, part: true, title: 'Pick a part', text: 'First, choose something to measure from this list.', enter: () => { partPicked = false; }, waitFor: () => false });
+  const PART = sel => ({ target: sel, part: true, title: 'Pick a part', text: 'Now pick something to measure.\nAny part from this list will do.', enter: () => { partPicked = false; }, waitFor: () => false });
+  // right after a part is picked: the part needs wiping where the tool's faces will touch it, the same as the tool's own faces were
+  const WIPE_PART = {
+    dial: 'Wipe the part too, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
+    vern: 'Wipe the part too, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
+    mic: 'Wipe the part too, at the two spots the anvil and spindle will touch.\nEven a speck of grit or a film of oil there reads as size.\nA clean cloth on both faces of the part, and you’re set.',
+    depth: 'Wipe the part too: the surface the base will sit on, and the floor the rod will land on.\nA chip under the base or on the floor reads as depth that isn’t there.\nA clean cloth on both spots, and you’re set.',
+    height: 'Wipe the part too: the face the scriber will land on, and the spot it sits on.\nA speck of grit under the scriber or the base reads as height that isn’t there.\nA clean cloth on both spots, and you’re set.'
+  };
+  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', text: WIPE_PART[tool] });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
-  const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 2, title: 'Look around', text: `Drag on an empty spot to turn the ${what}, the way the hand shows, right-drag to slide it, and scroll to zoom. Try it, then press Next. The camera buttons at the top right bring back a clean view any time.` });
+  const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 1, title: 'Look around', text: `Take a quick look around the ${what}.\nJust a tiny nudge: drag on an empty spot.\nScroll if you want to zoom.\nThe camera buttons up top reset the view any time.` });
   // the vernier caliper and height gage read inches or millimeters, so their walkthrough starts by asking
   // which; the other tools read inches, and the walkthrough simply switches them to inches
-  const CHOOSE = { choose: [['in', 'Inches'], ['mm', 'Millimeters']], title: 'Inches or millimeters?', text: 'Which scale would you like to learn to read? You can run <b>Show me</b> again for the other one any time.' };
-  const nowMM = (id, pre) => val(id) ? ` ${pre || 'Here that’s'} <b>${val(id)} mm</b>.` : '';
+  const CHOOSE = { choose: [['in', 'Inches'], ['mm', 'Millimeters']], title: 'Inches or millimeters?', text: 'Which scale do you want to learn?\nPick one. You can run <b>How do I use it?</b> again for the other any time.' };
+  const nowMM = (id, pre) => val(id) ? `\n${pre || 'Here that’s'} <b>${val(id)} mm</b>.` : '';
   // once the walkthrough is done: the quicker ways, next time (dragging the part in and out, Auto measure),
   // pointing at the Auto measure button where the tool has one
   const SHORTCUTS = {
-    cal: 'Next time there’s a quicker way: press <b>Auto measure</b>, the lit button, and it opens the jaws and then closes them gently on the part for you.',
-    mic: 'You can drag the part in and out between the faces yourself: it slides against the anvil, and whatever feature you leave under the spindle is the one measured. Or press <b>Auto measure</b>, the lit button, and it slides the part in and closes on it with the ratchet for you.',
-    depth: 'You can drag the part in and out under the base yourself: the micrometer lifts while the part moves, then seats on its top face. Or press <b>Auto measure</b>, the lit button, and it backs the rod off, slides the part under and runs the rod down with the ratchet for you.',
-    height: 'You can drag the part in and out under the scriber yourself: the scriber lifts clear while it moves, and the face it will land on turns green.'
+    cal: 'Here’s a shortcut for next time.\nPress <b>Auto measure</b>, the lit button.\nIt opens the jaws, then closes them gently on the part for you.',
+    mic: 'Two shortcuts for next time.\nDrag the part in and out yourself. Whatever feature sits under the spindle gets measured.\nOr press <b>Auto measure</b>, the lit button. It slides the part in and closes on it with the ratchet.',
+    depth: 'Two shortcuts for next time.\nDrag the part in and out under the base yourself. The micrometer lifts out of the way, then seats back down.\nOr press <b>Auto measure</b>, the lit button. It does all of it for you.',
+    height: 'Here’s a shortcut for next time.\nDrag the part in and out under the scriber yourself.\nThe scriber lifts clear, and the face it will land on turns green.'
   };
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
-  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'When you’re ready, click <b>Practice</b>. The answers hide, and you read the tool yourself. You can run <b>Show me</b> again any time.' };
+  // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
+  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing, and I wish someone had told me sooner.\nYou won’t get the same number every time you measure. I didn’t either.\nI used to think I was doing it wrong. I wasn’t. That’s just how it is.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.' };
+  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Ready to try one on your own?\nClick <b>Practice</b>. The answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.\nIt’s also good, if not better, to have in-person experience with these tools.\nThese online tools are really just a way to get practice if you don’t have access to one in person for whatever reason.' };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
   const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
-    text: () => `The part is in place. Watch the hand: press on the thumb wheel where the ring pulses, hold the button down, and drag it ${wheelWay()[0]} along the arrow to ${wheelWay()[1]} until they touch the part. Hold <b>Shift</b> to feather it in, the way you would by hand.`,
+    text: () => `The part’s in place.\nWatch the hand. Press on the thumb wheel where the ring pulses.\nHold the button and drag ${wheelWay()[0]} along the arrow to ${wheelWay()[1]} until they touch the part.\nHold <b>Shift</b> to ease it in gently.`,
     waitFor: () => touching[tool]() };
+
+  // is the lowest value really the lowest value? (the caliper reads 0, the micrometer its frame size)
+  const zeroNote = () => {
+    const v = parseFloat(val('lcd')), base = $('vBase') ? parseFloat(val('vBase')) : 0;
+    if (isNaN(v)) return '';
+    return Math.abs(v - base) < 1e-9 ? '\n<b>It reads ' + val('lcd') + ' with nothing in it. Perfect, you’re good to go.</b>' : '\nRight now it reads <b>' + val('lcd') + '</b>. That’s the most common slip: it isn’t quite closed yet. Close it up and see if it lands on the lowest value.';
+  };
 
   const TOURS = {
     dial: [
       INTRO('dial caliper'),
+      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
+      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so look at the beam first.\nThe slider edge sits right on the beam’s 0.\nNo inch number has been passed.\nThat’s the first zero.' + now('vA') },
+      { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the lines', text: () => 'Now the hundred-thou lines.\nNot a single one has been passed.\nZero lines, zero thou.' + now('vB') },
+      { spot: 'dial', view: 'dial', hl: 'dial', title: 'Zero on the dial', text: () => 'Now the dial.\nThe needle points straight at 0.\nIf yours ever drifts, turn the bezel to bring it back.' + now('vC') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe beam shows the slider edge on 0.\nThe needle sits on 0 too.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
       PART('.sample-sec .dd, #sampleSel'),
+      CLEAN_PART(),
       BY_HAND_CAL,
       LOOK('caliper'),
-      { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera is on the beam now. The last whole-inch number the slider edge has passed is outlined in yellow.' + now('vA') },
-      { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou line', title: 'Count the hundred-thou lines', text: () => 'Each line after that number is a hundred thou (0.100″). The last line the slider edge has passed is lit up.' + now('vB') },
-      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'The needle adds the thou: each mark is one thou (0.001″). The mark under the needle is lit up.' + now('vC') },
-      { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + dial = the reading. These cards do the adding so you can check your own.' + now('vT', 'This one reads') },
+      { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook at the last whole-inch number the slider edge has passed.\nTake the one it has already passed, not the next one.\nIt’s outlined in yellow.' + now('vA') },
+      { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou line', title: 'Count the hundred-thou lines', text: () => 'Next, the lines after that number.\nEach one is a hundred thou (0.100″).\nThe last line the slider edge passed is lit up.' + now('vB') },
+      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'Now the dial.\nThe needle adds the thou, one (0.001″) per mark.\nThe mark under the needle is lit.' + now('vC') },
+      { target: '#reading .bd', title: 'Add them up', text: () => 'Time to add it up.\nInches + hundred thou + dial = the reading.\nThese cards do the adding, so you can check yourself.' + now('vT', 'This one reads') },
       SHORT('cal'),
+      TOLERANCE,
       PRACTICE
     ],
     vern: u => [
       CHOOSE,
       INTRO('vernier caliper'),
+      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the vernier’s 0 should sit right on the beam’s 0.\nIt reads 0 and nothing else.' + zeroNote()),
+      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so look at the beam first.\nThe vernier’s 0 sits right on the beam’s 0.\nNo inch number has been passed.' + now('vA') },
+      { spot: 'vern', view: 'dial', hl: 'vern', title: 'Zero on the vernier', text: () => 'Now the vernier.\nIts 0 line meets the beam’s 0 line exactly.\nThat’s the line that lines up, so there are zero thou to add.' + now('vV') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the beam’s 0.\nThe magnifier shows it up close.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
       PART('.sample-sec .dd, #sampleSel'),
+      CLEAN_PART(),
       BY_HAND_CAL,
       LOOK('caliper'),
       ...(u === 'mm' ? [
-        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the centimeter number', title: 'Read the centimeter number', text: () => 'Millimeters are read along the top edge. The last centimeter number the top vernier’s 0 has passed is outlined; each one is 10 mm.' + nowMM('vA') },
-        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last millimeter line', title: 'Count the millimeter lines', text: () => 'Each line after that number is one millimeter. Count the ones the top vernier’s 0 has passed.' + nowMM('vB') },
-        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Now find the one line on the top vernier that meets a beam line exactly. Each vernier line is 0.05 mm, and its numbers 1 to 10 are tenths of a millimeter.' + nowMM('vV') },
-        { target: '#reading .bd', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.05 mm per line) = the reading in millimeters.' + nowMM('vT', 'This one reads') }
+        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the centimeter number', title: 'Read the centimeter number', text: () => 'Millimeters are along the top edge.\nFind the last centimeter number the top vernier’s 0 has passed.\nIt’s outlined. Each one is 10 mm.' + nowMM('vA') },
+        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last millimeter line', title: 'Count the millimeter lines', text: () => 'Now count the lines after that number.\nEach one is one millimeter.\nCount the ones the top vernier’s 0 has passed.' + nowMM('vB') },
+        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Now find the line that lines up.\nLook for the one top-vernier line that meets a beam line exactly.\nEach vernier line is 0.05 mm.\nIts numbers 1 to 10 are tenths of a millimeter.' + nowMM('vV') },
+        { target: '#reading .bd', title: 'Add them up', text: () => 'Add it up.\nCentimeters + millimeter lines + vernier (0.05 mm per line) = the reading in millimeters.' + nowMM('vT', 'This one reads') }
       ] : [
-        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera is on the beam now. The last whole-inch number the vernier’s 0 has passed is outlined.' + now('vA') },
-        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou digit', title: 'Count the hundred-thou digits', text: () => 'The small digits on the beam are a hundred thou (0.100″) each. The last one before the vernier’s 0 is lit up.' + now('vB') },
-        { spot: 'sub', view: 'scale', hl: 'sub', flat: 'the last 25-thou line', title: 'Add the 25-thou lines', text: () => 'The short lines after that digit are 25 thou (0.025″) each. Count the ones the vernier’s 0 has passed.' + now('vS') },
-        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Close up on the vernier now. Find the one vernier line that meets a beam line exactly. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('vV') },
-        { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + 25-thou lines + vernier (one thou per line) = the reading.' + now('vT', 'This one reads') }
+        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook at the last whole-inch number the vernier’s 0 has passed.\nIt’s outlined.' + now('vA') },
+        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou digit', title: 'Count the hundred-thou digits', text: () => 'Next, the small digits on the beam.\nEach one is a hundred thou (0.100″).\nThe last one before the vernier’s 0 is lit.' + now('vB') },
+        { spot: 'sub', view: 'scale', hl: 'sub', flat: 'the last 25-thou line', title: 'Add the 25-thou lines', text: () => 'Now the short lines after that digit.\nEach one is 25 thou (0.025″).\nCount the ones the vernier’s 0 has passed.' + now('vS') },
+        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Close up on the vernier.\nFind the one vernier line that meets a beam line exactly.\nEach one is a single thou (0.001″).\nIts number is how many thou to add.' + now('vV') },
+        { target: '#reading .bd', title: 'Add them up', text: () => 'Add it up.\nInches + hundred thou + 25-thou lines + vernier = the reading.' + now('vT', 'This one reads') }
       ]),
       SHORT('cal'),
+      TOLERANCE,
       PRACTICE
     ],
     mic: [
       INTRO('outside micrometer'),
+      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the anvil and spindle faces with a clean cloth.\nEven a speck of grit changes the reading.\nNow watch the spindle close all the way.\nAt the lowest value, it should read exactly the frame size.\nThat’s 0.0000″ on the 0–1″ micrometer.' + zeroNote()),
+      { spot: 'a', view: 'scale', hl: 'num', title: 'Zero on the sleeve', text: () => 'Spindle closed, so look at the sleeve first.\nThe thimble’s edge sits right at the sleeve’s start.\nNothing is showing past the frame size.' + now('vA') },
+      { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Now the thimble.\nIts 0 line sits right on the index line.\nThat’s the zero.' + now('vC') },
+      { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', title: 'Zero on the vernier', text: () => 'And the vernier.\nIts 0 line lines up with a thimble line.\nZero tenths to add.' + now('vD') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe sleeve, the thimble and the vernier all sit on their lowest marks.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'The cards agree too.\nThe reading is the frame size and nothing more.\nThat’s a micrometer you can trust.' + now('vT', 'The reading is') },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
+      CLEAN_PART(),
+      { target: '#view', view: 'iso', hands: true, next: 'Next', title: 'How to hold it', text: () => window.__guideHandsOption && window.__guideHandsOption() === 2
+        ? 'Now, how to hold it.\nHold the micrometer in your right hand.\nThe frame rests in your palm, and your last fingers wrap round it.\nYour thumb and first finger reach up to the <b>ratchet</b>.\nHold the part in your left hand, between the faces.\nKeep it quick and light. Warm hands make the steel grow.'
+        : 'Now, how to hold it.\nRest the frame on your left palm, under its left side, with your fingers curled up round the back of it.\nTurn the <b>ratchet</b> with the thumb, first finger and middle finger of your right hand.\nTuck the other two fingers into your palm.\nNever the thimble: the ratchet clicks at the right feel.\nKeep it quick and light. Warm hands make the steel grow.' },
       Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Close it on the part by hand',
-        text: 'The part slides in between the anvil and spindle by itself. Now watch the hand: press on the ratchet stop where the ring pulses, hold the button down, and circle round it the way the arrow goes, bringing the spindle down until the ratchet clicks on the part. That click is the right measuring feel.' }, offThenOn()),
+        text: 'The part slides in between the anvil and spindle for you.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nBring the spindle down until the ratchet clicks on the part.\nThat click is the right feel.' }, offThenOn()),
       LOOK('micrometer'),
-      { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera is on the sleeve now. The last number showing is a hundred thou (0.100″) each.' + now('vA') },
-      { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Each small line showing past that number adds 25 thou (0.025″).' + now('vB') },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'The thimble adds the thou, one thou (0.001″) per line. Follow the index line, the long line along the sleeve, across onto the thimble, and take the highest thimble mark that sits on it or below it. A mark above the index line hasn’t reached it yet, so it doesn’t count.' + now('vC') },
+      { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera’s on the sleeve now.\nLook at the last number showing.\nEach one is a hundred thou (0.100″).' + now('vA') },
+      { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Next, the small lines past that number.\nEach one adds 25 thou (0.025″).' + now('vB') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'Now the thimble.\nEach line adds one thou (0.001″).\nFollow the index line, the long one along the sleeve, across onto the thimble.\nTake the highest mark that sits on it or just below it.\nA mark above the line hasn’t reached it yet, so skip it.' + now('vC') },
       { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', flat: 'the vernier line that lines up with a thimble line', title: 'Find the vernier line',
-        text: () => 'Looking square on at the one vernier line that lines up, from its number on the sleeve to where it meets its thimble line at the thimble edge: the two run on as one straight line. That line’s number is the tenths, a tenth (0.0001″) each.' + now('vD') },
-      { target: '#reading .bd', title: 'Add them up', text: () => 'Frame size + sleeve number + sleeve lines + thimble + vernier = the reading.' + now('vT', 'This one reads') },
+        text: () => 'Almost there. Find the vernier line.\nLook for the one that lines up with a thimble line.\nThe two run on as one straight line.\nIts number is the tenths, 0.0001″ each.' + now('vD') },
+      { target: '#reading .bd', title: 'Add them up', text: () => 'Add it up.\nFrame size + sleeve number + sleeve lines + thimble + vernier = the reading.' + now('vT', 'This one reads') },
       SHORT('mic'),
+      TOLERANCE,
       PRACTICE
     ],
     depth: [
       INTRO('depth micrometer'),
+      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and run the rod down to it.\nAt the lowest value, it should read exactly 0.\nNow watch the rod wind all the way back.'),
+      { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Rod all the way in, so look at the thimble.\nIts 0 line sits right on the center line.\nThat’s the zero.' + now('vC') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe thimble line sits right on the center line.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
+      CLEAN_PART(),
       Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Run the rod down by hand',
-        text: 'The part slides under the base and the base sits down on it by itself. Now watch the hand: press on the ratchet stop where the ring pulses, hold the button down, and circle round it the way the arrow goes, running the rod down until the ratchet clicks on the bottom.' }, offThenOn()),
+        text: 'The part slides under the base, and the base sits down on it.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nRun the rod down until the ratchet clicks on the bottom.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'nextNum', view: 'scale', flat: 'the first number showing below the thimble', title: 'Find the first number you can see', text: () => {
         const a = depA(), n = a == null ? null : a + 1;
-        return 'On a depth mic the thimble slides down over the sleeve as the rod goes deeper, so part of the reading hides under it. Work from what you can see: look just below the thimble’s edge at the first number still showing'
-          + (n == null ? '. The number just above it is under the thimble, so the hundred thou is one less than the number you see.'
-            : (n === 10 ? ' (past “9” it’s the end of the inch).' : `, <b>“${n}”</b>.`) + ` The number just above it is under the thimble, so the hundred thou is one less: <b>${a}</b>, or ${a * 100} thou.`);
+        return 'The thimble hides part of the sleeve on a depth mic.\nThat’s normal: a depth mic reads backward. Work from what you can see.\nFind the first number showing below the thimble’s edge'
+          + (n == null ? '.\nThe number just above it is hidden, so the hundred thou is one less.'
+            : (n === 10 ? ' (past “9” it’s the end of the inch).' : `: <b>“${n}”</b>.`) + `\nThe number above it is hidden, so the hundred thou is one less: <b>${a}</b>, or ${a * 100} thou.`);
       } },
       { spot: 'openLines', view: 'scale', flat: 'the lines still showing between the thimble and that number', title: 'Count the lines you can see', text: () => {
         const b = depB();
-        return 'Now count the small lines you can still see between the thimble’s edge and that number. Three lines fit in that gap, 25 thou (0.025″) each, so the thimble has passed 3 minus the ones you see.'
-          + (b == null ? '' : ` Here you can see <b>${3 - b}</b>, so it has passed <b>${b}</b>: ${b * 25} thou.`);
+        return 'Now count the small lines you can still see.\nLook between the thimble’s edge and that number.\nThree lines fit in that gap, 25 thou (0.025″) each.\nSo the thimble has passed 3 minus the ones you see.'
+          + (b == null ? '' : `\nHere you see <b>${3 - b}</b>, so it’s passed <b>${b}</b>: ${b * 25} thou.`);
       } },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'The thimble line on the center line adds the thou, one thou (0.001″) per line.' + now('vC') },
-      { target: '#reading .bd', title: 'Add them up', text: () => 'Rod size + (first number you see − 1) hundred thou + (3 − lines you see) × 25 thou + thimble = the reading.' + now('vT', 'This one reads') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'Now the thimble.\nThe line on the center line adds the thou, one (0.001″) per line.' + now('vC') },
+      { target: '#reading .bd', title: 'Add them up', text: () => 'Add it up.\nRod size + (first number you see − 1) hundred thou + (3 − lines you see) × 25 thou + thimble = the reading.' + now('vT', 'This one reads') },
       SHORT('depth'),
+      TOLERANCE,
       PRACTICE
     ],
     height: u => [
       CHOOSE,
       INTRO('height gage'),
+      CLEAN(() => 'Quick habit first, and one I skipped for way too long: wipe the scriber and the base with a clean cloth.\nA little grit under either throws the zero off.\nWatch the scriber come down onto a clean flat surface.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
+      ...(u === 'mm' ? [
+        { spot: 'mvernLine', side: 'left', box: [180, 90], frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so look at the vernier.\nIts 0 line meets the main scale’s 0 line.\nThat’s the zero.' + nowMM('mVern') },
+        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the main scale’s 0.' },
+        { target: '#reading .rgroup ~ .rgroup', title: 'Zero all the way round', text: () => 'The reading says zero too.\nThat’s a gage you can trust.\nNow you’re ready to measure.' + nowMM('mTot', 'The reading is') },
+      ] : [
+        { spot: 'vernLine', side: 'right', box: [180, 90], frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so look at the vernier.\nIts 0 line meets the main scale’s 0 line.\nThat’s the zero.' + now('iVern') },
+        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the main scale’s 0.' },
+        { target: '#reading .rgroup', title: 'Zero all the way round', text: () => 'The reading says zero too.\nThat’s a gage you can trust.\nNow you’re ready to measure.' + now('iTot', 'The reading is') },
+      ]),
       PART('section:has(#partSel) .dd, #partSel'),
+      CLEAN_PART(),
       Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', drag: true, title: 'Bring the scriber down by hand',
-        text: 'The part slides under the scriber by itself. Now watch the hand: press on the slider where the ring pulses, hold the button down, and drag it down the beam along the arrow until the scriber rests on the part’s face.' }, offThenOn()),
+        text: 'The part slides under the scriber for you.\nNow watch the hand. Press on the slider where the ring pulses.\nHold the button and drag down the beam along the arrow.\nStop when the scriber rests on the part’s face.' }, offThenOn()),
       LOOK('height gage'),
       // the card sits on the other scale's side of the beam: on the inch side while millimeters are read, and on
       // the metric side while inches are, so it never covers the scale being read
       ...(u === 'mm' ? [
         { spot: 'mmNum', side: 'left', box: [150, 110], flat: 'the centimeter number', frame: ['mmNum', 'mvernZero'], title: 'Find the centimeter mark', text: () => {
           const v = parseFloat(val('mMain'));
-          return 'Look at the metric scale on the beam, on the right. The big numbers are centimeters, 10 mm each. Find the last one at or below the vernier’s 0'
+          return 'Look at the metric scale on the beam, on the right.\nThe big numbers are centimeters, 10 mm each.\nFind the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v/10)} cm</b>, which is ${Math.floor(v/10)*10} mm.`);
         } },
         { spot: 'mmLine', side: 'left', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the line at or below the zero', text: () => {
           const v = parseFloat(val('mMain'));
-          return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is one millimeter.'
-            + (isNaN(v) ? '' : ` Here it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
+          return 'Now go up from that number.\nFind the last main-scale line at or below the vernier’s 0, or the one that meets it.\nEach line is one millimeter.'
+            + (isNaN(v) ? '' : `\nHere it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
-        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Look along the metric vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is 0.02 mm, and its big numbers are tenths of a millimeter.' + nowMM('mVern') },
-        { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
+        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Now focus on the vernier.\nFind the one line that lines up exactly with a main-scale line.\nEach vernier line is 0.02 mm.\nIts big numbers are tenths of a millimeter.' + nowMM('mVern') },
+        { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Add it up.\nCentimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
       ] : [
         { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
           const v = parseFloat(val('iMain'));
-          return 'Look at the inch scale on the beam, on the left. The big numbers are whole inches. Find the last one at or below the vernier’s 0'
+          return 'Look at the inch scale on the beam, on the left.\nThe big numbers are whole inches.\nFind the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v)}″</b>.`);
         } },
         { spot: 'mainLine', side: 'right', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the line at or below the zero', text: () => {
           const v = parseFloat(val('iMain')), n = parseInt(val('iMainH'), 10);
-          return 'Now go up from that number to the last main-scale line at or below the vernier’s 0, or the one that meets it exactly. Each line is 50 thou (0.050″).'
-            + (isNaN(v) || isNaN(n) ? '' : ` Here it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
+          return 'Now go up from that number.\nFind the last main-scale line at or below the vernier’s 0, or the one that meets it.\nEach line is 50 thou (0.050″).'
+            + (isNaN(v) || isNaN(n) ? '' : `\nHere it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
-        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Look along the vernier and find the one line that lines up exactly with a main-scale line. Each vernier line is one thou (0.001″), so its number is how many thou to add.' + now('iVern') },
-        { target: '#reading .rgroup', title: 'Add them up', text: () => 'Inch + main-scale lines + vernier (one thou per line) = the reading in inches.' + now('iTot', 'This one reads') }
+        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Now focus on the vernier.\nFind the one line that lines up exactly with a main-scale line.\nEach one is a single thou (0.001″).\nIts number is how many thou to add.' + now('iVern') },
+        { target: '#reading .rgroup', title: 'Add them up', text: () => 'Add it up.\nInch + main-scale lines + vernier = the reading in inches.' + now('iTot', 'This one reads') }
       ]),
       SHORT('height'),
+      TOLERANCE,
       PRACTICE
     ]
   };
@@ -201,7 +278,7 @@
   let curUnit = 'in';
   const build = u => {
     curUnit = u;
-    const t = TOURS[tool], list = typeof t === 'function' ? t(u) : t;
+    const t = TOURS[tool], list = (typeof t === 'function' ? t(u) : t).filter(s => !s.hands || window.__hands);   // (the 3D hands are switched off unless js/hands.js is loaded)
     let first = true;
     STEPS.splice(0, STEPS.length, ...list.flatMap(s => {
       if (!s.flat || !$('flat')) return [s];
@@ -213,21 +290,26 @@
   build('in');
   const pressUnits = u => { const b = document.querySelector(`aside [data-units="${u}"]`); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); };
 
-  /* ---------- the button, right beside Tutorial ---------- */
+  /* ---------- the button, under the range line ---------- */
   const pair = document.createElement('span'); pair.className = 'gd-pair';
-  tutBtn.parentNode.insertBefore(pair, tutBtn); pair.appendChild(tutBtn);
+  slot.appendChild(pair);
   const btn = document.createElement('button');
-  btn.type = 'button'; btn.id = 'guideBtn'; btn.className = tutBtn.className;
-  btn.innerHTML = 'Show me <span class="gd-beta">beta</span>';
-  btn.setAttribute('aria-label', 'Show me: a guided walkthrough of one measurement (experimental)');
-  btn.dataset.tip = 'Show me (experimental)\nWalks you through one real measurement on the 3D tool, step by step.';
+  btn.type = 'button'; btn.id = 'guideBtn'; btn.className = '';
+  btn.innerHTML = '<span class="gd-q" aria-hidden="true">?</span><span>How do I use it?</span>';
+  btn.setAttribute('aria-label', 'How do I use it? A guided walkthrough of one measurement');
+  btn.dataset.tip = 'How do I use it?\nWalks you through one real measurement on the 3D tool, step by step.';
   pair.appendChild(btn);
 
   /* ---------- styles ---------- */
   const css = document.createElement('style');
   css.textContent = `
 .gd-pair{display:inline-flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
-.gd-beta{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:999px;margin-left:3px;vertical-align:1px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+#guideBtn{position:static;display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:250px;margin:2px auto 0;padding:12px 18px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 70%,#fff)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 80%,#fff),var(--accent))!important;color:#07111f!important;font:inherit;font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.2;cursor:pointer;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.4)!important;transition:transform .15s ease,box-shadow .2s ease,filter .2s ease}
+#guideBtn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 9px 24px color-mix(in srgb,var(--accent) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.45)!important}
+#guideBtn:active{transform:none;filter:brightness(.97)}
+#guideBtn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+#guideBtn .gd-q{display:inline-grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;background:rgba(7,17,31,.2);font-size:15px;font-weight:800}
+@media (prefers-reduced-motion: reduce){#guideBtn{transition:none}#guideBtn:hover{transform:none}}
 .gd{position:fixed;inset:0;z-index:900;pointer-events:none}
 .gd-hole{position:fixed;left:0;top:0;border-radius:10px;box-shadow:0 0 0 2px var(--accent),0 0 18px 2px color-mix(in srgb,var(--accent) 55%,transparent);pointer-events:none;will-change:transform}
 .gd-hole.none{display:none}
@@ -251,6 +333,8 @@
 .gd-card h4{margin:0 26px 6px 0;font-size:15px;font-weight:600}
 .gd-card p{margin:0;color:var(--muted,#8a8f97)}
 .gd-card p b{color:var(--ink,#ececee)}
+.gd-l{display:block}
+.gd-l + .gd-l{margin-top:6px}
 .gd-choose{display:flex;gap:8px;margin-top:12px}
 .gd-choose[hidden]{display:none}
 .gd-card .gd-choose button{flex:1;padding:9px 10px;font-size:13px;font-weight:600}
@@ -258,6 +342,14 @@
 .gd-do[hidden]{display:none}
 .gd-card .gd-max{display:flex;width:100%;margin-top:10px;padding:7px 10px;gap:7px;align-items:center;justify-content:center;font-weight:600}
 .gd-card .gd-max[hidden]{display:none}
+.gd-card .gd-hands{display:flex;width:100%;margin-top:10px;padding:7px 10px;gap:7px;align-items:center;justify-content:center;font-weight:600}
+.gd-card .gd-hands[hidden]{display:none}
+.gd-hands.off .ic-eye,.gd-hands:not(.off) .ic-eyeoff{display:none}
+.gd-opts{display:flex;gap:6px;margin-top:10px}
+.gd-opts[hidden]{display:none}
+.gd-opts button{flex:1;text-align:left;padding:7px 9px;font-weight:600;line-height:1.25}
+.gd-opts button small{display:block;font-weight:400;opacity:.75;font-size:11px;margin-top:2px}
+.gd-opts button.on{outline:2px solid var(--accent)}
 .gd-max .ic-shrink{display:none}
 .gd-max.on .ic-grow{display:none}
 .gd-max.on .ic-shrink{display:inline-block}
@@ -369,6 +461,14 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (fl.classList.contains('docked')) fl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
   // the card's button to grow the flat view to full height, or shrink it back, whichever it isn't now
+  function syncHands(){
+    const hb = card && card.querySelector('.gd-hands'); if (!hb) return;
+    const off = !!(window.__guideHandsHidden && window.__guideHandsHidden());
+    const ob = card.querySelector('.gd-opts'), opt = window.__guideHandsOption ? window.__guideHandsOption() : 1;
+    if (ob){ ob.hidden = !STEPS[stepI].hands; ob.querySelectorAll('button').forEach(b => { b.classList.toggle('on', +b.dataset.opt === opt); b.setAttribute('aria-pressed', String(+b.dataset.opt === opt)); }); }
+    hb.hidden = !STEPS[stepI].hands; hb.classList.toggle('off', off); hb.setAttribute('aria-pressed', String(off));
+    hb.querySelector('span').textContent = off ? 'Show the hands' : 'Hide the hands';
+  }
   function syncMax(){
     const b = card && card.querySelector('.gd-max'), s = STEPS[stepI], fl = $('flat');
     if (!b) return;
@@ -426,7 +526,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       }
     }, 320);
     root = document.createElement('div'); root.className = 'gd';
-    root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'Show me walkthrough');
+    root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-label', 'How do I use it? walkthrough');
     dim = mk('div', 'gd-dim');
     hole = mk('div', 'gd-hole');
     svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'gd-svg'); svg.setAttribute('aria-hidden', 'true'); root.appendChild(svg);
@@ -444,6 +544,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       <div class="gd-choose" hidden></div>
       <div class="gd-do" hidden><i class="fa-solid fa-hand-pointer"></i><span></span></div>
       <button type="button" class="gd-max" hidden><i class="fa-solid fa-expand ic-grow"></i><i class="fa-solid fa-compress ic-shrink"></i><span>Expand the minimap</span></button>
+      <div class="gd-opts" hidden role="group" aria-label="Ways to hold it"><button type="button" data-opt="1">Option 1<small>Left hand on the frame, right hand on the ratchet</small></button><button type="button" data-opt="2">Option 2<small>Right hand holds the micrometer, left hand holds the part</small></button></div>
+      <button type="button" class="gd-hands" hidden aria-pressed="false"><i class="fa-solid fa-eye ic-eye"></i><i class="fa-solid fa-eye-slash ic-eyeoff"></i><span>Hide the hands</span></button>
       <div class="gd-foot"><span class="gd-count"></span><button type="button" class="gd-back">Back</button><button type="button" class="gd-next primary">Next</button></div>`;
     card.querySelector('.gd-x').addEventListener('click', stop);
     // picking a unit sets the tool to it, builds the steps for it, and moves on
@@ -460,6 +562,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       if ($('flatMaxBtn')) $('flatMaxBtn').click();
       syncMax();
     });
+    // "Hide the hands" / "Show the hands": the 3D hands that show how to hold the tool (the choice is remembered)
+    card.querySelector('.gd-hands').addEventListener('click', () => {
+      if (window.__guideHandsHide) window.__guideHandsHide(!window.__guideHandsHidden());
+      syncHands();
+    });
+    document.addEventListener('hands-visibility', () => { if (root) syncHands(); });   // (the toolbar button changes it too)
+    card.querySelector('.gd-opts').addEventListener('click', e => { const b = e.target.closest('button[data-opt]'); if (b && window.__guideHandsSetOption){ window.__guideHandsSetOption(+b.dataset.opt); syncHands(); } });
     card.querySelector('.gd-next').addEventListener('click', () => stepI >= STEPS.length - 1 ? stop() : advance());
     document.body.appendChild(root);
     b.classList.add('guiding');
@@ -503,6 +612,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     } else gone.remove();
     document.body.classList.remove('guiding');
     if (window.__guideArrow) window.__guideArrow(false);
+    if (window.__guideHands) window.__guideHands(false);
     // put the highlight colors back the way they were
     if (saved) saved.forEach(([c, on]) => { if (c.checked !== on){ c.checked = on; c.dispatchEvent(new Event('change', { bubbles: true })); } });
     saved = null;
@@ -514,9 +624,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (card && card.contains(e.target)) return;
     pressing = { x: e.clientX, y: e.clientY, far: false, view: !!(e.target.closest && e.target.closest('#view canvas')) };
   }
-  // a drag across the 3D view counts for "Look around": the first press arms it, a drag of 40 px lets it go on
-  function onMove(e){ if (pressing && !pressing.far && Math.hypot(e.clientX - pressing.x, e.clientY - pressing.y) > 40) pressing.far = true; }
-  function onRelease(){ if (pressing && pressing.view && pressing.far) looked = 2; pressing = false; }
+  // a drag across the 3D view counts for "Look around": the first press arms it, a drag of just 10 px lets it go on
+  function onMove(e){ if (pressing && !pressing.far && Math.hypot(e.clientX - pressing.x, e.clientY - pressing.y) > 10) pressing.far = true; }
+  function onRelease(){ if (pressing && pressing.view && pressing.far) looked = 1; pressing = false; }
   function onKey(e){
     if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); stop(); }
   }
@@ -537,6 +647,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
+    if (window.__guideHands) window.__guideHands(!!s.hands);     // the 3D hands that show how to hold the tool, where a step asks for them
     // only this step's highlight is lit, and the camera flies to where the step looks
     if (saved) saved.forEach(([c]) => setHl(c.dataset.hl, c.dataset.hl === s.hl));
     const vb = s.view && document.querySelector(`#view [data-view="${s.view}"]`);
@@ -555,7 +666,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     ch.hidden = !s.choose;
     ch.innerHTML = s.choose ? s.choose.map(([u, label]) => `<button type="button" data-u="${u}">${label}</button>`).join('') : '';
     // on a flat-view step, a button to expand the flat view, or shrink it back once it is expanded
-    syncMax();
+    syncMax(); syncHands();
     const doEl = card.querySelector('.gd-do');
     doEl.hidden = !(s.waitClick || s.waitFor || s.drag);
     doEl.querySelector('span').textContent = s.drag === 'look' ? 'Follow the hand: press on empty space, hold, and drag.'
@@ -592,7 +703,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!root) return;
     const s = STEPS[stepI];
     const text = fn(s.text, s);
-    if (text !== lastText){ card.querySelector('p').innerHTML = text; lastText = text; measureCard(); }
+    if (text !== lastText){ card.querySelector('p').innerHTML = String(text).split('\n').map(l => '<span class="gd-l">' + l + '</span>').join(''); lastText = text; measureCard(); }
     syncMax();
     if (s.refit && window.__guideRefit) window.__guideRefit();
     if (s.waitFor && !waitDone && s.waitFor(s)){
@@ -728,7 +839,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!s.drag || waitDone) return null;
     if (s.drag === 'look'){
       const vr = $('view') && $('view').getBoundingClientRect(); if (!vr || vr.width < 80) return null;
-      const cx = vr.left + vr.width*0.5, cy = vr.top + vr.height*0.8, w = Math.min(280, vr.width*0.32), pts = [];   // low in the view, where it's usually empty
+      const cx = vr.left + vr.width*0.5, cy = vr.top + vr.height*0.8, w = Math.min(90, vr.width*0.12), pts = [];   // low in the view, where it's usually empty
       for (let i = 0; i <= 24; i++){ const u = i/24; pts.push({ x: cx - w/2 + u*w, y: cy - Math.sin(u*Math.PI)*w*0.16 }); }
       return { pts, look: true };
     }

@@ -5,13 +5,37 @@ const APPS = [
   { id: 'vernier', name: 'Vernier caliper', page: 'caliper', inst: 'vern' },
   { id: 'micrometer', name: 'Outside micrometer', page: 'micrometer' },
   { id: 'depth', name: 'Depth micrometer', page: 'depth' },
-  { id: 'height', name: 'Height gage', page: 'height' }
+  { id: 'height', name: 'Height gage', page: 'height' },
+  { id: 'telescopic', name: 'Telescopic gauge', page: 'telescopic', badge: 'NEW' }
 ];
 // links inside a tool that open another tool switch tabs instead
 const LINKS = { 'depth-micrometer.html': 'depth', 'depth-micrometer-trainer.html': 'depth', 'height-gage.html': 'height', 'micrometer.html': 'micrometer', 'dial-caliper-trainer.html': 'caliper' };
 // a tool's page as text, ready for its frame (relative css/ and js/ paths resolve against this page)
+// every file a tool's page needs: its scripts, styles and fonts (and, for the pages built on three.js modules, those modules), so the
+// loading screen can say how many of them have arrived ("12 / 31 assets")
+const FROM_DISK = location.protocol === 'file:';
+const CDN3 = 'https://cdn.jsdelivr.net/npm/three@0.170.0/';
+// A page opened straight from disk (file://) has no origin, so the browser refuses the local ES modules and fonts that a hosted page loads
+// without trouble. From disk they come from the CDN instead, as they always did.
+function forDisk(html){
+  return html
+    .replace('./vendor/three/three.module.min.js?v=1', CDN3 + 'build/three.module.js')
+    .replace('./vendor/three/addons/', CDN3 + 'examples/jsm/')
+    .replace(/<link rel="preload" href="fonts\/inter[^>]*>\s*<style>@font-face[\s\S]*?<\/style>/, '<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">');
+}
+function assetsOf(html){
+  const out = [], add = u => { if (u && !/^(data:|#|javascript:)/.test(u) && out.indexOf(u) < 0) out.push(u); };
+  html.replace(/<script\b[^>]*\ssrc="([^"]+)"/g, (m, u) => { add(u); return m; });
+  html.replace(/<link\b[^>]*>/g, tag => { if (/rel="(stylesheet|preload|modulepreload)"/.test(tag)){ const h = /\shref="([^"]+)"/.exec(tag); if (h) add(h[1]); } return tag; });
+  if (/type="importmap"/.test(html)) (FROM_DISK ? [CDN3 + 'build/three.module.js', CDN3 + 'examples/jsm/controls/OrbitControls.js', CDN3 + 'examples/jsm/environments/RoomEnvironment.js', CDN3 + 'examples/jsm/utils/BufferGeometryUtils.js']
+    : ['vendor/three/three.module.min.js?v=1', 'vendor/three/addons/controls/OrbitControls.js', 'vendor/three/addons/environments/RoomEnvironment.js', 'vendor/three/addons/utils/BufferGeometryUtils.js']).forEach(add);
+  if (!FROM_DISK) add('fonts/bebas-neue-latin-400-normal.woff2?v=1');
+  return out;
+}
 function pageFor(a){
   let html = document.getElementById('tool-' + a.page).textContent.replace(/<\\\/script>/g, '</script>');
+  if (FROM_DISK) html = forDisk(html);
+  html = html.replace('<head>', '<head><script>window.__ASSETS=' + JSON.stringify(assetsOf(html)) + '</' + 'script>');
   if (a.inst) html = html.replace('<head>', '<head><script>window.__INST=' + JSON.stringify(a.inst) + '</' + 'script>');
   return html;
 }
@@ -21,6 +45,12 @@ function lockDown(w){
   if (!w || w.__lockedDown) return;
   w.__lockedDown = true;
   w.addEventListener('contextmenu', e => e.preventDefault(), true);
+  // the backtick key opens the dev panel (js/devmode.js), also while a tool's frame has the keyboard (the page itself hears it directly)
+  if (w !== window) w.addEventListener('keydown', e => {
+    if (e.key !== '`' || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target; if (t && (t.isContentEditable || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && /^(text|number|search|email|password|tel|url)$/.test(t.type || 'text')))) return;
+    e.preventDefault(); if (window.__devToggle) window.__devToggle();
+  }, true);
   w.addEventListener('keydown', e => {
     const k = (e.key || '').toLowerCase(), mod = e.ctrlKey || e.metaKey;
     if (k === 'f12' || (mod && k === 'u') || (mod && (e.shiftKey || e.altKey) && ['i', 'j', 'c', 'u'].includes(k))){
@@ -50,7 +80,9 @@ lockDown(window);
   APPS.forEach(a => {
     const b = document.createElement('a');
     b.className = 'tab'; b.href = '#' + a.id; b.setAttribute('role', 'tab'); b.id = 'tab-' + a.id;
-    b.textContent = a.name; b.setAttribute('aria-selected', 'false'); b.setAttribute('aria-controls', 'app-' + a.id);
+    b.setAttribute('aria-label', a.name);
+    if (a.badge){ const n = document.createElement('span'); n.className = 'tab-new'; n.textContent = a.badge; n.setAttribute('aria-hidden', 'true'); b.appendChild(n); }   // (a small label on the left of the name)
+    b.appendChild(document.createTextNode(a.name)); b.setAttribute('aria-selected', 'false'); b.setAttribute('aria-controls', 'app-' + a.id);
     b.addEventListener('click', e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); show(a.id); });
     tabs.appendChild(b);
   });
@@ -132,7 +164,188 @@ lockDown(window);
     // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
     const fx = toolFx(f); if (fx) fx.in();
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
+    dockSync();
   }
+  // The Telescopic gauge tab can also measure its gauge on a tool's own, full simulator, in a panel on the right: the gauge flies
+  // across the screen (the lab animates that), the tool opens in the panel, puts the gauge on and measures it. The lab folds its
+  // side panel away to make room, and says where to click to bring it back (the card with "See where"). The tabs along the top
+  // of the panel swap between the three tools; the X closes it, and the gauge flies home.
+  const DOCK_TOOLS = ['micrometer', 'caliper', 'vernier'];
+  const dock = { open: false, tool: null, payload: null, frames: {}, el: null, labWas: null };
+  const labWin = () => { try { return frames.telescopic && frames.telescopic.contentWindow; } catch (err) { return null; } };
+  function dockBuild(){
+    if (dock.el) return;
+    const d = document.createElement('div');
+    d.className = 'dock'; d.id = 'dock'; d.hidden = true;
+    d.innerHTML = '<div class="dock-bar"><div class="dock-tabs" role="tablist" aria-label="Measure the gauge with"></div><span class="dock-note"></span><button type="button" class="dock-x" aria-label="Close the panel" title="Close the panel and bring the sidebar back">✕</button></div><div class="dock-body"></div>';
+    stage.appendChild(d);
+    dock.el = d; dock.tabs = d.querySelector('.dock-tabs'); dock.note = d.querySelector('.dock-note'); dock.body = d.querySelector('.dock-body');
+    DOCK_TOOLS.forEach(id => {
+      const a = APPS.find(x => x.id === id), b = document.createElement('button');
+      b.type = 'button'; b.dataset.t = id; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', 'false'); b.textContent = a.name;
+      b.addEventListener('click', () => openDock(id, dock.payload, { fly: labPending() }));
+      dock.tabs.appendChild(b);
+    });
+    d.querySelector('.dock-x').addEventListener('click', closeDock);
+  }
+  function dockFrame(a){
+    const f = document.createElement('iframe');
+    f.id = 'dock-' + a.id; f.title = a.name + ' (beside the gauge)';
+    f.setAttribute('allow', 'fullscreen; autoplay');
+    f.addEventListener('load', () => {
+      try { lockDown(f.contentWindow); } catch (err) {}
+      // the tool's own side panel folds away: half a screen is for the 3D view and the reading
+      try { const w = f.contentWindow; w.document.body.classList.add('side-off'); const sb = w.document.getElementById('sideBtn'); if (sb) sb.setAttribute('aria-pressed', 'true'); w.dispatchEvent(new Event('resize')); } catch (err) {}
+      dockPause();
+    });
+    f.srcdoc = pageFor(a);
+    dock.body.appendChild(f);
+    return f;
+  }
+  const dockShowing = () => dock.open && current === 'telescopic';
+  function dockPause(){ Object.keys(dock.frames).forEach(id => pause(dock.frames[id], !(dockShowing() && id === dock.tool))); }
+  // show or hide the panel to match: only on the gauge tab, and only while it is open
+  function dockSync(){
+    if (!dock.el) return;
+    const on = dockShowing(), lab = frames.telescopic;
+    dock.el.hidden = !on;
+    stage.classList.toggle('docked', on);
+    if (lab){
+      lab.classList.toggle('docked', on);
+      try {
+        const b = lab.contentDocument.body;
+        if (on){ if (dock.labWas === null) dock.labWas = b.classList.contains('side-off'); b.classList.add('side-off'); }
+        else if (dock.labWas !== null){ b.classList.toggle('side-off', dock.labWas); dock.labWas = null; }
+        b.classList.toggle('dock-open', on);
+        const sb = lab.contentDocument.getElementById('sideBtn'); if (sb) sb.setAttribute('aria-pressed', String(b.classList.contains('side-off')));
+      } catch (err) {}
+    }
+    if (!on) hideWhere();
+    dockPause();
+    try { const L = labWin(); if (L && L.__lab && L.__lab.overlay) L.__lab.overlay(on); } catch (err) {}   // the gauge drawn over the panel goes when the panel does
+    // the frames change width while the panel slides: lay them out again once it has settled
+    setTimeout(() => { [lab, dock.frames[dock.tool]].forEach(f => { try { f && f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} }); }, 460);
+  }
+  const labPending = () => { try { const L = labWin().__lab; return !!(L && L.pending && L.pending()); } catch (err) { return false; } };
+  function openDock(id, p, opts){
+    if (opts && opts.fly){ try { labWin().__lab.swapping(); } catch (err) {} }   // (already over on a tool: its gauge waits for the next one)
+    const a = APPS.find(x => x.id === id); if (!a || !DOCK_TOOLS.includes(id)) return;
+    dockBuild();
+    const prev = dock.frames[dock.tool], same = dock.tool === id;
+    dock.open = true; dock.tool = id; dock.payload = p || dock.payload;
+    const fresh = !dock.frames[id];
+    const f = dock.frames[id] || (dock.frames[id] = dockFrame(a));
+    let went = false;   // (it is asked twice on purpose, as a backup, and must only happen once)
+    const go = () => {
+      if (went) return; went = true;
+      [...dock.body.children].forEach(x => x.classList.toggle('on', x === f));
+      [...dock.tabs.children].forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === id)));
+      if (dock.payload) dock.note.textContent = 'Gauge ' + dock.payload.gauge + ' · ' + (dock.payload.mm/25.4).toFixed(4) + ' in (' + dock.payload.mm.toFixed(2) + ' mm)';
+      dockSync();
+      // a tool that was already built dissolves back in (a new one builds in by itself as it loads)
+      if (!fresh && !same){ const fx = toolFx(f); if (fx) fx.in(); }
+      give(f, dock.payload, !!(opts && opts.fly));
+    };
+    // the tool that was showing dissolves away first, then the new one
+    const pfx = prev && !same && dock.el && !dock.el.hidden ? toolFx(prev) : null;
+    if (pfx && !matchMedia('(prefers-reduced-motion: reduce)').matches){ Promise.resolve(pfx.out()).then(go, go); setTimeout(go, 2000); } else go();
+  }
+  function closeDock(){
+    dock.open = false; dockSync();
+    const w = labWin(); try { w && w.__lab && w.__lab.gaugeBack(); } catch (err) {}   // the gauge flies home
+  }
+  // "See where": the screen dims and an arrow runs from the lab's hint card to the panel's X
+  let where = null;
+  function hideWhere(){
+    if (!where) return;
+    const w = where; where = null; w.classList.remove('on'); setTimeout(() => w.remove(), 320);
+  }
+  // The screen dims with two lit windows: the panel's X, with a pulsing ring, and a dashed ghost of the sidebar where it comes back to.
+  // An arrow draws itself from one to the other, and the note beside the X says what happens when it is clicked (or does it for you).
+  function showWhere(){
+    const x = dock.el && !dock.el.hidden && dock.el.querySelector('.dock-x'); if (!x || where) return;
+    const W = innerWidth, H = innerHeight, xr = x.getBoundingClientRect();
+    let lr = { left: 0, top: 0, width: Math.min(320, W*0.4), height: H };
+    try { const r = frames.telescopic.getBoundingClientRect(); if (r.width > 40) lr = r; } catch (err) {}
+    const gw = Math.min(310, lr.width*0.42), gx = lr.left + 6, gy = lr.top + 6, gh = Math.max(80, lr.height - 12);   // the sidebar's spot on the lab's left edge
+    const cx = xr.left + xr.width/2, cy = xr.top + xr.height/2, R = xr.width/2 + 8;
+    // the arrow: from the ghost's right edge, in a smooth S, to the left of the X; the head points along the last stretch
+    const sx = gx + gw + 4, sy = gy + Math.min(gh*0.46, 220), ex = cx - R - 6, ey = cy, d = Math.max(60, ex - sx);
+    const c1x = sx + d*0.5, c1y = sy, c2x = ex - d*0.45, c2y = ey, hx = ex, hy = ey, L = 17, ang = Math.atan2(ey - c2y, ex - c2x) || 0;
+    const p1 = (hx - L*Math.cos(ang - 0.45)) + ',' + (hy - L*Math.sin(ang - 0.45)), p2 = (hx - L*Math.cos(ang + 0.45)) + ',' + (hy - L*Math.sin(ang + 0.45));
+    const ov = document.createElement('div');
+    ov.className = 'where'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Where the sidebar went');
+    const capW = Math.min(300, W - 24), capL = Math.max(12, Math.min(W - capW - 12, xr.right - capW)), below = xr.bottom + 150 < H;
+    ov.innerHTML =
+      '<svg aria-hidden="true" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '"><defs><mask id="whereMask"><rect width="' + W + '" height="' + H + '" fill="#fff"/>' +
+      '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="#000"/><rect x="' + gx + '" y="' + gy + '" width="' + gw + '" height="' + gh + '" rx="12" fill="#000"/></mask></defs>' +
+      '<rect width="' + W + '" height="' + H + '" fill="rgba(4,5,7,.8)" mask="url(#whereMask)"/>' +
+      '<rect class="where-ghost" x="' + gx + '" y="' + gy + '" width="' + gw + '" height="' + gh + '" rx="12"/>' +
+      '<circle class="where-pulse" cx="' + cx + '" cy="' + cy + '" r="' + R + '"/><circle class="where-ring" cx="' + cx + '" cy="' + cy + '" r="' + R + '"/>' +
+      '<path class="where-arrow" d="M' + sx + ',' + sy + ' C' + c1x + ',' + c1y + ' ' + c2x + ',' + c2y + ' ' + (ex - L*0.5*Math.cos(ang)) + ',' + (ey - L*0.5*Math.sin(ang)) + '"/>' +
+      '<polygon class="where-head" points="' + hx + ',' + hy + ' ' + p1 + ' ' + p2 + '"/></svg>' +
+      '<div class="where-tag" style="left:' + (gx + 14) + 'px;top:' + (gy + 14) + 'px"><b>Your sidebar</b><span>comes back right here</span></div>' +
+      '<div class="where-cap" style="left:' + capL + 'px;width:' + capW + 'px;' + (below ? 'top:' + (xr.bottom + 22) + 'px' : 'bottom:' + (H - xr.top + 22) + 'px') + '"><b>Click the X</b>' +
+      '<span>It closes this tool, the gauge flies home and the sidebar slides back in.</span>' +
+      '<div class="where-btns"><button type="button" data-act="close">Close it for me</button><button type="button" data-act="ok">Got it</button></div></div>';
+    ov.addEventListener('click', e => {
+      const btn = e.target.closest && e.target.closest('button');
+      if (btn && btn.dataset.act === 'close'){ hideWhere(); closeDock(); return; }
+      hideWhere();
+    });
+    document.body.appendChild(ov); void ov.offsetWidth; ov.classList.add('on'); where = ov;
+    const first = ov.querySelector('button'); if (first) try { first.focus({ preventScroll: true }); } catch (err) {}
+  }
+  document.addEventListener('keydown', e => { if (where && e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); hideWhere(); } }, true);
+  // Once the tool has completely loaded, put the gauge on it. With `fly` the gauge from the lab is flying over: the tool builds its own gauge
+  // out of sight and, once that has settled, says where it sits on screen; the lab flies its gauge to that spot, and the moment it lands
+  // the tool shows its gauge there (reveal) and measures it. Without `fly` (swapping tools with the gauge already over), it just goes on.
+  function give(f, p, fly){
+    if (!p) return;
+    const t0 = Date.now(), key = (give.n = (give.n || 0) + 1);
+    const lab = () => { try { return labWin().__lab; } catch (err) { return null; } };
+    const settle = w => {
+      let last = null, still = 0; const s0 = Date.now();
+      const poll = () => {
+        if (give.n !== key) return;
+        let sp = null; try { sp = w.__tgSpot && w.__tgSpot(); } catch (err) {}
+        still = sp && last && Math.abs(sp.x - last.x) < 1 && Math.abs(sp.y - last.y) < 1 && Math.abs(sp.ppm - last.ppm) < 0.01*sp.ppm ? still + 1 : 0;
+        last = sp;
+        if ((sp && still >= 4) || Date.now() - s0 > 8000){
+          const fr = f.getBoundingClientRect(), L = lab();
+          if (!sp){ try { w.__tgShow && w.__tgShow(); } catch (err) {} }   // no pose to fly to: let the tool show its own gauge
+          if (L && L.toolReady) L.toolReady(sp ? { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl } : null);
+          return;
+        }
+        setTimeout(poll, 120);
+      };
+      poll();
+    };
+    const tryIt = () => {
+      if (give.n !== key) return;   // a newer gauge was handed over meanwhile
+      let w; try { w = f.contentWindow; } catch (err) { return; }
+      const ready = w && typeof w.__tgLoad === 'function' && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading');
+      if (!ready){ if (Date.now() - t0 < 60000) setTimeout(tryIt, 250); return; }
+      setTimeout(() => {
+        if (give.n !== key) return;
+        const g = { mm: p.mm, truth: p.truth, gauge: p.gauge };
+        if (!fly){ w.__tgLoad(g); const L = lab(); if (L && L.landed) L.landed(); return; }
+        w.__tgLoad(g, { hold: true });
+        settle(w);
+      }, fly ? 600 : 900);
+    };
+    tryIt();
+  }
+  window.addEventListener('message', e => {
+    const m = e.data && e.data.tgauge;
+    if (!m || !frames.telescopic || e.source !== frames.telescopic.contentWindow) return;   // only our own tab sends these
+    if (m.seeWhere){ showWhere(); return; }
+    if (m.closeDock){ closeDock(); return; }
+    if (!m.full || !(m.mm > 0)) return;
+    const a = APPS.find(x => x.id === m.tool);
+    if (!a || !DOCK_TOOLS.includes(a.id)) return;
+    openDock(a.id, m, { fly: !!m.fly });
+  });
   tabs.addEventListener('keydown', e => {
     if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
     const i = APPS.findIndex(a => a.id === current), n = APPS.length;
@@ -140,6 +353,15 @@ lockDown(window);
     show(next.id); document.getElementById('tab-' + next.id).focus(); e.preventDefault();
   });
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  // dev mode (js/devmode.js) drives the tabs through this
+  window.__shell = { APPS, show, frameFor, frames, current: () => current,
+  // where the tool's gauge is on screen right now (the lab's gauge is drawn over it), or null
+  pose: () => { try { const f = dock.frames[dock.tool]; if (!f || !dockShowing() || (dock.el && dock.el.hidden)) return null; const sp = f.contentWindow.__tgSpot && f.contentWindow.__tgSpot(); if (!sp) return null; const fr = f.getBoundingClientRect(); return { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, clip: sp.box && [fr.left + sp.box[0], fr.top + sp.box[1], fr.left + sp.box[2], fr.top + sp.box[3]] }; } catch (err) { return null; } },
+  unghost: () => { try { const f = dock.frames[dock.tool]; if (f && f.contentWindow.__tgShow) f.contentWindow.__tgShow(); } catch (err) {} },
+  // the lab's gauge has landed: the tool draws it itself from here on, in its own scene (true when it can; the lab then lets its own copy go)
+  native: () => { try { const f = dock.frames[dock.tool]; return !!(f && f.contentWindow.__tgNative && f.contentWindow.__tgNative()); } catch (err) { return false; } },
+  // the lab's gauge has landed on the tool's: the tool starts measuring it
+  reveal: () => { try { const f = dock.frames[dock.tool]; if (f && f.contentWindow.__tgReveal) f.contentWindow.__tgReveal(); } catch (err) {} } };
   let start = location.hash.slice(1);
   if (!APPS.some(a => a.id === start)){ try { start = localStorage.getItem('precision-tools-last'); } catch (e) {} }
   show(APPS.some(a => a.id === start) ? start : APPS[0].id);
@@ -183,4 +405,23 @@ lockDown(window);
   b.addEventListener('mouseenter', () => show(true));
   b.addEventListener('mouseleave', () => { if (!t0) show(false); });
   b.addEventListener('focus', () => { if (b.matches(':focus-visible')) show(true); });
+})();
+
+// Loading ahead: once the first tool is up and the page is quiet, the libraries the other tools need are fetched in the background,
+// so opening them is quick. (sw.js then keeps them for next time.) Skipped on a data-saving connection.
+(function(){
+  const c = navigator.connection;
+  if (FROM_DISK || (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || '')))) return;   // (from disk there is nothing to fetch ahead)
+  // the libraries live on this site (vendor/): the ones the other tools need are fetched while this one is idle
+  const JS = ['vendor/three.r128.min.js?v=1', 'vendor/OrbitControls.r128.js?v=1', 'vendor/BufferGeometryUtils.r128.js?v=1', 'vendor/clipper.js?v=1'];
+  const MOD = ['vendor/three/three.module.min.js?v=1', 'vendor/three/addons/controls/OrbitControls.js', 'vendor/three/addons/environments/RoomEnvironment.js', 'vendor/three/addons/utils/BufferGeometryUtils.js'];
+  const go = () => {
+    JS.forEach(u => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'script'; l.href = u; document.head.appendChild(l); });
+    MOD.forEach(u => { const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = u; document.head.appendChild(l); });
+  };
+  window.addEventListener('load', () => setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 200)))(go, { timeout: 5000 }), 3500));
+  // repeat visits: keep the libraries and files on the device (not while developing on localhost, unless asked with ?sw=1)
+  if ('serviceWorker' in navigator && /^https:$/.test(location.protocol) || (/[?&]sw=1/.test(location.search) && 'serviceWorker' in navigator)){
+    window.addEventListener('load', () => { try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {} });
+  }
 })();

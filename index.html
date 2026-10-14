@@ -4,13 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Shop Tool Sim</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;600&display=swap" rel="stylesheet">
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<script>
+// opened straight from disk, the browser refuses local fonts (the page has no origin): they come from Google Fonts then, as they used to
+if (location.protocol === 'file:'){
+    var st = [].slice.call(document.head.querySelectorAll('style')).filter(function(x){ return /@font-face/.test(x.textContent); })[0]; if (st) st.remove();
+  var g = document.createElement('link'); g.rel = 'stylesheet'; g.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap'; document.head.appendChild(g);
+}
+</script>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
-     raise N everywhere (find and replace "?v=7") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=7">
+     raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
+<link rel="stylesheet" href="css/shell.css?v=53">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio.html" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
@@ -32,10 +39,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Dial Caliper Trainer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/caliper.css?v=7">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<link rel="stylesheet" href="css/caliper.css?v=52">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -47,7 +55,7 @@
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range">0–6″ · .001″</span><button id="tutBtn">Tutorial</button></div>
+      <div class="logo-foot"><span class="logo-range">0–6″ · .001″</span></div>
     </header>
 
     <section>
@@ -95,6 +103,7 @@
           <option value="hex">Hex bar</option>
           <option value="block">Gauge block</option>
           <option value="ball">Steel ball</option>
+          <option value="tgauge">Telescopic gauge</option>
           <option value="tube">Aluminum tube</option>
         </optgroup>
         <optgroup label="Inside jaws">
@@ -137,7 +146,7 @@
         <option value="low">Low</option>
       </select>
       <p class="note" id="gfxInfo" style="margin:8px 0 0">Resolution adapts automatically to hold 60 fps.</p>
-      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Realistic metal finish</label>
+      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Shop graphics</label>
       <p class="note" style="margin:6px 0 0">Adds real turning and grinding marks. Off keeps the markings clear and easy to read.</p>
     </section>
 
@@ -162,8 +171,8 @@
 
   <main>
     <div id="view">
-      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=7"><\/script>
+      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span><span class="ld-c" id="ldC" hidden></span></div></div>
+      <script src="js/loading.js?v=54"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Opens the jaws, then closes them gently on the part."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -249,46 +258,29 @@
   </main>
 </div>
 
-<div class="tut" id="tut" role="dialog" aria-modal="true" aria-labelledby="tutTitle" hidden>
-  <div class="tut-card">
-    <h3 id="tutTitle">Welcome to the caliper!</h3>
-    <p data-inst="dial">This handy tool measures almost anything up to 6 inches: outsides, insides and depths. Never held one? Perfect. You’ll be reading it in a few minutes.</p>
-    <p data-inst="vern">No dial, no batteries, just two scales that line up. It reads inches along the bottom and millimeters along the top, and it’s easier than it looks.</p>
-    <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
-    <ol>
-      <li><b>Pick a part.</b> Choose one from “Part” on the left, then click the magic wand. The jaws close gently on it for you.</li>
-      <li data-inst="dial"><b>Read it.</b> The last big number you passed + the small lines after it (a hundred thou, 0.100″, each) + where the needle points (one thou, 0.001″, each).</li>
-      <li data-inst="dial"><b>Needle not on 0 when closed?</b> Click “Reset bezel” on the left. It turns the dial back to zero, even when it’s locked.</li>
-      <li data-inst="vern"><b>Inches or metric?</b> Use the Inches / Metric toggle right above the flat view, or the one on the left. The colors and the flat view follow along.</li>
-      <li data-inst="vern"><b>Read inches (bottom).</b> Big number + small numbers after it (a hundred thou, 0.100″) + tiny lines after those (25 thou, 0.025″) + the sliding line that lines up perfectly (one thou, 0.001″).</li>
-      <li data-inst="vern"><b>Read millimeters (top).</b> The last whole millimeter before the top sliding 0, plus the top line that lines up perfectly (0.05 mm each).</li>
-      <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
-      <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “25.4 mm” or “1.5 in”) and it knows which you mean.</li>
-      <li><b>Zoom the flat view.</b> The box in the corner shows the scales flat. The expand button makes it full height; the eye hides it.</li>
-      <li><b>Clear or real?</b> Markings start on plain, easy-to-read metal. The gem button at the top right brings back the real machined finish.</li>
-      <li data-inst="dial"><b>Practice.</b> Click “Practice,” type what you read, then “Check.” Slip up? No stress. It shows exactly which step went wrong, and why.</li>
-      <li data-inst="vern"><b>Practice in either unit.</b> Click “Practice,” pick Inches or Metric, type what you read, then “Check.” It walks you through any step that slipped.</li>
-    </ol>
-    <div class="row"><button class="primary" id="tutClose">Let’s measure!</button></div>
-  </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"><\/script>
+<script src="js/icons.js?v=1"><\/script>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+  "three": "./vendor/three/three.module.min.js?v=1",
+  "three/addons/": "./vendor/three/addons/"
 } }
 <\/script>
-<script src="js/dissolve.js?v=7"><\/script>
-<script src="js/pivot.js?v=7"><\/script>
-<script src="js/caliper.js?v=7"><\/script>
-<script src="js/color-dots.js?v=7"><\/script>
-<script src="js/dropdowns.js?v=7"><\/script>
-<script src="js/range-fill.js?v=7"><\/script>
-<script src="js/guide.js?v=7"><\/script>
-<script src="js/tips.js?v=7"><\/script>
-<script src="js/flat-units.js?v=7"><\/script>
+<script src="js/dissolve.js?v=50"><\/script>
+<script src="js/holo.js?v=50"><\/script>
+<script src="js/plate.js?v=51"><\/script>
+<script src="js/pivot.js?v=50"><\/script>
+<script src="js/smooth.js?v=3"><\/script>
+<script src="js/tgauge.js?v=59"><\/script>
+<script src="js/caliper.js?v=60"><\/script>
+<script src="js/color-dots.js?v=50"><\/script>
+<script src="js/dropdowns.js?v=50"><\/script>
+<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/guide.js?v=69"><\/script>
+<script src="js/tips.js?v=51"><\/script>
+<script src="js/flat-units.js?v=50"><\/script>
+<script src="js/version.js?v=54"><\/script>
+<script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
@@ -299,10 +291,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vernier Micrometer · 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/micrometer.css?v=7">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<link rel="stylesheet" href="css/micrometer.css?v=52">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -314,7 +307,7 @@
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range" id="brand">0–1″</span><button id="tutBtn">Tutorial</button></div>
+      <div class="logo-foot"><span class="logo-range" id="brand">0–1″</span></div>
     </header>
 
 
@@ -384,9 +377,13 @@
       </select>
       <p class="note" id="gfxInfo" style="margin:8px 0 0">Resolution adapts automatically to hold 60 fps.</p>
       <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="soundChk"> Sound effects</label>
-      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Realistic metal finish</label>
+      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Shop graphics</label>
       <p class="note" style="margin:6px 0 0">Adds real turning and grinding marks. Off keeps the markings clear and easy to read.</p>
       <p class="note" style="margin:4px 0 0">The ratchet clicks as it slips. Off by default.</p>
+      <!-- the 3D hands are switched off: to bring them back, put this block, the Hands button and js/hands.js back in the page
+      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="handsChk" checked> Hands in Show me</label>
+      <p class="note" style="margin:6px 0 0">The 3D hands that show how to hold the micrometer. You can also hide them on the Hands button while Show me is on that step.</p>
+      -->
     </section>
 
     <section class="help">
@@ -401,14 +398,15 @@
 
   <main>
     <div id="view">
-      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=7"><\/script>
+      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span><span class="ld-c" id="ldC" hidden></span></div></div>
+      <script src="js/loading.js?v=54"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Slides the selected feature between the faces, then closes with the ratchet."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
         <button class="pbtn" id="examBtn" data-tip="Examination&#10;Cinematic tour with labels on every part. Rotate, pan and zoom freely."><i class="fa-solid fa-binoculars"></i><span>Examine</span></button>
         <button class="pbtn" id="practiceBtn" aria-pressed="false" data-tip="Practice reading&#10;Hides the answers, picks a random frame size and part, and puts an answer box in the reading bar."><i class="fa-solid fa-graduation-cap"></i><span>Practice</span></button>
         <button class="ib" id="pullBtn" aria-label="Slide out" data-tip="Slide out&#10;Moves the part back out from between the faces."><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+        <!-- Hands button (switched off): <button class="pbtn" id="handsBtn" aria-pressed="false" data-tip="Hands&#10;Shows or hides 3D hands holding the micrometer, so you can see how to hold it. Works any time, and in Show me."><i class="fa-solid fa-hand"></i><span>Show hands</span></button> -->
       </div>
       <div class="views" role="group" aria-label="Camera views">
         <button class="ib" data-view="iso" aria-label="Iso view" data-tip="Iso view&#10;Angled overview of the whole micrometer."><i class="fa-solid fa-cube"></i></button>
@@ -483,36 +481,26 @@
   </main>
 </div>
 
-<div class="tut" id="tut" role="dialog" aria-modal="true" aria-labelledby="tutTitle" hidden>
-  <div class="tut-card">
-    <h3 id="tutTitle">Welcome to the micrometer!</h3>
-    <p>This one measures thickness to a tenth (0.0001″, a tenth of a thou), far thinner than a hair. It’s really just careful counting, and we’ll do it together.</p>
-    <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
-    <ol>
-      <li><b>Pick a size and a part.</b> Choose a frame size on the left (its first number starts every reading), then a part, then click a feature to measure it.</li>
-      <li><b>Read it.</b> Frame size + the last sleeve number (a hundred thou, 0.100″) + small lines after it (25 thou, 0.025″) + the thimble line at the center line (one thou, 0.001″) + the top line that lines up perfectly (a tenth, 0.0001″).</li>
-      <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
-      <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “0.6254 in” or “15.9 mm”) and it knows which you mean.</li>
-      <li><b>Zoom the flat view.</b> The box in the corner shows the scales flat. The expand button makes it full height; the eye hides it.</li>
-      <li><b>Clear or real?</b> Markings start on plain, easy-to-read metal. The gem button at the top right brings back the real machined finish.</li>
-      <li><b>Practice.</b> Click “Practice,” type what you read, then “Check.” Slip up? No stress. It shows exactly which step went wrong, and why.</li>
-    </ol>
-    <div class="row"><button class="primary" id="tutClose">Let’s measure!</button></div>
-  </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
-<script src="js/dissolve.js?v=7"><\/script>
-<script src="js/pivot.js?v=7"><\/script>
-<script src="js/micrometer.js?v=7"><\/script>
-<script src="js/color-dots.js?v=7"><\/script>
-<script src="js/dropdowns.js?v=7"><\/script>
-<script src="js/range-fill.js?v=7"><\/script>
-<script src="js/guide.js?v=7"><\/script>
-<script src="js/tips.js?v=7"><\/script>
+<script src="js/icons.js?v=1"><\/script>
+<script src="vendor/three.r128.min.js?v=1"><\/script>
+<script src="vendor/OrbitControls.r128.js?v=1"><\/script>
+<script src="vendor/BufferGeometryUtils.r128.js?v=1"><\/script>
+<script src="js/dissolve.js?v=50"><\/script>
+<script src="js/holo.js?v=50"><\/script>
+<script src="js/plate.js?v=51"><\/script>
+<script src="js/pivot.js?v=50"><\/script>
+<script src="js/smooth.js?v=3"><\/script>
+<script src="js/tgauge.js?v=59"><\/script>
+<!-- js/hands.js?v=72 (the 3D hands, switched off: load it with a script tag here to bring them back) -->
+<script src="js/micrometer.js?v=85"><\/script>
+<script src="js/color-dots.js?v=50"><\/script>
+<script src="js/dropdowns.js?v=50"><\/script>
+<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/guide.js?v=69"><\/script>
+<script src="js/tips.js?v=51"><\/script>
+<script src="js/version.js?v=54"><\/script>
+<script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
@@ -523,10 +511,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Depth Micrometer · 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/depth.css?v=7">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<link rel="stylesheet" href="css/depth.css?v=52">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -538,7 +527,7 @@
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range" id="brand">0–1″ rod</span><button id="tutBtn">Tutorial</button></div>
+      <div class="logo-foot"><span class="logo-range" id="brand">0–1″ rod</span></div>
     </header>
 
     <section>
@@ -621,7 +610,7 @@
       </select>
       <p class="note" id="gfxInfo" style="margin:8px 0 0">Resolution adapts automatically to hold 60 fps.</p>
       <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="soundChk"> Sound effects</label>
-      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Realistic metal finish</label>
+      <label class="chk" style="margin:12px 0 0"><input type="checkbox" id="realChk"> Shop graphics</label>
       <p class="note" style="margin:6px 0 0">Adds real turning and grinding marks. Off keeps the markings clear and easy to read.</p>
       <p class="note" style="margin:4px 0 0">The ratchet clicks as it slips. Off by default.</p>
     </section>
@@ -638,8 +627,8 @@
 
   <main>
     <div id="view">
-      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=7"><\/script>
+      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span><span class="ld-c" id="ldC" hidden></span></div></div>
+      <script src="js/loading.js?v=54"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="ib" id="autoBtn" aria-label="Auto measure" data-tip="Auto measure&#10;Backs the rod off, lifts, slides the part under the base and runs the rod down with the ratchet."><i class="fa-solid fa-wand-magic-sparkles"></i></button>
@@ -727,38 +716,25 @@
   </main>
 </div>
 
-<div class="tut" id="tut" role="dialog" aria-modal="true" aria-labelledby="tutTitle" hidden>
-  <div class="tut-card">
-    <h3 id="tutTitle">Welcome to the depth micrometer!</h3>
-    <p>This one measures how deep things are. One twist to remember: read the numbers the thimble has <i>covered</i>, not the ones you can still see. Everyone trips on it at first!</p>
-    <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
-    <ol>
-      <li><b>Pick a rod and a part.</b> Choose a rod on the left (its first number is added to the reading), then a part, then click a feature to measure it.</li>
-      <li><b>Read it.</b> Rod size + the last number covered (0.100″) + the small lines covered after it (0.025″) + the thimble line at the center line (0.001″).</li>
-      <li><b>See where it’s measuring.</b> The green dot at the bottom left tints the face the rod is touching. Turn it off for a plain part.</li>
-      <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
-      <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “0.625 in” or “12 mm”) and it knows which you mean.</li>
-      <li><b>Zoom the flat view.</b> The box in the corner shows the scales flat. The expand button makes it full height; the eye hides it.</li>
-      <li><b>Clear or real?</b> Markings start on plain, easy-to-read metal. The gem button at the top right brings back the real machined finish.</li>
-      <li><b>Practice.</b> Click “Practice,” type what you read, then “Check.” Slip up? No stress. It shows exactly which step went wrong, and why.</li>
-    </ol>
-    <div class="row"><button class="primary" id="tutClose">Let’s measure!</button></div>
-  </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"><\/script>
-<script src="https://cdn.jsdelivr.net/npm/clipper-lib@6.4.2/clipper.js"><\/script>
-<script src="js/dissolve.js?v=7"><\/script>
-<script src="js/pivot.js?v=7"><\/script>
-<script src="js/depth.js?v=7"><\/script>
-<script src="js/color-dots.js?v=7"><\/script>
-<script src="js/dropdowns.js?v=7"><\/script>
-<script src="js/range-fill.js?v=7"><\/script>
-<script src="js/guide.js?v=7"><\/script>
-<script src="js/tips.js?v=7"><\/script>
+<script src="js/icons.js?v=1"><\/script>
+<script src="vendor/three.r128.min.js?v=1"><\/script>
+<script src="vendor/OrbitControls.r128.js?v=1"><\/script>
+<script src="vendor/BufferGeometryUtils.r128.js?v=1"><\/script>
+<script src="vendor/clipper.js?v=1"><\/script>
+<script src="js/dissolve.js?v=50"><\/script>
+<script src="js/holo.js?v=50"><\/script>
+<script src="js/plate.js?v=51"><\/script>
+<script src="js/pivot.js?v=50"><\/script>
+<script src="js/smooth.js?v=3"><\/script>
+<script src="js/depth.js?v=52"><\/script>
+<script src="js/color-dots.js?v=50"><\/script>
+<script src="js/dropdowns.js?v=50"><\/script>
+<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/guide.js?v=69"><\/script>
+<script src="js/tips.js?v=51"><\/script>
+<script src="js/version.js?v=54"><\/script>
+<script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
@@ -769,10 +745,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Vernier Height Gage · 3D</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/height.css?v=7">
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<link rel="stylesheet" href="css/height.css?v=52">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <div class="app">
@@ -785,7 +762,7 @@
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
       <span class="logo-range">0–12″ / 0–300 mm</span>
-      <div><button class="tut-btn" id="tutBtn" type="button">Tutorial</button></div>
+      <div id="guideSlot"></div>
     </header>
 
     <section>
@@ -846,7 +823,7 @@
 
     <section>
       <h2>Settings</h2>
-      <label class="chk" style="margin:0"><input type="checkbox" id="realChk"> Realistic metal finish</label>
+      <label class="chk" style="margin:0"><input type="checkbox" id="realChk"> Shop graphics</label>
       <p class="note" style="margin:6px 0 0">Adds real turning and grinding marks. Off keeps the markings clear and easy to read.</p>
     </section>
     <section class="help">
@@ -860,8 +837,8 @@
 
   <main>
     <div id="view">
-      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span></div></div>
-      <script src="js/loading.js?v=7"><\/script>
+      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span><span class="ld-c" id="ldC" hidden></span></div></div>
+      <script src="js/loading.js?v=54"><\/script>
       <div class="actions">
         <button class="ib" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
         <button class="pbtn" id="examBtn" data-tip="Examination&#10;Cinematic tour with labels on every part. Rotate, pan and zoom freely."><i class="fa-solid fa-binoculars"></i><span>Examine</span></button>
@@ -932,45 +909,236 @@
   </main>
 </div>
 
-<div class="tut" id="tut" role="dialog" aria-modal="true" aria-labelledby="tutTitle" hidden>
-  <div class="tut-card">
-    <h3 id="tutTitle">Welcome to the height gage!</h3>
-    <p>The height gage measures how tall things are, up to 12 inches (300 mm). The granite table is your zero, and the rest is reading two scales.</p>
-    <p class="tut-mouse"><b>New to the mouse?</b> <b>Click</b> = press the left button once. <b>Drag</b> = hold it down, move, then let go. That’s all you need.</p>
-    <ol>
-      <li><b>Pick a part.</b> Choose one from “Part” on the left, then click a step. The tip lowers onto it for you.</li>
-      <li><b>Read it.</b> The last line on the tall scale below the sliding scale’s 0, plus the sliding line that lines up perfectly. Inches are on the left, millimeters on the right.</li>
-      <li><b>Check the close-up.</b> The strip above the flat view magnifies the two lines that meet, inch and metric, so you can double-check yourself.</li>
-      <li><b>See where it’s measuring.</b> The green dot at the bottom left tints the face the tip is on. Turn it off for a plain part.</li>
-      <li><b>Turn on the colors.</b> The colored dots at the bottom left start off. Tap one and its piece of the reading lights up on the tool. Tap it again to hide it.</li>
-      <li><b>Jump to a size.</b> Type into the “Go to” box at the bottom left and press Go. Add “in” or “mm” (like “3.742 in” or “95 mm”) and it knows which you mean.</li>
-      <li><b>Zoom the flat view.</b> The box in the corner shows the scales flat. The expand button makes it full height; the eye hides it.</li>
-      <li><b>Clear or real?</b> Markings start on plain, easy-to-read metal. The gem button at the top right brings back the real machined finish.</li>
-      <li><b>Practice.</b> Click “Practice,” type what you read, then “Check.” Slip up? No stress. It shows exactly which step went wrong, and why.</li>
-    </ol>
-    <div class="row"><button class="primary" id="tutClose">Let’s measure!</button></div>
-  </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"><\/script>
+<script src="js/icons.js?v=1"><\/script>
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  "three": "./vendor/three/three.module.min.js?v=1",
+  "three/addons/": "./vendor/three/addons/"
 } }
 <\/script>
-<script src="js/dissolve.js?v=7"><\/script>
-<script src="js/pivot.js?v=7"><\/script>
-<script src="js/height.js?v=7"><\/script>
-<script src="js/color-dots.js?v=7"><\/script>
-<script src="js/dropdowns.js?v=7"><\/script>
-<script src="js/range-fill.js?v=7"><\/script>
-<script src="js/guide.js?v=7"><\/script>
-<script src="js/tips.js?v=7"><\/script>
+<script src="js/dissolve.js?v=50"><\/script>
+<script src="js/holo.js?v=50"><\/script>
+<script src="js/plate.js?v=51"><\/script>
+<script src="js/pivot.js?v=50"><\/script>
+<script src="js/smooth.js?v=3"><\/script>
+<script src="js/height.js?v=53"><\/script>
+<script src="js/color-dots.js?v=50"><\/script>
+<script src="js/dropdowns.js?v=50"><\/script>
+<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/guide.js?v=69"><\/script>
+<script src="js/tips.js?v=51"><\/script>
 
+<script src="js/version.js?v=54"><\/script>
+<script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
-<script src="js/shell.js?v=7"></script>
+<script type="text/html" id="tool-telescopic">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Telescopic Gauge</title>
+<link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+<link rel="stylesheet" href="css/telescopic.css?v=58">
+<link rel="stylesheet" href="css/icons.css?v=51">
+<link rel="stylesheet" href="css/checkbox.css?v=1">
+</head>
+<body>
+<div class="app">
+  <aside id="panel">
+    <header class="logo">
+      <h1 class="logo-mark" aria-label="Telescopic gauge">
+        <span class="logo-brk" aria-hidden="true">[</span>
+        <span class="logo-stack" aria-hidden="true"><span class="logo-top">Telescopic</span><span class="logo-bot">Gauge</span></span>
+        <span class="logo-brk" aria-hidden="true">]</span>
+      </h1>
+      <div class="logo-rule" aria-hidden="true"></div>
+      <div class="logo-foot"><span class="logo-range">8–150 mm · A–F</span>
+        <span class="gd-pair"><button id="guideBtn" type="button" aria-label="How do I use it? A guided walkthrough of measuring a hole" data-tip="How do I use it?&#10;Walks you through measuring a hole, step by step."><span class="gd-q" aria-hidden="true">?</span><span>How do I use it?</span></button></span>
+      </div>
+    </header>
+
+    <section class="sec-part">
+      <h2>Part</h2>
+      <select id="sampleSel" aria-label="Part to measure"></select>
+      <div class="row">
+        <button id="btnReroll" type="button">New random sizes</button>
+        <button id="revealBtn" type="button">Show actual</button>
+      </div>
+      <div id="pcard"></div>
+    </section>
+
+    <section class="sec-gauge">
+      <h2>Gauge</h2>
+      <label class="chk"><input type="checkbox" id="auto" checked> Auto-pick the best size</label>
+      <div class="grid3" id="gset"></div>
+      <p class="note" id="gnote" style="margin:8px 0 0"></p>
+    </section>
+
+    <section class="sec-measure">
+      <h2>Measure the gauge</h2>
+      <p class="note">Lock it in the hole, take it out, then put it into a tool to read its length.</p>
+      <div class="stack">
+        <button type="button" data-send="micrometer">Outside micrometer</button>
+        <button type="button" data-send="caliper">Dial caliper</button>
+        <button type="button" data-send="vernier">Vernier caliper</button>
+      </div>
+      <div class="row"><button id="btnMeasure" type="button" title="A built-in micrometer that also shows the actual hole">Quick read <kbd>M</kbd></button></div>
+    </section>
+
+    <section class="sec-view">
+      <h2>View</h2>
+      <div class="grid3" id="viewS" role="group" aria-label="Part view">
+        <button type="button" data-v="cut" aria-pressed="true">Cutaway</button>
+        <button type="button" data-v="xray" aria-pressed="false">X-ray</button>
+        <button type="button" data-v="solid" aria-pressed="false">Solid</button>
+      </div>
+    </section>
+
+    <section class="sec-set">
+      <h2>Units &amp; aids</h2>
+      <div class="grid2" id="unitSeg" role="group" aria-label="Units">
+        <button type="button" data-u="in" aria-pressed="true">Inches</button>
+        <button type="button" data-u="mm" aria-pressed="false">Millimeters</button>
+      </div>
+      <div style="margin-top:12px">
+        <label class="chk"><input type="checkbox" id="aids" checked> Training aids</label>
+        <label class="chk"><input type="checkbox" id="lblTgl"> Part labels</label>
+        <label class="chk"><input type="checkbox" id="realChk"> Shop graphics</label>
+      </div>
+    </section>
+
+    <section class="help">
+      <h2>Using the gauge</h2>
+      <p><b>Unlock</b> the knurled sleeve and the springs push both rods out. <b>Insert</b> it tilted, then <b>rock</b> the handle across the bore.</p>
+      <p>The heads span <b>D ÷ cos θ</b>, so they’re shortest when the gauge is square. <b>Lock</b> it there and take it out.</p>
+      <p>In a hurry? <b>Auto measure</b> does the whole job for you. Touch anything to take over.</p>
+      <p><b>Mouse:</b> the camera always follows the gauge. Drag empty space to swing the view, right-drag or Shift-drag to pan, scroll or pinch to zoom. Drag the gauge to rock it (<b>Rock left and right</b>) or to move it down into the hole and back up (<b>Move up and down</b>). Click the knurled sleeve to lock or unlock.</p>
+      <p><b>Keys:</b> <kbd>A</kbd> auto measure, <kbd>L</kbd> lock, <kbd>I</kbd> insert, <kbd>M</kbd> measure, <kbd>R</kbd> reset, <kbd>←</kbd><kbd>→</kbd> rock, <kbd>↑</kbd><kbd>↓</kbd> depth.</p>
+    </section>
+  </aside>
+
+  <main>
+    <div id="view">
+      <div class="loading" id="loading"><div class="ld"><span class="ld-t" id="ldT">Loading the 3D engine…</span><div class="ld-bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="ldFill"></i></div><span class="ld-p" id="ldP">0%</span><span class="ld-c" id="ldC" hidden></span></div></div>
+      <script src="js/loading.js?v=54"><\/script>
+      <canvas id="cv" tabindex="0"></canvas>
+      <div id="labels"></div>
+      <div class="hud" id="hud">
+        <div class="h-id"><span class="h-badge" id="hBadge">A</span><div class="h-name"><b id="hName">Gauge A</b><small id="hRange"></small></div></div>
+        <div class="h-sec" id="aidBox">
+          <div class="h-row h-tilt"><span>Handle tilt</span><b id="hTilt">0.0°</b></div>
+          <div id="tbar"><div id="tdot"></div></div>
+          <div class="h-ends"><span>−25°</span><span class="h-sq">SQUARE</span><span>+25°</span></div>
+          <div class="h-row h-min"><span>Shortest so far</span><b id="hMin">–</b></div>
+        </div>
+        <div class="st" id="hStat"></div>
+      </div>
+      <div class="actions">
+        <button class="ib" type="button" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
+        <button class="pbtn" type="button" id="examBtn" data-tip="Examination&#10;Cinematic tour with labels on every part. Rotate, pan and zoom freely."><i class="fa-solid fa-binoculars"></i><span>Examine</span></button>
+        <button class="pbtn" type="button" id="practiceBtn" aria-pressed="false" data-tip="Practice measuring&#10;Hides the readings and picks a random hole. Measure it, then type its size."><i class="fa-solid fa-graduation-cap"></i><span>Practice</span></button>
+      </div>
+      <div class="views" role="group" aria-label="Camera views">
+        <button class="ib" type="button" data-view="overview" aria-label="Overview" data-tip="Overview&#10;The whole bench."><i class="fa-solid fa-cube"></i></button>
+        <button class="ib" type="button" data-view="gauge" aria-label="Gauge view" data-tip="Gauge view&#10;Close-up of the gauge."><i class="fa-solid fa-vector-square"></i></button>
+        <button class="ib" type="button" data-view="hole" aria-label="Hole view" data-tip="Hole view&#10;Close-up of the hole."><i class="fa-solid fa-magnifying-glass-plus"></i></button>
+        <button class="ib" type="button" data-view="top" aria-label="Top view" data-tip="Top view&#10;Looking down into the hole."><i class="fa-solid fa-circle-dot"></i></button>
+      </div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <div class="cine top"><span class="ct">Examination</span><div class="cc">
+        <button class="pbtn" type="button" id="spinBtn" aria-pressed="true"><i class="fa-solid fa-rotate"></i><span class="lbl">Auto-rotate</span></button>
+        <button class="pbtn" type="button" id="labelsBtn" aria-pressed="true"><i class="fa-solid fa-tags"></i><span class="lbl">Labels</span></button>
+        <button class="pbtn" type="button" id="exitExam" aria-label="Exit examination"><i class="fa-solid fa-xmark"></i><span class="lbl">Exit</span></button></div></div>
+      <div class="cine bot"><span class="chint">Left-drag to rotate · right-drag to pan · scroll to zoom · Esc to exit</span></div>
+      <div class="dockhint" id="dockHint" role="note"><b>Where did the sidebar go?</b><span>It folds away to make room for the tool on the right. Close that panel and it slides back in.</span><div class="dh-btns"><button type="button" id="seeWhere">Show me where</button><button type="button" id="bringBack">Bring it back</button></div></div>
+      <div class="card hidden" id="mic">
+        <h4><span>Quick read: micrometer</span><button type="button" id="micX">Close</button></h4>
+        <canvas id="micCv"></canvas>
+        <div id="lcd">0.00</div>
+        <dl id="res"></dl>
+        <div id="verdict"></div>
+      </div>
+    </div>
+
+    <section class="reading" id="reading" aria-live="polite">
+      <div class="value">
+        <div><span class="num" id="lenNum">–</span><span class="unit" id="lenUnit">mm</span><span class="alt" id="lenAlt"></span></div>
+        <div class="status" id="status">Locked</div>
+      </div>
+      <div class="ctl">
+        <div class="row btns">
+          <button id="btnAuto" type="button" class="primary" title="Picks a gauge, unlocks, inserts, rocks through square, locks and takes it out for you">Auto measure <kbd>A</kbd></button>
+          <button id="btnLock" type="button">Unlock knob <kbd>L</kbd></button>
+          <button id="btnInsert" type="button">Insert in hole <kbd>I</kbd></button>
+          <button id="btnReset" type="button">Reset gauge <kbd>R</kbd></button>
+        </div>
+        <div class="take">
+          <button id="btnTake" type="button" class="primary" title="Takes the gauge's length as it is right now and puts it in the tool you chose">Measure <kbd>M</kbd></button>
+          <div class="seg-in" id="toolSeg" role="group" aria-label="Tool to measure the gauge with"><span>into</span>
+            <button type="button" data-t="micrometer" aria-pressed="true">Micrometer</button>
+            <button type="button" data-t="caliper" aria-pressed="false">Dial caliper</button>
+            <button type="button" data-t="vernier" aria-pressed="false">Vernier</button>
+          </div>
+          <div class="drags" role="group" aria-label="What dragging the gauge does">
+            <label class="chk"><input type="checkbox" id="dragY" checked> Move up and down</label>
+            <label class="chk"><input type="checkbox" id="dragR" checked> Rock left and right</label>
+          </div>
+        </div>
+        <div class="sl">
+          <label id="rockWrap">Rock the handle <output id="tiltOut">0.0°</output>
+            <input type="range" id="tilt" min="-25" max="25" step="0.1" value="0">
+            <small>or drag the gauge in 3D · ←  →</small></label>
+          <label id="depthWrap">Depth in bore <output id="depthOut">14 mm</output>
+            <input type="range" id="depth" min="6" max="40" step="0.5" value="14">
+            <small>how far down the gauge sits · ↑ ↓</small></label>
+        </div>
+      </div>
+      <div class="pract">
+        <input type="text" id="guess" inputmode="decimal" autocomplete="off" placeholder="0.000" aria-label="The hole’s size, as you read it on the tool">
+        <button class="primary" type="button" id="checkBtn">Check</button>
+        <button type="button" id="nextBtn">Next hole</button>
+        <div id="pfb" aria-live="polite"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+<div class="tut" id="ask" role="dialog" aria-modal="true" aria-labelledby="askTitle" hidden>
+  <div class="tut-card">
+    <h3 id="askTitle">Before I measure…</h3>
+    <p>I’ll pick the gauge, rock it through square, lock it and take it out.<br>Which tool do you want to measure the gauge with when I’m done?</p>
+    <div class="stack">
+      <button type="button" data-ask="micrometer">Outside micrometer<small>reads to 0.001″</small></button>
+      <button type="button" data-ask="caliper">Dial caliper<small>reads to 0.001″</small></button>
+      <button type="button" data-ask="vernier">Vernier caliper<small>reads to 0.001″</small></button>
+      <button type="button" data-ask="none">Decide later<small>just measure the hole</small></button>
+    </div>
+  </div>
+</div>
+
+<script src="js/icons.js?v=1"><\/script>
+<script src="vendor/three.r128.min.js?v=1"><\/script>
+<script src="js/dissolve.js?v=50"><\/script>
+<script src="js/holo.js?v=50"><\/script>
+<script src="js/plate.js?v=51"><\/script>
+<script src="js/dropdowns.js?v=50"><\/script>
+<script src="js/range-fill.js?v=50"><\/script>
+<script src="js/tgauge.js?v=59"><\/script>
+<script src="js/telescopic.js?v=63"><\/script>
+<script src="js/version.js?v=54"><\/script>
+<script src="js/changelog.js?v=53"><\/script>
+</body>
+</html>
+</script>
+<script src="js/version.js?v=54"></script>
+<script src="js/changelog.js?v=53"></script>
+<script src="js/shell.js?v=57"></script>
+<script src="js/devmode.js?v=60"></script>
 </body>
 </html>

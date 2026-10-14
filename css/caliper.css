@@ -82,6 +82,8 @@ main{grid-area:main;display:flex;flex-direction:column;min-width:0;min-height:0}
 .loading .ld-bar{width:100%;height:5px;border-radius:999px;background:var(--line);overflow:hidden}
 .loading .ld-bar i{display:block;height:100%;background:var(--accent);border-radius:inherit;transform:scaleX(0);transform-origin:left;transition:transform .25s ease-out}
 .loading .ld-p{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.loading .ld-c{font-size:11.5px;color:var(--muted);opacity:.8;font-variant-numeric:tabular-nums;margin-top:-4px}
+.loading .ld-c[hidden]{display:none}
 .loading{transition:opacity .3s}
 .loading.ld-out{opacity:0;pointer-events:none}
 @media (prefers-reduced-motion: reduce){ .loading,.loading .ld-bar i{transition:none} }
@@ -545,22 +547,10 @@ button:disabled,button:disabled:hover{background:rgba(255,255,255,.03)!important
 .hlcard{background:color-mix(in srgb,var(--c) 9%,transparent)}
 .hlcard:has(input:not(:checked)){background:rgba(255,255,255,.03)}
 
-/* ---- checkboxes: a box that fills and a tick that draws itself in ---- */
-input[type=checkbox]{appearance:none;-webkit-appearance:none;position:relative;display:inline-grid;place-content:center;flex:none;
-  width:16px;height:16px;border:1.5px solid #5a5f67;border-radius:4px;background:rgba(255,255,255,.04);cursor:pointer;vertical-align:-3px;
-  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease,transform .12s ease}
-input[type=checkbox]::after{content:"";width:8px;height:4px;margin-top:-2px;border:solid var(--accent-ink,#0b1320);border-width:0 0 2px 2px;
-  transform:rotate(-45deg) scale(0);transform-origin:center;opacity:0;transition:transform .22s cubic-bezier(.3,1.5,.55,1),opacity .15s ease}
-input[type=checkbox]:hover{border-color:#8a8f97}
-input[type=checkbox]:active{transform:scale(.88)}
-input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}
-input[type=checkbox]:checked::after{transform:rotate(-45deg) scale(1);opacity:1}
-.hlcard input[type=checkbox]:checked{background:var(--c,var(--accent));border-color:var(--c,var(--accent));box-shadow:0 0 0 3px color-mix(in srgb,var(--c,var(--accent)) 22%,transparent)}
-.hlcard input[type=checkbox]:checked::after{border-color:#0b0c0e}
-input[type=checkbox]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* (checkboxes: css/checkbox.css) */
 
 @media (prefers-reduced-motion: reduce){
-  button,.pgo,.pbtn,.ib,.switch-inst a,.hlcard,input[type=checkbox],input[type=checkbox]::after{transition:none}
+  button,.pgo,.pbtn,.ib,.switch-inst a,.hlcard{transition:none}
 }
 /* Go to: typed reading box in the 3D view's bottom-left group, beside the lock */
 .goto{display:flex;gap:6px;align-items:center}
