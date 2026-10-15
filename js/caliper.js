@@ -2708,7 +2708,7 @@ window.__paperRun = alive => {
       invalidate(120);
     },
     open: async () => { if (state.sliderLocked) setSliderLock(false); state.animQ = [{ to: 0.5, speed: 6 }]; await settle(); },
-    closeOn: async () => { state.animQ = [{ to: 0.004, speed: 2.2 }]; await settle(); }
+    closeOn: async () => { state.animQ = [{ to: 0.0044, speed: 2.2 }]; await settle(); }
   });
 };
 window.__tgSpot = () => (sample.type === 'tgauge' && (tgGhost || (tgNat && tgHeld)) && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;

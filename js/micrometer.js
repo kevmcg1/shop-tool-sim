@@ -3439,16 +3439,16 @@ window.__paperRun = alive => {
   const settle = async () => { const t0 = performance.now(); while (state.anim && performance.now() - t0 < 8000) await wait(60); await wait(120); };
   return window.__paper.run({
     T, scene, invalidate, alive,
-    faceA: () => new T.Vector3(0, 0, 0),   // the anvil's face; the spindle's face is at x = the reading
+    faceA: () => new T.Vector3(0, 0.95, 0),   // the anvil's face (x = 0) and where the paper's middle is held: up out of the throat, its lower edge between the faces and clear of the frame's arch; the spindle's face is at x = the reading
     normal: new T.Vector3(1, 0, 0), slide: new T.Vector3(0, 1, 0),
     size: [3, 3], thick: 0.004, stain: 0.5,
     look: () => {
       camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom,
-        toDir: new T.Vector3(0.95, 0.3, 0.75).normalize(), toTarget: new T.Vector3(0.1, 1.0, 0), toZoom: 0.62 };
+        toDir: new T.Vector3(0.95, 0.3, 0.75).normalize(), toTarget: new T.Vector3(0.6, 0.5, 0), toZoom: 0.62 };
       invalidate();
     },
     open: async () => { if (state.locked) setLock(false); goTo(0.2, true); await settle(); },
-    closeOn: async () => { goTo(0.004, true); await settle(); }
+    closeOn: async () => { goTo(0.0044, true); await settle(); }
   });
 };
 window.__tgSpot = () => (state.sample && state.sample.key === 'tgauge' && tgLab &&Math.abs((state.sample.vals && state.sample.vals.len) - tgLen) < 1e-3 && tgVis && !partWait) ? tgPose(tgVis, new T.Vector3(1, 0, 0), new T.Vector3(0, 1, 0)) : null;

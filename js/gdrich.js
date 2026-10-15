@@ -136,8 +136,10 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
     if (!on){ if (box) box.hidden = true; return; }
     if (!box){
       box = document.createElement('div'); box.className = 'gd-paper'; box.setAttribute('aria-hidden', 'true');
-      const dirt = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2.3}" cy="${k % 2 ? 62 : 34}" r="${r}"/>`).join('');
-      const onpaper = SPECKS.map(([x, y, r]) => `<circle cx="${x}" cy="${44 + y/3}" r="${r*0.9}"/>`).join('');
+      // the dirt sits on the faces; once it has come off, each speck lies on the outside of the paper, on the side it came from (never inside it).
+      // The paper rests at x = 70 when the faces close on it, so a speck is just under the spot on the face it came from.
+      const dirt = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2}" cy="${k % 2 ? 62 : 34}" r="${r}"/>`).join('');
+      const onpaper = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2 - 70}" cy="${k % 2 ? 57 + r*0.5 : 39 - r*0.5}" r="${r*0.9}"/>`).join('');
       box.innerHTML = `<svg viewBox="0 0 340 96"><rect class="pf" x="8" y="4" width="244" height="28" rx="6"/><rect class="pf" x="8" y="64" width="244" height="28" rx="6"/>
         <g class="pd">${dirt}</g><g class="pp"><rect x="0" y="39" width="150" height="18" rx="2"/><g class="ps">${onpaper}</g></g></svg>
         <span>The dirt comes off the tool and onto the paper.</span>`;
