@@ -1544,7 +1544,7 @@ function measureFace(pl){
 }
 el.addEventListener('pointerdown', e => {
   $('hint').hidden = true;
-  if (e.button !== 0) return;
+  if (e.button !== 0 || state.exam) return;   // Examine: a drag turns the camera instead of moving the tool
   const h = pick(e), kind = h && h.object.userData.kind;
   if (!kind || kind === 'none') return;
   controls.enabled = false; flight = null; state.seq = null;
@@ -1598,6 +1598,7 @@ el.addEventListener('pointerleave', () => { hideFaceHL(); });
 el.addEventListener('pointercancel', endDrag);
 let hoverQ = false;
 function hover(e){
+  if (state.exam){ el.style.cursor = ''; return; }
   if (hoverQ) return; hoverQ = true;
   requestAnimationFrame(() => {
     hoverQ = false;
@@ -1609,6 +1610,7 @@ function hover(e){
   });
 }
 el.addEventListener('wheel', e => {
+  if (state.exam) return;
   const h = pick(e), k = h && h.object.userData.kind;
   if (k !== 'nut' && k !== 'zeroKnob') return;
   e.preventDefault(); e.stopImmediatePropagation();
