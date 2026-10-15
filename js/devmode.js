@@ -91,8 +91,8 @@
   function discover(w){
     const d = w.document, list = [], count = {};
     const key = (base, kind) => { const k = kind + ':' + base; count[k] = (count[k] || 0) + 1; return count[k] > 1 ? k + '#' + count[k] : k; };
-    const skip = el => el.closest('.holo, .gd, .dev, a[href]') || el.disabled || !visible(el) || (el.id && /^(logoMark)$/.test(el.id));
-    d.querySelectorAll('button, [role=tab], input[type=checkbox], input[type=radio]').forEach(el => {
+    const skip = el => el.closest('.holo, .gd, .dev') || (el.matches('a[href]') && !el.classList.contains('tab')) ||   // (the page's own tabs are in; links that leave the site are not) el.disabled || !visible(el) || (el.id && /^(logoMark)$/.test(el.id));
+    d.querySelectorAll('button, [role=tab], a.tab, input[type=checkbox], input[type=radio]').forEach(el => {
       if (skip(el)) return; if (el.closest('.dd-list')) return;
       const kind = el.tagName === 'INPUT' ? 'toggle' : 'click', base = labelOf(el);
       list.push({ key: key(base, kind), label: base, kind, get: () => el });
@@ -137,6 +137,7 @@
     KEYS.forEach(k => list.push({ key: 'key:' + k, label: 'key ' + k, kind: 'key', k, get: () => d.body }));
     return list;
   }
+  window.__devDiscover = discover;   // (for checking that nothing on a page is left out)
   const actionsOf = w => { const m = w.__devMon; if (!m) return discover(w); if (m.dirty || !m.cache){ m.cache = discover(w); m.dirty = false; } return m.cache; };
   function perform(w, a, rand){
     const el = a.get(); if (!el) return;
@@ -320,12 +321,31 @@
     let actions = actionsOf(w);
     T.controls = actions.length;
     if (opt.controls){
-      // 1. every control on its own
+      // 1. every control on its own, and then every control that a click brings into view (the practice answer box and its buttons, the
+      // Examine bar, dialogs, the quick-read card...): each of those is used once as well, and the page is put back the way it was. Nothing
+      // that a hand could press, drag, type into or pick from is left out, whatever state the page has to be in to show it.
+      const seen = new Set(actions.map(a => a.key)); T.revealed = 0;
+      const stillThere = () => { const now = actionsOf(w); return actions.every(o => now.some(x => x.key === o.key)); };
+      const reveal = async (from, depth) => {
+        const fresh = actionsOf(w).filter(a => !seen.has(a.key));
+        if (!fresh.length || depth > 2) return;
+        for (const a of fresh){
+          if (run.stop || T.revealed >= 300) break;
+          seen.add(a.key); T.revealed++;
+          progress(T, 'revealed: ' + a.label, .2);
+          const n = await step(a, [from.label, 'then ' + a.label]); T.singles.run++; if (n) T.singles.withFindings++;
+          if (depth < 2) await reveal(a, depth + 1);
+        }
+        // if that hid controls that were on the page (a mode switched on), press the same control again to switch it off
+        if (from.kind === 'click' && !stillThere()) await step(from, [from.label, 'back']);
+      };
       for (let i = 0; i < actions.length && !run.stop; i++){
         progress(T, 'one by one: ' + actions[i].label, i/actions.length*.2);
         const live = actionsOf(w).find(x => x.key === actions[i].key); if (!live) continue;
         const n = await step(live, [live.label]); T.singles.run++; if (n) T.singles.withFindings++;
+        await reveal(live, 0);
       }
+      T.controls = seen.size;
       // 2. pairs
       actions = actionsOf(w);
       const keys = actions.map(a => a.key), pairs = [];

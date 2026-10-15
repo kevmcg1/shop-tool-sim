@@ -3,8 +3,13 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.2.8',
+  version: '1.2.9',
   changelog: [
+    { v: '1.2.9', date: '2026-10-15', title: 'The lock screw', items: [
+      'Every telescopic gauge now has its lock screw in the end of the knob, and its cross-bar is simpler: a plain tube and rod on each side of a small hub.',
+      'The walkthrough openings that poke fun at the creator always look back to years ago, and promise you’ll be just as good.',
+      'Dev mode reaches every control, including the ones that only appear in other modes, and the page tabs.'
+    ] },
     { v: '1.2.8', date: '2026-10-14', title: 'Reset buttons and a tidier help section', items: [
       'Every slider now has a Reset to default button beside it (double-clicking the slider does the same).',
       'On the telescopic gauge, dragging the view turns it about the point under your pointer.',

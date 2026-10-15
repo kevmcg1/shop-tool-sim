@@ -30,7 +30,7 @@ window.__TG = (function(){
     g.hd = g.R - Math.sqrt(g.R*g.R - g.rr*g.rr);   // how high the dome stands over the rod's end
     g.rt = g.rr*1.3;                 // tube radius
     g.stub = g.rr;                   // how far a closed gauge's head stands out past the end of its tube
-    g.rb = g.rr*1.75;                // the hub, a short barrel the cross-bar runs through: its radius (and half its length), a little wider than the tubes
+    g.rb = g.rr*1.5;                 // the hub, a short barrel the cross-bar runs through: its radius (and half its length), a little wider than the tubes
     g.tubeOut = g.min/2 - g.stub;    // where each tube ends, from the centre
     g.tubeLen = Math.max(0.5, g.tubeOut - g.rb*0.7);
     g.tubeStart = g.tubeOut - g.tubeLen;
@@ -54,13 +54,11 @@ window.__TG = (function(){
     return best;
   }
 
-  // One tube as a turned profile [radius, distance out from where it starts, sharp?]: a fine groove a little way out,
-  // a bevelled outer edge and the end face down to the rod. Used on its own (the lab) and built into the whole body.
+  // One tube as a turned profile [radius, distance out from where it starts, sharp?]: a plain tube with a small
+  // bevel on its outer edge and the end face down to the rod. Used on its own (the lab) and built into the whole body.
   function tubeProfile(g){
-    const rt = g.rt, rr = g.rr, len = g.tubeLen, c = Math.max(0.1, Math.min(g.rr*0.28, len*0.3));
-    const gw = Math.max(0.1, Math.min(g.rr*0.3, len*0.07)), gx = Math.min(len*0.5, 2.4*g.rr);
-    const P = [[0, 0, 1], [rt, 0, 1]];
-    if (len > 3*gw + c + 0.6) P.push([rt, gx - gw, 1], [rt - gw*0.8, gx - gw*0.4, 1], [rt - gw*0.8, gx + gw*0.4, 1], [rt, gx + gw, 1]);
+    const rt = g.rt, rr = g.rr, len = g.tubeLen, c = Math.max(0.1, Math.min(g.rr*0.2, len*0.2));
+    const P = [[0, 0, 1], [rt, 0, 1]];     // (a plain tube: no groove or collar, just a small bevel where the rod comes out)
     P.push([rt, len - c, 1], [rt - c, len, 1], [rr, len, 1]);
     return P;
   }
@@ -176,6 +174,17 @@ window.__TG = (function(){
         into.add(tag(new T.Mesh(lathe(p.prof, 64), mats.steel), part));
       } else grp.add(tag(new T.Mesh(lathe(p.prof, 40), mat), 'gauge'));
     });
+    // the lock screw in the very end of the knob: a round head with a slot, standing a little proud of the knurled end. It turns with the knob.
+    const kp = parts.find(p => p.knurl);
+    if (kp){
+      const r0 = kp.r*0.58, h = kp.r*0.44, rd = h*0.25, y0 = kp.y1, pr = [[0, y0], [r0, y0], [r0, y0 + h - rd]];
+      for (let i = 1; i <= 6; i++){ const a = i/6*Math.PI/2; pr.push([r0 - rd + rd*Math.cos(a), y0 + h - rd + rd*Math.sin(a)]); }
+      pr.push([0, y0 + h]);
+      const head = new T.Mesh(lathe(pr, 40), mats.chrome || mats.steel);
+      const sl = (r0 - rd)*0.96, sd = h*0.22, slot = new T.Mesh(new T.BoxGeometry(sl*2, sd, r0*0.24), mats.dark || mats.steel);
+      slot.position.y = y0 + h - sd/2 + kp.r*0.004; slot.rotation.y = Math.PI/4;
+      knob.add(tag(head, 'knob'), tag(slot, 'knob'));
+    }
     // the stamping, on the front of the smooth stem
     const stem = parts.find(p => p.part === 'stem'), y0 = stem.prof[0][1], y1 = stem.prof[3][1], len = y1 - y0;
     if (len > 6*k){
@@ -191,7 +200,7 @@ window.__TG = (function(){
     const g = GAUGES[pick(Lmm)], grp = new T.Group(), r = g.rb*k, h = g.rb*k, c = Math.min(r*0.16, 0.6*k*Math.max(1, g.rr));
     const prof = [[0, -h], [r - c, -h], [r, -h + c], [r, h - c], [r - c, h], [0, h]].map(p => new T.Vector2(p[0], p[1]));
     const geo = new T.LatheGeometry(prof, 48); geo.rotateZ(-Math.PI/2);
-    const barrel = new T.Mesh(geo, mats.chrome || mats.steel); barrel.userData.part = 'gauge'; grp.add(barrel);
+    const barrel = new T.Mesh(geo, mats.steel); barrel.userData.part = 'gauge'; grp.add(barrel);
     return grp;
   }
 
