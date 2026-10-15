@@ -80,7 +80,8 @@ body.js-tips [data-tip]::after{content:none!important}
     let y = top ? above : below;
     y = Math.max(m, Math.min(H - h - m, y));
     const cx = r.left + r.width / 2, x = Math.max(m, Math.min(W - w - m, cx - w / 2));
-    tip.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+    // (the window can narrow between placing the card and the next paint: the min() keeps its right edge inside whatever the width is by then)
+    tip.style.transform = `translate(min(${Math.round(x)}px,calc(100vw - 100% - ${m}px)),${Math.round(y)}px)`;
     tip.dataset.side = top ? 'top' : 'bottom';
     const ax = Math.max(16, Math.min(w - 16, cx - x));          // the arrow keeps pointing at the control when the card had to slide
     tip.style.setProperty('--ax', Math.round(ax) + 'px');
