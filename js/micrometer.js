@@ -1534,7 +1534,7 @@ function setExam(on){
     endCoach();
     examTags = EXAM.map(([title, sub]) => { const t = makeTag(false); t.b.textContent = title; t.sm.textContent = sub; return t; });
     examTags[5].sm.textContent = `This frame reads ${B}.0000″ to ${B + 1}.0000″`;
-    popTags(examTags); setSpin(true); setLabels(true);
+    popTags(examTags); setSpin(false); setLabels(true);
     setTimeout(() => setView('iso'), 60);
   } else {
     examTags.forEach(dropTag); examTags = [];
