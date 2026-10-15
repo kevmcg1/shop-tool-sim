@@ -473,7 +473,7 @@
       } },
       { name: 'Show me: the lock step waits for a straight handle', async run(c){
         const { w, L } = c, D = Math.PI/180; L.selectSample(0); await sleep(1500);
-        L.guideStart(); await sleep(500); L.guideGo(L.guideIndex('Square it up and lock')); await sleep(500);
+        L.guideStart(); await sleep(500); L.guideGo(L.guideIndex('Snug and lock')); await sleep(500);
         const doEl = () => w.document.querySelector('.gd-do');
         L.setTiltCmd(10*D); L.toggleInsert();   // going in: the heads are pushed in and the knob locks
         if (!await until(() => L.S.insertT > .95, 8000)){ c.fail('the gauge never got into the hole'); return; }
