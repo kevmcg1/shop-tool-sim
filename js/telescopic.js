@@ -542,6 +542,8 @@ function rangeParts(g){const m=g.min+'–'+g.max+' mm';return S.unit==='in'?[g.l
 // the card's one-line range, in the chosen unit only: "2-1/8 to 3-1/2 in" or "54 to 90 mm"
 function fmtRangeHud(g){return S.unit==='in'?g.lab.replace('″','').replace('–',' to ')+' in':g.min+' to '+g.max+' mm';}
 function fmtRange(g){const p=rangeParts(g);return p[0]+' ('+p[1]+')';}
+// auto-pick's three facts, each underlined in its own color: the hole size, the gauge letter, the gauge's range
+const apHole=()=>'<u class="ap ap-hole">Ø'+fmtEst(S.sample)+'</u>',apGauge=g=>'<b class="ap ap-gauge">'+g.name+'</b>',apRange=g=>{const r=rangeParts(g);return '<u class="ap ap-range"><span class="nw">'+r[0]+'</span> <span class="nw">('+r[1]+')</span></u>';};
 function fmtEst(s){const i=(s.nom/25.4).toFixed(2)+' in',m=Math.round(s.nom)+' mm';return S.unit==='in'?i+' ('+m+')':m+' ('+i+')';}
 function fmtDepth(v){const i=(v/25.4).toFixed(2)+' in',m=v+' mm';return S.unit==='in'?i+' ('+m+')':m+' ('+i+')';}
 let toastT;function toast(m){if(S.practice)m=m.replace(/ ?(at )?[0-9]+(?:[.][0-9]+)? (?:in|mm) [(][0-9]+(?:[.][0-9]+)? (?:in|mm)[)]/g,'');const t=$('toast');t.textContent=m;t.className='toast show';clearTimeout(toastT);toastT=setTimeout(()=>{t.className='toast';},3400);}
@@ -565,7 +567,7 @@ function buildGset(){
  const mark=()=>[...box.children].forEach((b,i)=>b.classList.toggle('best',S.auto&&i===best));
  if(fresh)requestAnimationFrame(()=>requestAnimationFrame(mark));else mark();
  const g=S.g;let n;
- if(S.auto)n='This hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+g.name+'</b> ('+fmtRange(g)+').';
+ if(S.auto)n='<span class="ap-rows"><span class="ap-k">Hole is about</span>'+apHole()+'<span class="ap-k">Auto-pick chose</span>'+apGauge(g)+'<span class="ap-k">Its range</span>'+apRange(g)+'</span>';
  else n=D<g.min?'<b>'+g.name+'</b> is too big for this hole: its shortest length is larger than the hole.':D>g.max?'<b>'+g.name+'</b> is too small: the rods can’t reach the far wall.':'<b>'+g.name+'</b> covers this hole'+(Math.min(D-g.min,g.max-D)<1.2?', but with little room to rock.':'.');
  $('gnote').innerHTML=n;
 }
@@ -1029,7 +1031,7 @@ const GSTEPS=[
  {title:'Meet the gauge',view:'gauge',target:gaugeBoxL,labels:true,
   text:()=>'This is a T-handle telescopic gauge.\nYou hold it by the knurled handle.\nThe small knob on the very end of the handle locks the rods.\nA short round hub joins the handle to the cross-bar.\nA spring-loaded rod slides out of each tube.\nThe rod ends are the contact heads. They look flat, but they’re slightly domed, so only a small spot touches the wall.'},
  {title:'Choose the size',target:'#gset',view:'gauge',
-  text:()=>'A set has six gauges, A to F.\nPick the one whose range holds your hole, ideally somewhere in the middle of that range.\nNearly closed, there’s no room to rock. Nearly fully out, the rods run long and lose their feel.\nThis hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+S.g.name+'</b> ('+fmtRange(S.g)+').\nIn the shop you’d size the hole with a scale or caliper first. Auto-pick does that estimate for you.'},
+  text:()=>'A set has six gauges, A to F.\nPick the one whose range holds your hole, ideally somewhere in the middle of that range.\nNearly closed, there’s no room to rock. Nearly fully out, the rods run long and lose their feel.\nThis hole is about '+apHole()+'.\nSo auto-pick chose gauge '+apGauge(S.g)+', which covers '+apRange(S.g)+'.\nIn the shop you’d size the hole with a scale or caliper first. Auto-pick does that estimate for you.'},
  {title:'Compress and lock',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
   enter:()=>{if(S.inserted||S.unlocked||S.lockInfo)resetGauge();S.lockedL=S.g.min;showBubble('Both plungers pushed in and the knob locked.',BUBBLE_MS,'in');},   // (it starts from wherever it was left and eases closed, then stays locked there)
   text:()=>'First, push both spring-loaded plungers in until the gauge is narrower than the hole.\nOn a real gauge, you push both ends in yourself, with two fingers on each side.\nThen lightly snug the locking knob at the end of the handle to hold them in.\nThey’re compressed now, each head right at the end of its tube, with the knob locked.\nThat’s the closed position, the bottom of this gauge’s range.'},
