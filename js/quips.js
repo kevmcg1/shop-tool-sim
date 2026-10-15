@@ -7,7 +7,7 @@
     // (a joke at the creator's own expense is always about years ago, and always ends with the promise that you'll be every bit as good)
     'Hi, and welcome. Years ago, when I was learning this, I misread a scale and proudly wrote down the wrong number.\nYou’re going to be every bit as good as I am now, and you’ll get there faster.',
     'Hello. Years back, my first readings were off by a whole line, and I didn’t notice for weeks.\nYou’ll be just as good as I am today, and this walkthrough will get you there.',
-    'Hey there. Years ago I squeezed a micrometer so hard it could have measured my frustration.\nThat’s long behind me, and you’ll be just as steady in no time.',
+    'Hey there. Years ago I cranked a micrometer down so hard I nearly bent the frame, and the reading was wrong anyway.\nThat’s long behind me, and you’ll be just as steady in no time.',
     'Hi. Back when I started, years ago, I blamed the tool for every bad reading.\nIt was never the tool. You’ll learn that much sooner than I did, and you’ll be just as good.',
     'Welcome. Years ago I struggled with this exactly where you are now.\nI got good at it, and so will you, one small step at a time.',
     'Hello. Years ago, I measured one hole eleven times and got eleven different answers.\nNow I know why, and by the end of this, so will you. You’ll be just as good.',

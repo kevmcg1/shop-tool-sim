@@ -3,8 +3,23 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.4',
+  version: '1.3.8',
   changelog: [
+    { v: '1.3.8', date: '2026-10-15', title: 'Paper that keeps its shape', items: [
+      'In the cleaning picture, the dirt now ends up on the outside of the paper instead of inside it.',
+      'In the 3D cleaning step the paper is always exactly 3 in by 3 in and stays flat, so it never grows or shrinks, and it can no longer go through the tool.'
+    ] },
+    { v: '1.3.7', date: '2026-10-15', title: 'A clearer How do I use it?', items: [
+      'Every walkthrough step was read again against the ones around it: the cleaning step now goes wipe, paper, then zero check, and repeated explanations and awkward sentences were reworded.',
+      'A few details were corrected, such as a chip in a bore making the hole read smaller, and the vernier caliper’s millimeter zero steps showing millimeters.'
+    ] },
+    { v: '1.3.6', date: '2026-10-15', title: 'Pushing the pistons in', items: [
+      'The telescopic gauge walkthrough now says that on a real gauge you push both ends in with two fingers on each side.'
+    ] },
+    { v: '1.3.5', date: '2026-10-15', title: 'A knob on every gauge', items: [
+      'Every telescopic gauge now ends in a small knurled lock knob on a short neck, like the real set, and you can see it wherever the gauge is drawn.',
+      'The first walkthrough step now tells you to clean both pistons, the two sliding rods and their contact heads.'
+    ] },
     { v: '1.3.4', date: '2026-10-15', title: 'Picking a part stays put', items: [
       'In Show me, choosing a part no longer jumps straight to “Clean the part too” and its paper picture; the card waits on “Pick a part” until you press Next.',
       'Going back to the zero check now brings “Pick a part” back, since that clears the part.'
