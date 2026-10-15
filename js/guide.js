@@ -40,7 +40,7 @@
     else if ($('lowerBtn')){ at('lowerBtn', 700); at('zeroBtn', 3800); }
   };
   const CLEAN = (wipe, zero, extra) => Object.assign({ target: '#closeQuick, #view', title: 'First, clean and check zero',
-    enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); }
+    enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); STEPS.forEach(x => { if (x.part) x.done = false; }); }   // (the part is gone, so "Pick a part" has to be shown again)
       // the paper between the contact faces (js/paper.js) where the tool can show it; then the tool closes right up for the zero check
       const nav = navId, alive = () => !!root && navId === nav;
       Promise.resolve(window.__paperRun ? window.__paperRun(alive) : false).then(ok => { if (!alive()) return; if (!ok && card && window.__gdRich) window.__gdRich.paper(card, true); closeUp(); });
@@ -50,12 +50,15 @@
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
   let partPicked = false;
-  // picking a part while "Pick a part" is showing moves straight on to the next step, no pause
+  // picking a part while "Pick a part" is showing puts it in place and waits there: the next step ("Clean the part
+  // too") only comes up when Next is pressed, never from the part list itself
   if (partList) partList.addEventListener('change', () => {
     partPicked = true;
-    if (root && STEPS[stepI].part && !STEPS[stepI].done && partList.value !== 'none') partChosen();
+    if (root && STEPS[stepI].part && partList.value !== 'none') partChosen();
   });
-  const PART = sel => ({ target: sel, part: true, title: 'Pick a part', text: 'Something to measure comes next.\nAny part from this list will do.', enter: () => { partPicked = false; }, waitFor: () => false });
+  const PART = sel => ({ target: sel, part: true, title: 'Pick a part',
+    text: s => s.done ? 'That part is in place.\nPick another from the list if you like, or press <b>Next</b> to carry on.' : 'Something to measure comes next.\nAny part from this list will do.',
+    enter: () => { partPicked = false; }, waitFor: () => false });
   // right after a part is picked: the part needs wiping where the tool's faces will touch it, the same as the tool's own faces were
   const WIPE_PART = {
     dial: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth over the spots the jaws will grip takes care of it.',
@@ -705,11 +708,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     tick();
     setTimeout(() => { try { (s.choose ? ch.querySelector('button') : next).focus({ preventScroll: true }); } catch (e) {} }, 30);
   }
-  // a part is picked: the tool puts it in place by itself (the person brings the tool to it by hand), and on we go
+  // a part is picked: the tool puts it in place by itself (the person brings the tool to it by hand), and the card
+  // waits for Next
   function partChosen(){
     STEPS[stepI].done = true; waitDone = true;
     if (window.__guidePlacePart) setTimeout(() => { try { window.__guidePlacePart(); } catch (e) {} }, 150);
-    advance();
+    card.querySelector('.gd-next').textContent = 'Next';
+    card.querySelector('.gd-do span').textContent = 'Nice! Press Next when you’re ready.';
   }
   // an automatic "on to the next step": always forward, never back to a step that is done
   function advance(){
