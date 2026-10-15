@@ -1,7 +1,7 @@
 // How the "How do I use it?" walkthroughs (js/guide.js on the four tools, js/telescopic.js on the gauge) look: one shared style.
 //
 //   Phases    every step belongs to one of four, each with its own color that tints the step badge, the progress bar, the highlight ring,
-//             the arrows and the bold words: Get ready (blue), Do it (green), Read it (amber), Check it (violet).
+//             the arrows and the bold words: Get ready (blue), Try it yourself (green), Read it (amber), Check it (violet).
 //   Progress  a bar of small segments, one per step, colored by phase, the current one lit.
 //   Lines     the first line leads; a line that tells you to do something (Press, Click, Drag, Turn...) gets a colored marker; a line that
 //             warns or reassures ("Not on 0? That's common") is a tip card; one that confirms ("Perfect", "Nice") is a green note.
@@ -13,11 +13,11 @@
 (function(){
   const PHASES = [
     { id: 'prep',  name: 'Get ready', c: '#5b93ea' },
-    { id: 'do',    name: 'Do it',     c: '#5fcf8a' },
+    { id: 'do',    name: 'Try it yourself', c: '#5fcf8a' },
     { id: 'read',  name: 'Read it',   c: '#e8c547' },
     { id: 'check', name: 'Check it',  c: '#a78bfa' }
   ];
-  // The phase of every step, in order: a walkthrough only ever moves forward through Get ready, Do it, Read it and Check it. A step can say its
+  // The phase of every step, in order: a walkthrough only ever moves forward through Get ready, Try it yourself, Read it and Check it. A step can say its
   // own (step.phase); otherwise a word in its title moves it on to the next phase it belongs to, and it stays there until a later one does.
   const WHERE = [
     ['do',    /close it|run the rod|bring the|insert|push the|unlock|rock |square it|lock\b|take it|slide|lower|set the|off it goes|light touch|press|touch/],
@@ -68,8 +68,8 @@
 .gd{--ph:#5b93ea}
 .gd-card{border-color:color-mix(in srgb,var(--ph) 55%,#2a2d31)!important;box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px color-mix(in srgb,var(--ph) 25%,transparent),0 0 36px -8px color-mix(in srgb,var(--ph) 55%,transparent)!important;transition:border-color .35s ease,box-shadow .35s ease}
 .gd-card{width:min(360px,calc(100vw - 24px))!important}
-.gd-card .gd-head{display:flex;align-items:center;gap:8px;margin:0 28px 8px 0}
-.gd-card .gd-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 3px;border-radius:999px;background:color-mix(in srgb,var(--ph) 16%,transparent);border:1px solid color-mix(in srgb,var(--ph) 55%,transparent);color:var(--ph);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;transition:all .35s ease}
+.gd-card .gd-head{display:flex;align-items:center;gap:8px;margin:0 28px 8px 0;flex-wrap:wrap}
+.gd-card .gd-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 3px;border-radius:999px;background:color-mix(in srgb,var(--ph) 16%,transparent);border:1px solid color-mix(in srgb,var(--ph) 55%,transparent);color:var(--ph);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:all .35s ease}
 .gd-card .gd-badge b{display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:var(--ph);color:#0b0c0e;font-size:11px;font-weight:800;letter-spacing:0;font-variant-numeric:tabular-nums}
 .gd-card h4{margin:0 26px 8px 0!important;font-size:16.5px!important;font-weight:700!important;line-height:1.25;letter-spacing:-.005em}
 .gd-card .gd-head+h4{margin-top:0}
