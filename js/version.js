@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.12',
+  version: '1.3.13',
   changelog: [
+    { v: '1.3.13', date: '2026-10-15', title: 'An organized auto-pick note', items: [
+      'The telescopic gauge’s auto-pick message now lists the hole size, the gauge it chose and that gauge’s range on separate lines, each underlined in its own color.',
+      'The Choose the size step in How do I use it? uses the same colors.'
+    ] },
     { v: '1.3.12', date: '2026-10-15', title: 'Pick a part, clearly', items: [
       'In Show me, the part preview stays bright instead of being dimmed, and the card now sits to the right of it.',
       'The arrow goes up and over the preview to the Part list, so it never crosses the preview.'

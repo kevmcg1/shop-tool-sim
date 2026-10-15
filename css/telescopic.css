@@ -397,3 +397,13 @@ body.exam .quick{display:none!important}
 .help kbd{display:inline-block;min-width:22px;padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-bottom-width:2px;color:#fff;font:600 11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center}
 .hp-note{margin:10px 0 0;font-size:12px;line-height:1.5;color:var(--muted)}
 .hp-note b{color:var(--ink);font-weight:600}
+
+/* auto-pick message: hole size, chosen gauge and its range each get their own underline color */
+.ap{text-decoration:underline;text-decoration-color:var(--c);text-decoration-thickness:2px;text-underline-offset:3px}
+.ap-hole{--c:var(--amber)}
+.ap-gauge{--c:var(--ok)}
+.ap-range{--c:var(--accent)}
+.ap-rows{display:grid;grid-template-columns:max-content 1fr;gap:3px 12px;align-items:baseline}
+.ap-rows .ap-k{color:var(--muted)}
+.ap-rows .ap{justify-self:start;color:var(--ink)}
+.ap .nw{white-space:nowrap}
