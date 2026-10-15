@@ -3,8 +3,11 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.7',
+  version: '1.3.8',
   changelog: [
+    { v: '1.3.8', date: '2026-10-15', title: 'The knurl shows', items: [
+      'The lock knob and the grip below it on the telescopic gauge now always show their diamond knurl, instead of only with Shop graphics on.'
+    ] },
     { v: '1.3.7', date: '2026-10-15', title: 'A clearer How do I use it?', items: [
       'Every walkthrough step was read again against the ones around it: the cleaning step now goes wipe, paper, then zero check, and repeated explanations and awkward sentences were reworded.',
       'A few details were corrected, such as a chip in a bore making the hole read smaller, and the vernier caliper’s millimeter zero steps showing millimeters.'

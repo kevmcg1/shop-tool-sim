@@ -97,7 +97,7 @@ function shopLook(root){
     // the markings (graduations, dial numbers) stay; only the grinding and turning marks and the shine go
     if(m===benchTop){m.map=null;m.color.setHex(0x1d2126);}
     else if(r.metalness>=.5)m.color.copy(r.color).lerp(PLAIN_METAL,.55);
-    m.roughnessMap=null;m.bumpMap=null;
+    m.roughnessMap=null;if(!m.userData.knurl)m.bumpMap=null;   // (the knurl is the grip's shape, not a finish: it stays)
     m.metalness=r.metalness>=.5?.3:r.metalness;m.roughness=r.metalness>=.5?.6:Math.max(r.roughness,.55);m.envMapIntensity=.55;
    }
    m.needsUpdate=true;
