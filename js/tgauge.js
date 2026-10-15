@@ -3,7 +3,8 @@
 //
 // It is the plain T-gauge, drawn from a photograph of a real six-gauge set (A to F): a short round hub with a thick tube out of
 // each side of it, a thinner spring-loaded rod telescoping out of each tube and ending in a flat-looking crowned head, and a slim
-// plain handle going up from the hub. The very end of the handle is knurled, and that knurled end is the lock knob. Lock the rods at
+// handle going up from the hub, knurled toward its end. A small knurled knob sits on a short neck at the very tip of the handle: the lock
+// knob, on every gauge in the set. Lock the rods at
 // the size of a bore, take the gauge out, and measure across the two heads with a caliper or micrometer.
 //
 // All sizes are in millimetres; the functions take a scale `k` to hand back geometry in any unit
@@ -22,8 +23,9 @@ window.__TG = (function(){
     { n: 5, name: 'E', lab: '2-1/8–3-1/2″', min: 54,   max: 90,   rr: 3.8, bk: 1.6 },
     { n: 6, name: 'F', lab: '3-1/2–6″', min: 90,   max: 150,  rr: 4.6, bk: 1.5 }
   ];
-  // the handle, in rod radii above the cross-bar's centre line: the whole length, and how much of the end is the knurled lock knob
-  const HANDLE = { len: 28, knob: 8 };
+  // the handle, in rod radii above the cross-bar's centre line: the whole length, the knurled grip at its end, the short neck above that,
+  // and the small knurled lock knob on the neck (which is what ends the handle)
+  const HANDLE = { len: 28, grip: 6, neck: 0.7, knob: 2.1 };
   GAUGES.forEach(g => {
     g.R = g.rr*1.5;                  // the head's crown: a flat-looking end with a gentle dome of this radius
     g.hr = g.R;                      // ...which is what touches a bore wall, so it is the radius the physics uses
@@ -37,7 +39,10 @@ window.__TG = (function(){
     // the handle (measured off a photograph of a real set): one slim tube
     g.rh = g.rr*1.15;
     g.rs = g.rh;                     // ...which is the radius that has to clear the bore's edge
-    g.rk = g.rh;                     // the knurled lock knob at the end is the same thickness
+    g.gl = g.rr*HANDLE.grip;         // the knurled grip: as thick as the handle
+    g.rn = g.rr*0.45;                // the neck between the grip and the knob
+    g.nl = g.rr*HANDLE.neck;
+    g.rk = g.rr*0.85;                // the small lock knob at the tip: a good deal thinner than the handle
     g.kl = g.rr*HANDLE.knob;         // its length
     g.chamf = Math.max(0.2, g.rh*0.09);
     g.hl = g.rr*HANDLE.len;          // to the end of the knob
@@ -94,16 +99,22 @@ window.__TG = (function(){
     return P;
   }
 
-  // The handle, going out from the cross-bar's centre line, as turned pieces: the plain shaft and the knurled lock knob at its end.
-  // `squeeze` shortens the shaft (the knob keeps its size). Each piece is {mat, part, prof:[[r, y, sharp?]...], knurl?, rot?, n, r, y0, y1, c} (y up the handle).
+  // The handle, going out from the cross-bar's centre line, as turned pieces: the plain shaft, the knurled grip, and the small knurled lock knob
+  // on its neck at the tip (the knob turns; the rest does not). `squeeze` shortens the shaft (the grip and knob keep their size). Each piece is {mat, part, prof:[[r, y, sharp?]...], knurl?, rot?, n, r, y0, y1, c} (y up the handle).
   function handle(Lmm, k, squeeze){
     const g = GAUGES[pick(Lmm)], q = squeeze || 1, rr = g.rr, c = g.chamf;
     const cyl = (r, a, b) => [[0, a*k, 1], [r*k, a*k, 1], [r*k, b*k, 1], [0, b*k, 1]];
-    const y0 = g.rb*0.8, yk = y0 + (rr*(HANDLE.len - HANDLE.knob) - y0)*q, ye = yk + g.kl, rq = g.rk*0.985;
-    const knob = [[0, yk, 1], [g.rk - c, yk, 1], [g.rk, yk + c, 1], [rq, yk + c, 1], [rq, ye - c, 1], [g.rk, ye - c, 1], [g.rk - c*1.4, ye, 1], [0, ye, 1]].map(p => [p[0]*k, p[1]*k, p[2]]);
+    const y0 = g.rb*0.8, yg = y0 + (rr*(HANDLE.len - HANDLE.grip - HANDLE.neck - HANDLE.knob) - y0)*q, yn = yg + g.gl, yk = yn + g.nl, ye = yk + g.kl;
+    // a knurled band's turned body: a chamfered cylinder of radius r from a to b (the knurl itself is laid over its sides)
+    const band = (r, a, b, ch) => [[0, a, 1], [r - ch, a, 1], [r, a + ch, 1], [r*0.985, a + ch, 1], [r*0.985, b - ch, 1], [r, b - ch, 1], [r - ch*1.4, b, 1], [0, b, 1]];
+    const sc = P => P.map(p => [p[0]*k, p[1]*k, p[2]]), ck = Math.max(0.15, c*0.8);
+    const grip = sc(band(g.rh, yg, yn, c));
+    // (the neck is part of the knob's own turning: it starts at the grip's end and runs up to the knob)
+    const knob = sc([[0, yn, 1], [g.rn, yn, 1], [g.rn, yk, 1]].concat(band(g.rk, yk, ye, ck).slice(1)));
     return [
-      { mat: 'steel', part: 'stem', prof: cyl(g.rh, y0, yk + 0.2) },
-      { mat: 'knurl', part: 'knob', knurl: true, rot: true, n: 14, r: g.rk*k, y0: yk*k, y1: ye*k, c: c*k, prof: knob }
+      { mat: 'steel', part: 'stem', prof: cyl(g.rh, y0, yg + 0.2) },
+      { mat: 'knurl', part: 'grip', knurl: true, n: 14, r: g.rh*k, y0: yg*k, y1: yn*k, c: c*k, prof: grip },
+      { mat: 'knurl', part: 'knob', knurl: true, rot: true, n: 10, r: g.rk*k, y0: yk*k, y1: ye*k, c: ck*k, prof: knob }
     ];
   }
 
@@ -175,7 +186,7 @@ window.__TG = (function(){
       } else grp.add(tag(new T.Mesh(lathe(p.prof, 40), mat), 'gauge'));
     });
     // the lock screw in the very end of the knob: a round head with a slot, standing a little proud of the knurled end. It turns with the knob.
-    const kp = parts.find(p => p.knurl);
+    const kp = parts.find(p => p.rot);
     if (kp){
       const r0 = kp.r*0.58, h = kp.r*0.44, rd = h*0.25, y0 = kp.y1, pr = [[0, y0], [r0, y0], [r0, y0 + h - rd]];
       for (let i = 1; i <= 6; i++){ const a = i/6*Math.PI/2; pr.push([r0 - rd + rd*Math.cos(a), y0 + h - rd + rd*Math.sin(a)]); }

@@ -108,7 +108,7 @@ function shopApply(){shopLook(scene);bench.children.forEach(c=>{c.visible=S.shop
 
 /* ================= GAUGE MODEL ================= */
 // The T-handle gauge: a short round hub, a tube out of each side of it, a spring-loaded rod telescoping out of each
-// tube to a round contact head, and a handle ending in the knurled lock sleeve. The cross-bar is symmetrical: both
+// tube to a round contact head, and a handle ending in a small knurled lock knob. The cross-bar is symmetrical: both
 // rods come out the same amount, so the handle stays over the middle of the gap between the heads.
 // The gauge and the part share one group, which dissolves away when another tab opens and builds back in when this one
 // returns (js/shell.js asks, through window.__toolFx). A new part or a new gauge dissolves the old one out and builds the
@@ -138,7 +138,7 @@ function buildGauge(i){
  const oldGauge=gaugeGrp;
  gaugeGrp=new THREE.Group();pivot=new THREE.Group();gaugeGrp.add(pivot);gaugeRoot.add(gaugeGrp);
  const tubeLen=g.tubeLen,mats={steel:matSteel,knurl:matKnurl,dark:matDark,chrome:matChrome};
- // the round hub and the handle (a plain shaft and the knurled lock knob at the end): js/tgauge.js
+ // the round hub and the handle (a plain shaft, a knurled grip and the small knurled lock knob at the tip): js/tgauge.js
  const hubG=TG.hubGroup(THREE,g.min,1,mats),hg=TG.handleGroup(THREE,g.min,1,mats,1);
  // each tube: a groove, a bevelled end; the rods slide out of them, and end in the round heads
  const tubeGeo=s=>{const geo=new THREE.LatheGeometry(TG.tubeProfile(g).map(p=>new THREE.Vector2(Math.max(0,p[0]),p[1])),56);geo.rotateZ(-Math.PI/2);geo.translate(g.tubeStart,0,0);if(s<0)geo.rotateY(Math.PI);return geo;};
@@ -1018,16 +1018,16 @@ const GSTEPS=[
  {title:'Let’s measure a hole',view:'overview',enter:()=>{S.partChanged=false;if(S.inserted||S.unlocked||S.lockInfo)resetGauge();},
   text:()=>(window.__quip?window.__quip.cur:'Hi, and welcome.\nI’ll walk you through it.')+'\nA telescopic gauge doesn’t show a number itself. It copies the size of a hole, and then you measure the gauge with a micrometer or caliper.\nWe’ll go one small step at a time. Everything except what you need right now gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.'},
  {title:'First, clean and check the gauge',paper:true,view:'gauge',zero:true,target:'#view',labels:false,
-  text:()=>'Start with a habit worth keeping: wipe both contact heads and the rods with a clean cloth.\nChips, coolant or a speck of grit can throw the reading off by thousandths.'+(window.__gdRich?window.__gdRich.PAPER:'')+'\nA telescopic gauge has no zero to set. What you check is that it moves freely.\nWatch it close up all the way: the rods should slide smoothly, with no sticking or grit.'},
+  text:()=>'Start with a habit worth keeping: wipe both pistons with a clean cloth.\nThe pistons are the two spring-loaded rods that slide out of the tubes, each ending in a contact head. Wipe each one, head and rod.\nChips, coolant or a speck of grit can throw the reading off by thousandths.'+(window.__gdRich?window.__gdRich.PAPER:'')+'\nA telescopic gauge has no zero to set. What you check is that it moves freely.\nWatch it close up all the way: both pistons should slide smoothly, with no sticking or grit.'},
  {title:'The rods move freely',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
-  text:()=>'They slid all the way in, and each head now sits right at the end of its tube.\nNo rod shows past the tubes.\nThat’s the closed position, the bottom of this gauge’s range.\nOn a real gauge, also press a head in with a finger: it should spring back evenly.'},
+  text:()=>'They slid all the way in, and each head now sits right at the end of its tube.\nNo rod shows past the tubes.\nThat’s the closed position, the bottom of this gauge’s range.\nOn a real gauge, you push both ends in yourself, with two fingers on each side, and each should spring back evenly.'},
  {title:'Where its range begins',view:'gauge',zero:true,target:'#reading .value',
   text:()=>'Now the number.\nWith the gauge closed, the bottom bar reads <b>'+fmtLen(S.g.min)+'</b>.\nThat’s gauge '+S.g.name+'’s shortest length, the bottom of its range.\nIt can measure holes from there up to <b>'+fmtLen(S.g.max)+'</b>.\nHoles smaller than the shortest length won’t take this gauge, and holes bigger than the top size are out of its reach.\nNice, it’s ready to go.'},
  {title:'Pick a part',target:'#sampleSel',done:()=>S.partChanged,text:()=>'The part with the hole comes next.\nOpen the <b>Part</b> list and choose one.\nPoint at a name to see a preview of the part.\nThe hole’s size is hidden, just like on a real job.',hint:'Waiting for you to pick a part…'},
  {title:'Clean the bore too',view:'overview',target:'#view',next:'Next',
   text:()=>'Same habit for the hole, where the heads will touch the wall.\nA chip, oil or a burr on the wall sits between the head and the metal, so the hole reads smaller than it is.\nThen check roughly how big the hole is, with a scale or a caliper. That tells you which gauge to reach for.'},
  {title:'Meet the gauge',view:'gauge',target:gaugeBoxL,labels:true,
-  text:()=>'This is a T-handle telescopic gauge.\nYou hold it by the plain part of the handle.\nThe knurled end of the handle is the knob that locks the rods.\nA short round hub joins the handle to the cross-bar.\nA spring-loaded rod slides out of each tube.\nThe rod ends are the contact heads. They look flat, but they’re slightly domed, so only a small spot touches the wall.'},
+  text:()=>'This is a T-handle telescopic gauge.\nYou hold it by the knurled handle.\nThe small knob on the very end of the handle locks the rods.\nA short round hub joins the handle to the cross-bar.\nA spring-loaded rod slides out of each tube.\nThe rod ends are the contact heads. They look flat, but they’re slightly domed, so only a small spot touches the wall.'},
  {title:'Choose the size',target:'#gset',view:'gauge',
   text:()=>'A set has six gauges, A to F.\nPick the one whose range holds your hole, ideally somewhere in the middle of that range.\nNearly closed, there’s no room to rock. Nearly fully out, the rods run long and lose their feel.\nThis hole is about Ø'+fmtEst(S.sample)+', so auto-pick chose <b>'+S.g.name+'</b> ('+fmtRange(S.g)+').\nIn the shop you’d size the hole with a scale or caliper first. Auto-pick does that estimate for you.'},
  {title:'Push the heads in, lock, and slide it in',view:'travel',target:'#btnInsert',done:()=>S.inserted&&S.insertT>.9,
