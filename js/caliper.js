@@ -1189,9 +1189,9 @@ function outlineGeo(w, h, t) {
 }
 const HL3 = {
   inchBox: new T.Mesh(outlineGeo(0.13, 0.14, 0.014), hlMat(HLC.inch)),   // round the big inch number
-  tenthTick: new T.Mesh(new T.PlaneGeometry(0.02, 0.2), hlMat(HLC.tenth)),
+  tenthTick: new T.Mesh(new T.PlaneGeometry(1, 0.2), hlMat(HLC.tenth)),   // (x scale = the engraved line's own width, set in updateHighlights)
   tenthBox: new T.Mesh(outlineGeo(0.085, 0.13, 0.011), hlMat(HLC.tenth)),
-  dialTick: new T.Mesh(new T.PlaneGeometry(0.016, 0.13), hlMat(HLC.dial)),
+  dialTick: new T.Mesh(new T.PlaneGeometry(1, 0.13), hlMat(HLC.dial)),
   dialDot: new T.Mesh(new T.CircleGeometry(0.03, 24), hlMat(HLC.dial))
 };
 Object.values(HL3).forEach(m => { m.renderOrder = 5; m.visible = false; });
@@ -1200,23 +1200,25 @@ bezel.add(HL3.dialTick, HL3.dialDot);
 // vernier highlights: beam-side marks live on the beam, the aligned vernier line rides the slider
 const HLV = {
   inchBox: new T.Mesh(outlineGeo(0.11, 0.125, 0.012), hlMat(HLC.inch)),
-  tenthTick: new T.Mesh(new T.PlaneGeometry(0.014, 1), hlMat(HLC.tenth)),
+  tenthTick: new T.Mesh(new T.PlaneGeometry(1, 1), hlMat(HLC.tenth)),
   tenthBox: new T.Mesh(outlineGeo(0.07, 0.08, 0.01), hlMat(HLC.tenth)),
-  subTick: new T.Mesh(new T.PlaneGeometry(0.014, 1), hlMat(HLC.sub)),
+  subTick: new T.Mesh(new T.PlaneGeometry(1, 1), hlMat(HLC.sub)),
   // drawn over the inch plate's bevel and face, so it follows the line right down to the edge
   vernTick: new T.Mesh(drapeGeo(-0.007, 0.007, [[VEDGE - 0.08, VPZ + 0.002], [VEDGE - VB, VPZ + 0.002], [VEDGE, BT + 0.008]]), hlMat(HLC.vern)),
-  vernBeam: new T.Mesh(new T.PlaneGeometry(0.014, 0.05), hlMat(HLC.vern))
+  vernBeam: new T.Mesh(new T.PlaneGeometry(1, 0.05), hlMat(HLC.vern))
 };
+HLV.vernTick.scale.x = 0.0045 / 0.014;   // the same width as the vernier line it covers
 Object.values(HLV).forEach(m => { m.renderOrder = 5; m.visible = false; });
 beamVern.add(HLV.inchBox, HLV.tenthTick, HLV.tenthBox, HLV.subTick, HLV.vernBeam);
 // the same highlights for the metric side: centimeter number, last millimeter line, the metric
 // vernier line that lines up (drawn over the top plate's bevel), and the beam line it meets
 const HLM = {
   cmBox: new T.Mesh(outlineGeo(0.1, 0.1, 0.012), hlMat(HLC.inch)),
-  mmTick: new T.Mesh(new T.PlaneGeometry(0.014, 1), hlMat(HLC.tenth)),
+  mmTick: new T.Mesh(new T.PlaneGeometry(1, 1), hlMat(HLC.tenth)),
   vernTick: new T.Mesh(drapeGeo(-0.007, 0.007, [[MEDGE, BT + 0.008], [MEDGE + VB, VPZ + 0.002], [MEDGE + 0.065, VPZ + 0.002]]), hlMat(HLC.vern)),
-  vernBeam: new T.Mesh(new T.PlaneGeometry(0.014, 0.05), hlMat(HLC.vern))
+  vernBeam: new T.Mesh(new T.PlaneGeometry(1, 0.05), hlMat(HLC.vern))
 };
+HLM.vernTick.scale.x = 0.0045 / 0.014;
 Object.values(HLM).forEach(m => { m.renderOrder = 5; m.visible = false; });
 beamVern.add(HLM.cmBox, HLM.mmTick, HLM.vernBeam);
 sliderVern.add(HLM.vernTick);
@@ -1227,17 +1229,18 @@ function updateMetricHighlights(show) {
   HLM.cmBox.position.set(VZ0 + M.cm * 10 * MM, 0.08, z);
   HLM.mmTick.visible = show && hl.tenth;
   const bot = mLineBot(M.whole), hh = MEDGE - bot;
-  HLM.mmTick.scale.y = hh; HLM.mmTick.position.set(VZ0 + M.whole * MM, bot + hh / 2, z);
+  HLM.mmTick.scale.set(M.whole % 5 === 0 ? 0.005 : 0.004, hh, 1); HLM.mmTick.position.set(VZ0 + M.whole * MM, bot + hh / 2, z);
   HLM.vernTick.visible = HLM.vernBeam.visible = show && hl.vern;
   HLM.vernTick.position.set(VZ0 + M.vern * MDIV, 0, 0);
   // vernier line k sits on beam line (whole mm + 2k)
+  HLM.vernBeam.scale.x = 0.0045;   // (the vernier mark's own width; the beam line under it is about the same)
   HLM.vernBeam.position.set(VZ0 + (M.whole + 2 * M.vern) * MM, MEDGE - 0.025, z);
 }
 sliderVern.add(HLV.vernTick);
 // a tick from the vernier edge up to the top of beam line i
 function beamTick(m, i, x) {
   const top = vLineTop(i), h = top - VEDGE;
-  m.scale.y = h; m.position.set(x, VEDGE + h / 2, BT + 0.003);
+  m.scale.set(i % 4 === 0 ? 0.0055 : 0.0045, h, 1); m.position.set(x, VEDGE + h / 2, BT + 0.003);
 }
 function updateVernHighlights(A, show) {
   if (metric()) { updateMetricHighlights(show); return; }
@@ -1255,6 +1258,7 @@ function updateVernHighlights(A, show) {
   HLV.vernTick.visible = HLV.vernBeam.visible = show && hl.vern;
   HLV.vernTick.position.set(VZ0 + A.vern * VSTEP, 0, 0);
   const j = A.inch * 40 + A.tenth * 4 + A.sub + A.vern;
+  HLV.vernBeam.scale.x = j % 4 === 0 ? 0.0055 : 0.0045;
   HLV.vernBeam.position.set(VZ0 + j * VDIV, VEDGE + 0.025, z);
 }
 
@@ -1270,6 +1274,7 @@ function updateHighlights() {
   HL3.inchBox.position.set(A.inch - 0.05, -0.037, z);   // on the inch number itself (it ends just left of its line)
   const tx = A.inch + A.tenth / 10;
   HL3.tenthTick.visible = show && hl.tenth;
+  HL3.tenthTick.scale.x = A.tenth === 0 ? 0.013 : 0.01;   // the engraved line's own width
   HL3.tenthTick.position.set(tx, -0.197, z);
   HL3.tenthBox.visible = show && hl.tenth && A.tenth > 0;
   HL3.tenthBox.position.set(tx - 0.042, -0.2, z);
@@ -1278,6 +1283,7 @@ function updateHighlights() {
   HL3.dialTick.visible = HL3.dialDot.visible = show && hl.dial;
   HL3.dialTick.position.set(0.59 * Math.sin(a), 0.59 * Math.cos(a), 0.4635);
   HL3.dialTick.rotation.z = -a;
+  HL3.dialTick.scale.x = A.dial % 10 === 0 ? 0.008 : A.dial % 5 === 0 ? 0.0065 : 0.005;
   HL3.dialDot.position.set(0.37 * Math.sin(a), 0.37 * Math.cos(a), 0.4635);
   HL3.dialDot.visible = false;
 }
@@ -2231,7 +2237,7 @@ function drawFlat() {
   for (let i = Math.max(0, Math.floor((pos - 0.5) * 10)); i <= Math.min(63, Math.ceil((pos + 0.3) * 10)); i++) {
     const x = X(i / 10), major = i % 10 === 0;
     const isT = show && hl.tenth && i === A.inch * 10 + A.tenth;
-    seg(x, base, x, base - (major ? 78 : 46), isT ? 3 : major ? 2.2 : 1.6, isT ? HLC.tenth : '#111');
+    seg(x, base, x, base - (major ? 78 : 46), major ? 2.2 : 1.6, isT ? HLC.tenth : '#111');
     const s = major ? String(i / 10) : String(i % 10), ty = base - 60, size = major ? 20 : 14;
     const isI = show && hl.inch && major && i / 10 === A.inch;
     if (isI) { g.strokeStyle = HLC.inch; g.lineWidth = 2.5; g.strokeRect(x - 26, ty - 14, 22, 28); }
@@ -2261,7 +2267,7 @@ function drawFlat() {
   for (let i = 0; i < 100; i++) {
     const L = i % 10 === 0 ? 12 : i % 5 === 0 ? 9 : 6, isD = show && hl.dial && i === A.dial;
     const [x0, y0] = at(i, R - 2), [x1, y1] = at(i, R - 2 - (isD ? 16 : L));
-    seg(x0, y0, x1, y1, isD ? 3 : i % 10 === 0 ? 1.8 : 1, isD ? HLC.dial : '#111');
+    seg(x0, y0, x1, y1, i % 10 === 0 ? 1.8 : 1, isD ? HLC.dial : '#111');
   }
   for (let v = 0; v < 100; v += 10) { const [x, y] = at(v, R - 26); txt(String(v), x, y, 11, '#111'); }
   // needle sits on the thou mark nearest the true slider position; the face turns with the bezel
@@ -2406,7 +2412,7 @@ function drawFlatVernMM(g, W, H, M, show, txt, seg) {
   const LEN = m => m % 10 === 0 ? 42 : m % 5 === 0 ? 30 : 20;
   for (let m = Math.max(0, Math.floor(P - ex / k)); m <= Math.min(180, Math.ceil(P + (W - ex) / k)); m++) {
     const x = Xm(m), isT = show && hl.tenth && m === M.whole, isV = show && hl.vern && m === jm;
-    seg(x, yE, x, yE + LEN(m), isV ? 1.3 : isT ? 2.4 : m % 5 === 0 ? 1.3 : 1, isV ? HLC.vern : isT ? HLC.tenth : '#111');
+    seg(x, yE, x, yE + LEN(m), m % 5 === 0 ? 1.3 : 1, isV ? HLC.vern : isT ? HLC.tenth : '#111');
     if (m % 10 === 0) {
       if (show && hl.inch && m / 10 === M.cm) { g.strokeStyle = HLC.inch; g.lineWidth = 2.5; g.strokeRect(x - 12, yE + 46, 24, 26); }
       txt(String(m / 10), x, yE + 59, 19, '#111');
@@ -2499,7 +2505,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
     const isS = show && hl.sub && A.sub > 0 && i === A.inch * 40 + A.tenth * 4 + A.sub;
     const isV = show && hl.vern && i === j;
     const col = isV ? HLC.vern : isS ? HLC.sub : isT ? HLC.tenth : '#111';
-    seg(x, yE, x, yE - LEN(i), isT || isS || isV ? 2.8 : i % 4 === 0 ? 1.5 : 1.1, col);
+    seg(x, yE, x, yE - LEN(i), i % 4 === 0 ? 1.5 : 1.1, col);
     if (i % 40 === 0) {
       const isI = show && hl.inch && i / 40 === A.inch;
       if (isI) { g.strokeStyle = HLC.inch; g.lineWidth = 2.5; g.strokeRect(x - 12, yE - 72, 24, 26); }
@@ -2511,7 +2517,7 @@ function drawFlatVern(g, W, H, A, show, txt, seg) {
   }
   for (let i = 0; i <= 25; i++) {
     const x = ex + i * VSTEP * k, isV = show && hl.vern && i === A.vern;
-    seg(x, yE, x, yE + (i % 5 === 0 ? 19 : 12), isV ? 2.8 : 1.1, isV ? HLC.vern : '#111');
+    seg(x, yE, x, yE + (i % 5 === 0 ? 19 : 12), 1.1, isV ? HLC.vern : '#111');
     if (i % 5 === 0) txt(String(i), x, yE + 30, 11, '#111');
   }
   // the aligned line's number sits on its own row below, so it never crowds the 0/5/10… labels

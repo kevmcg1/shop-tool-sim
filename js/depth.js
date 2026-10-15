@@ -823,7 +823,7 @@ function build(){
   for (let i = 0; i <= 40; i++){
     const y = Y_ZERO - i*0.025, L = i % 4 === 0 ? 0.098 : (i % 2 === 0 ? 0.075 : 0.055);
     sBase.circ(y, Rr, -L/Rr, 0, 0.0055);
-    tickC.push(new Strip().circ(y, Rr + 0.0008, -L/Rr, 0, 0.0075).geo());
+    tickC.push(new Strip().circ(y, Rr + 0.0008, -L/Rr, 0, 0.0055).geo());
     if (i % 4 === 0){
       const t = -(L + 0.048)/Rr, s = String(i/4);
       const sz = tb.add(s, 0.05, cylMtx(y, Rr + 0.003, t, Math.PI/2));
@@ -857,8 +857,8 @@ function build(){
   for (let v = 0; v < 25; v++){
     const t = v*DIV, L = v % 5 === 0 ? 0.126 : 0.079, W = 0.006;
     const bl = Math.min(BEVEL, L), hc = new Strip();
-    tl.axial(0, bl, rT, t, W, 3); hc.axial(0, bl, y => rT(y) + 0.0008, t, W + 0.0004, 3);
-    if (L > BEVEL){ tl.axial(BEVEL, L, rT, t, W, 1); hc.axial(BEVEL, L, y => rT(y) + 0.0008, t, W + 0.0004, 1); }
+    tl.axial(0, bl, rT, t, W, 3); hc.axial(0, bl, y => rT(y) + 0.0008, t, W, 3);
+    if (L > BEVEL){ tl.axial(BEVEL, L, rT, t, W, 1); hc.axial(BEVEL, L, y => rT(y) + 0.0008, t, W, 1); }
     thC.push(hc.geo());
     if (v % 5 === 0) ttb.add(String(v), 0.055, cylMtx(0.205, GRAD_R + 0.004, t));
   }
@@ -2782,7 +2782,7 @@ function drawFlat(){
   // the marks that count are under there: show the highlighted ones through it
   if (show && hl.line){
     const y = Y(li*0.025), L = li % 4 === 0 ? 58 : li % 2 === 0 ? 44 : 32;
-    seg(ix - L, y, ix, y, 2.1, HLC.line, y < ey ? [5, 3] : null);
+    seg(ix - L, y, ix, y, li % 4 === 0 ? 1.5 : 1.3, HLC.line, y < ey ? [5, 3] : null);
   }
   if (show && hl.num){
     const y = Y(a*0.1), L = 58, x = ix - L - 13;
@@ -2791,7 +2791,7 @@ function drawFlat(){
     g.fillStyle = '#000'; g.fillRect(x - w/2, y - 9, w, 18);
     g.strokeStyle = HLC.num; g.lineWidth = 2; g.strokeRect(x - w/2, y - 9, w, 18);
     txt(String(a), x, y, 12, HLC.num);
-    seg(ix - L, y, ix, y, 2.1, HLC.num, y < ey ? [5, 3] : null);
+    seg(ix - L, y, ix, y, 1.5, HLC.num, y < ey ? [5, 3] : null);
   }
   // thimble divisions run up from the edge
   const sp = 22;
@@ -2800,7 +2800,7 @@ function drawFlat(){
     if (x < -20 || x > W + 20) continue;
     const L = v % 5 === 0 ? 46 : 30;
     const on = show && hl.thimble && v === c;
-    seg(x, ey - 2, x, ey - L, on ? 2.1 : 1.2, on ? HLC.thimble : '#111');
+    seg(x, ey - 2, x, ey - L, 1.2, on ? HLC.thimble : '#111');
     if (v % 5 === 0) txt(String(v), x, ey - L - 11, 12, '#111');
   }
   g.fillStyle = 'rgba(0,0,0,.6)'; g.font = '600 9.5px Inter, Arial, sans-serif'; g.textAlign = 'left';
