@@ -442,14 +442,14 @@ function buildGage(){
   for (let j = 0; j <= 240; j++){
     const y = SCALE_Y0 + j*IN_MAIN, L = j % 20 === 0 ? 7.5 : j % 10 === 0 ? 6 : j % 2 === 0 ? 4.6 : 3.2;
     q.rect(0, y - lw/2, L, y + lw/2, z);
-    imainGeo.push(new Quads().rect(0, y - 0.18, L + 0.4, y + 0.18, z + 0.01).geo());
+    imainGeo.push(new Quads().rect(0, y - lw/2, L + 0.4, y + lw/2, z + 0.01).geo());
     if (j % 20 === 0) tb.add(String(j/20), 3.2, 10.6, y, z, 'c');
     else if (j % 4 === 0) tb.add(String((j/2) % 10), 1.9, 8.9, y, z, 'c');
   }
   for (let m = 0; m <= RANGE; m++){
     const y = SCALE_Y0 + m, L = m % 10 === 0 ? 7.5 : m % 5 === 0 ? 5.6 : 3.6;
     q.rect(BEAM_X1 - L, y - lw/2, BEAM_X1, y + lw/2, z);
-    mmainGeo.push(new Quads().rect(BEAM_X1 - L - 0.4, y - 0.18, BEAM_X1, y + 0.18, z + 0.01).geo());
+    mmainGeo.push(new Quads().rect(BEAM_X1 - L - 0.4, y - lw/2, BEAM_X1, y + lw/2, z + 0.01).geo());
     if (m % 10 === 0) tb.add(String(m/10), 3.2, 19.2, y, z, 'c');
   }
   tb.add('12 in.', 2.4, 1.5, SCALE_Y0 + 12*IN + 7, z, 'l');
@@ -490,13 +490,13 @@ function buildGage(){
   for (let k = 0; k <= 50; k++){
     const y = V0 + k*IN_VDIV, L = k % 5 === 0 ? 5 : 3.2;
     vq.rect(2 - L, y - lw/2, 2, y + lw/2, vz);
-    ivGeo.push(new Quads().rect(2 - L - 0.4, y - 0.18, 2, y + 0.18, vz + 0.01).geo());
+    ivGeo.push(new Quads().rect(2 - L - 0.4, y - lw/2, 2, y + lw/2, vz + 0.01).geo());
     if (k % 5 === 0) vt.add(String(k), 2.3, -6.4, y, vz, 'c');
   }
   for (let k = 0; k <= 50; k++){
     const y = V0 + k*MM_VDIV, L = k % 5 === 0 ? 5 : 3.2;
     vq.rect(26, y - lw/2, 26 + L, y + lw/2, vz);
-    mvGeo.push(new Quads().rect(26, y - 0.18, 26 + L + 0.4, y + 0.18, vz + 0.01).geo());
+    mvGeo.push(new Quads().rect(26, y - lw/2, 26 + L + 0.4, y + lw/2, vz + 0.01).geo());
     if (k % 5 === 0) vt.add(String(k/5), 2.3, 34.8, y, vz, 'c');
   }
   vt.add('0.02mm', 2.0, 45.5, SL_H - 11, vz, 'r');
@@ -1982,14 +1982,14 @@ function drawFlatHG(){
   for (let j = Math.max(0, Math.ceil(vLo/IN_MAIN)); j*IN_MAIN <= vHi; j++){
     const y = Y(j*IN_MAIN); if (y < 20) continue;
     const L = j % 20 === 0 ? 26 : j % 10 === 0 ? 20 : j % 2 === 0 ? 14 : 9, hot = show && hl.imain && j === I.mainIdx;
-    seg(X0, y, X0 + (hot ? L + 6 : L), hot ? 1.8 : 1.1, hot ? C.imain : '#111');
+    seg(X0, y, X0 + (hot ? L + 6 : L), 1.1, hot ? C.imain : '#111');
     if (j % 20 === 0) txt(String(j/20), X0 + 40, y, 15, '#111'); else if (j % 4 === 0) txt(String((j/2) % 10), X0 + 32, y, 9, '#222');
   }
   // metric main scale, on the right edge: 1 mm lines, centimeters numbered
   for (let m = Math.max(0, Math.ceil(vLo)); m <= vHi; m++){
     const y = Y(m); if (y < 20) continue;
     const L = m % 10 === 0 ? 26 : m % 5 === 0 ? 18 : 12, hot = show && hl.mmain && m === Mm.mainIdx;
-    seg(X1 - (hot ? L + 6 : L), y, X1, hot ? 1.8 : 1, hot ? C.mmain : '#111');
+    seg(X1 - (hot ? L + 6 : L), y, X1, 1, hot ? C.mmain : '#111');
     if (m % 10 === 0) txt(String(m/10), X1 - 40, y, 15, '#111');
   }
   // the two verniers, riding on the slider: 50 lines each, starting at the vernier 0

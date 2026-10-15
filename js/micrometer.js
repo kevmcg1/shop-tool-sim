@@ -917,7 +917,7 @@ function build(){
     const x = S0 + i*0.025, L = i % 4 === 0 ? 0.085 : (i % 2 === 0 ? 0.055 : 0.04);
     base.circ(x, Rr, 0, L/Rr, 0.0075);
     tickO.push(new Strip().circ(x, Rr + 0.0003, 0, (L + 0.004)/Rr, 0.012).geo());
-    tickC.push(new Strip().circ(x, Rr + 0.0006, 0, L/Rr, 0.0078).geo());
+    tickC.push(new Strip().circ(x, Rr + 0.0006, 0, L/Rr, 0.0075).geo());
     if (i % 4 === 0){
       const t = (L + 0.04)/Rr, s = String(i/4);
       const sz = tb.add(s, 0.05, cylMtx(x, Rr + 0.001, t));
@@ -933,7 +933,7 @@ function build(){
     const t = VERN0 + k*VSTEP;
     base.axial(S0 - 0.06, S0 + 1.10, rS, t, 0.007, 1);
     vernO.push(new Strip().axial(S0 - 0.06, S0 + 1.10, () => Rr + 0.0003, t, 0.011, 1).geo());
-    vernC.push(new Strip().axial(S0 - 0.06, S0 + 1.10, () => Rr + 0.0006, t, 0.0073, 1).geo());
+    vernC.push(new Strip().axial(S0 - 0.06, S0 + 1.10, () => Rr + 0.0006, t, 0.007, 1).geo());
     tb.add(String(k), 0.036, cylMtx(S0 - 0.088, Rr + 0.001, t));
   }
   const bm = new T.Mesh(base.geo(), M.line); bm.renderOrder = 1; bm.userData.noShadow = true; sleeveG.add(bm);
@@ -956,7 +956,7 @@ function build(){
     const W = 0.0085, K = 0.09;
     tl.axial(0, K, rT, t, W, 3).axial(K, L, rT, t, W, 1);
     thO.push(new Strip().axial(0, K, rT, t, W, 3).axial(K, L, rT, t, W, 1).geo());
-    thC.push(new Strip().axial(0, K, x => rT(x) + 0.0006, t, W + 0.0003, 3).axial(K, L, x => rT(x) + 0.0006, t, W + 0.0003, 1).geo());
+    thC.push(new Strip().axial(0, K, x => rT(x) + 0.0006, t, W, 3).axial(K, L, x => rT(x) + 0.0006, t, W, 1).geo());
     if (v % 5 === 0) ttb.add(String(v), 0.06, cylMtx(0.40, TH_R + 0.0025, t));
   }
   const tlm = new T.Mesh(tl.geo(), M.line); tlm.renderOrder = 1; tlm.userData.noShadow = true; thG.add(tlm);
@@ -2332,7 +2332,7 @@ function drawFlat(){
   g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(ex, 0, 2, H);
   g.lineCap = 'butt';
   const seg = (x0, y0, x1, y1, w, col) => { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
-  const hot = (x0, y0, x1, y1, col) => seg(x0, y0, x1, y1, 1.9, col);
+  const hot = (x0, y0, x1, y1, w, col) => seg(x0, y0, x1, y1, w, col);   // a lit line keeps the width of the line it covers
   const txt = (s, x, y, size, col) => { g.font = `600 ${size}px Inter, Arial, sans-serif`; g.fillStyle = col; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s, x, y); };
   const a = Math.floor(n/1000), li = Math.floor(n/250), c = Math.floor(n/10) % 25, d = n % 10;
   // index line
@@ -2342,7 +2342,7 @@ function drawFlat(){
     const dx = i*0.025 - r;
     if (dx > 0.0004 || X(dx) < -4) continue;
     const L = i % 4 === 0 ? 0.085 : (i % 2 === 0 ? 0.055 : 0.04), x = X(dx);
-    if (show && hl.line && i === li) hot(x, Y(0), x, Y(L/R), HLC.line); else seg(x, Y(0), x, Y(L/R), 1.3, '#111');
+    if (show && hl.line && i === li) hot(x, Y(0), x, Y(L/R), 1.3, HLC.line); else seg(x, Y(0), x, Y(L/R), 1.3, '#111');
     if (i % 4 === 0){
       const ty = Y((L + 0.04)/R), s = String(i/4);
       if (show && hl.num && i/4 === a){
@@ -2370,7 +2370,7 @@ function drawFlat(){
     const onV = show && hl.vernier && v === (c + 3 + d) % 25;
     const onT = show && hl.thimble && v === c;
     if (onV) seg(ex + 2, y, x1, y, 1.2, HLC.vernier);
-    else if (onT) hot(ex + 2, y, x1, y, HLC.thimble);
+    else if (onT) hot(ex + 2, y, x1, y, 1.2, HLC.thimble);
     else seg(ex + 2, y, x1, y, 1.2, '#111');
     if (v % 5 === 0) txt(String(v), X(0.33), y, 12, '#111');
   }
