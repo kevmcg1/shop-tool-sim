@@ -34,7 +34,15 @@ const ARROW_MS=2800;
 /* ================= RENDERER / SCENE ================= */
 const stage=$('view'),cv=$('cv');
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+// The resolution adapts to hold the frame rate: it steps down when frames run long and back up when there is time to spare (see adaptResolution)
+const DPR_MAX=Math.min(devicePixelRatio||1,2),DPR_MIN=Math.min(1,DPR_MAX)*.75;let dprCur=DPR_MAX,dprCeil=DPR_MAX;
+renderer.setPixelRatio(dprCur);
+// The 3D view is drawn only when something in it can have changed: the gauge or the camera moves, a dissolve runs, or for a moment after any input
+// (a click, a key, the wheel, typing). A slow heartbeat catches anything that lands later on its own. A still gauge then costs next to nothing.
+let drawUntil=0,lastDraw=0,lastSig='';
+function invalidate(ms){drawUntil=Math.max(drawUntil,performance.now()+(ms||400));}
+['pointerdown','pointermove','pointerup','wheel','keydown','keyup','input','change','click','focus'].forEach(t=>window.addEventListener(t,()=>invalidate(),{capture:true,passive:true}));
+document.addEventListener('visibilitychange',()=>invalidate(1000));
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
 renderer.localClippingEnabled=true;
@@ -113,7 +121,7 @@ let GP={};
 // the old piece dissolves out where it is, and goes once it has gone (it can't be picked up meanwhile)
 function retire(old,parent){
  old.traverse(o=>{if(o.userData)delete o.userData.part;});
- Dissolve.out(old,{cells:40,done:()=>{parent.remove(old);old.traverse(o=>{if(o.geometry)o.geometry.dispose();});}});
+ Dissolve.out(old,{cells:40,frame:()=>invalidate(120),done:()=>{parent.remove(old);old.traverse(o=>{if(o.geometry)o.geometry.dispose();});}});
 }
 const xcyl=r=>{const g=new THREE.CylinderGeometry(r,r,1,32);g.rotateZ(Math.PI/2);return g;};
 function tag(m,part){m.userData.part=part;return m;}
@@ -146,7 +154,7 @@ function buildGauge(i){
  GP={rods,tips,knobG:hg.knob,tubeLen,dL,dR,arrows};
  if(!S.shop)shopLook(gaugeGrp);
  FLY.layer=0;if(FLY.on)setFlyLayer(1);
- if(oldGauge){retire(oldGauge,gaugeRoot);Dissolve.in(gaugeGrp,{cells:40});}
+ if(oldGauge){retire(oldGauge,gaugeRoot);Dissolve.in(gaugeGrp,{cells:40,frame:()=>invalidate(120)});}
 }
 function poseGauge(th,L,my){
  const g=S.g,u=[Math.cos(th),Math.sin(th)];
@@ -201,7 +209,7 @@ function buildPart(){
  partG.add(capMesh);
  benchTarget=-H-.2;if(!oldPart.children.length)bench.position.y=benchTarget;   // the bench eases to its new height
  setView(S.view);
- if(oldPart.children.length){retire(oldPart,toolRoot);Dissolve.in(partG,{cells:40});}else toolRoot.remove(oldPart);
+ if(oldPart.children.length){retire(oldPart,toolRoot);Dissolve.in(partG,{cells:40,frame:()=>invalidate(120)});}else toolRoot.remove(oldPart);
 }
 function setView(v){
  S.view=v;const cut=v==='cut';
@@ -367,12 +375,12 @@ function stepCam(dt){
  const settles=!EX.on&&!(!cam.auto&&(S.camName==='hole'||S.camName==='top'))&&(Math.abs(cam.dth)>1e-4||Math.abs(cam.dph)>1e-4);
  if(PV.p&&(cam.orb||settles))pvHold();else if(!cam.orb)PV.p=null;
 }
-let rsW=0,rsH=0;
+let rsW=0,rsH=0,rsD=0;
 function resize(){
  const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;
  // Resizing clears the canvas, and the observer runs after the frame was drawn: while a panel slides open or shut that painted an empty frame
  // after every step (the flicker). So the picture is drawn again at once, at the new size, before anything is painted.
- if(w!==rsW||h!==rsH){rsW=w;rsH=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(S.sized)try{renderer.render(scene,camera);}catch(e){}}
+ if(w!==rsW||h!==rsH||dprCur!==rsD){rsW=w;rsH=h;rsD=dprCur;renderer.setPixelRatio(dprCur);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(S.sized)try{renderer.render(scene,camera);}catch(e){}}
  else{camera.aspect=w/h;camera.updateProjectionMatrix();}
  if(!S.sized)cam.snap=true;
  S.sized=true;
@@ -500,9 +508,26 @@ function update(dt){
  }
  $('tiltOut').textContent=(S.tilt/D2R).toFixed(1)+'°';
 }
+let lastRenderT=0;const perf=[];
+function adaptResolution(now){
+ const dt=now-lastRenderT;lastRenderT=now;
+ if(dt>120||drag){perf.length=0;return;}   // (a pause, or a drag in hand: never resize then)
+ perf.push(dt);if(perf.length<60)return;
+ const avg=perf.reduce((a,b)=>a+b,0)/perf.length;perf.length=0;
+ if(avg>21&&dprCur>DPR_MIN+.01){dprCeil=dprCur*.95;dprCur=Math.max(DPR_MIN,dprCur*.85);resize();}
+ else if(avg<17.4&&dprCur<Math.min(dprCeil,DPR_MAX)-.01){dprCur=Math.min(dprCeil,DPR_MAX,dprCur*1.08);resize();}
+}
 function tick(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;
- update(dt);stepCam(dt);flyPose();renderer.render(scene,camera);flyRender();
+ update(dt);stepCam(dt);flyPose();
+ const sig=[camera.position.x,camera.position.y,camera.position.z,camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w,camera.aspect,
+  pivot.position.x,pivot.position.y,pivot.position.z,pivot.quaternion.x,pivot.quaternion.y,pivot.quaternion.z,pivot.quaternion.w,pivot.scale.x,pivot.visible,
+  S.tilt,S.curL,S.knob,S.insertT,S.depth,bench.position.y,AW.t,
+  GP.dL&&GP.dL.visible,GP.arrows?GP.arrows.map(a=>a.grp.visible+':'+a.grp.position.x+':'+a.mat.opacity).join(','):''].join('|');   // (the contact dots and the pulsing arrows are timed, so they are part of the picture too)
+ const changed=sig!==lastSig;lastSig=sig;
+ if(changed||EX.on||FLY.on||AW.dir!==0||now<drawUntil||now-lastDraw>500){
+  lastDraw=now;renderer.render(scene,camera);flyRender();adaptResolution(now);
+ }
  hudT-=dt;if(hudT<=0){hudT=.08;refreshHud();}
  refreshLabels();refreshBubble();guideTick();
  requestAnimationFrame(tick);
@@ -1216,9 +1241,9 @@ let viewJob=0;
 function pickView(v){
  [...$('viewS').children].forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===v)));
  const id=++viewJob;
- if(v===S.view){if(partG.userData.dz)Dissolve.in(partG,{cells:40,ms:520});return;}   // back to the view it was in: the sweep reverses
+ if(v===S.view){if(partG.userData.dz)Dissolve.in(partG,{cells:40,ms:520,frame:()=>invalidate(120)});return;}   // back to the view it was in: the sweep reverses
  // the part dissolves away, and builds back in the new view
- Dissolve.out(partG,{cells:40,ms:520,done:()=>{if(id!==viewJob)return;setView(v);Dissolve.in(partG,{cells:40,ms:520});}});
+ Dissolve.out(partG,{cells:40,ms:520,frame:()=>invalidate(120),done:()=>{if(id!==viewJob)return;setView(v);invalidate(600);Dissolve.in(partG,{cells:40,ms:520,frame:()=>invalidate(120)});}});
 }
 $('viewS').onclick=e=>{const b=e.target.closest('button');if(b)pickView(b.dataset.v);};
 document.addEventListener('keydown',e=>{
@@ -1261,10 +1286,10 @@ async function labPaper(idx){
  const block=new THREE.Mesh(new THREE.BoxGeometry(14,34,34),new THREE.MeshStandardMaterial({color:0xb3bcc8,metalness:.85,roughness:.32}));
  block.visible=false;block.userData.noShadow=true;scene.add(block);
  let gap=45;
- const put=()=>{const t=tip();block.position.set(t.x+gap+7,t.y,t.z);};
+ const put=()=>{const t=tip();block.position.set(t.x+gap+7,t.y,t.z);invalidate(120);};
  const slide=(to,ms)=>new Promise(res=>{const g0=gap,t0=performance.now();const f=()=>{if(!alive()){res();return;}const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);gap=g0+(to-g0)*e;put();if(k<1)requestAnimationFrame(f);else res();};f();});
  const ok=await window.__paper.run({
-  T:THREE,scene,invalidate:()=>{},alive,
+  T:THREE,scene,invalidate:()=>invalidate(120),alive,
   faceA:()=>tip(),normal:new THREE.Vector3(1,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,stain:11,
   look:()=>{camGo('paper');cam.fixed=true;},
   open:async()=>{await new Promise(r=>setTimeout(r,1300));gap=45;put();block.visible=true;await slide(22,700);},
@@ -1291,9 +1316,9 @@ requestAnimationFrame(tick);   // draws behind the loading screen
  window.__load&&window.__load.set(.72,'Getting the shaders ready…');
  try{renderer.compile(scene,camera);}catch(e){}
  for(let i=0;i<2;i++)await nextFrame();
- Dissolve.out(toolRoot,{ms:140,cells:40});
+ Dissolve.out(toolRoot,{ms:140,cells:40,frame:()=>invalidate(120)});
  for(let i=0;i<9;i++)await nextFrame();
  window.__load?window.__load.done():($('loading')&&$('loading').remove());
- Dissolve.tool(toolRoot,{});   // builds in as the loading screen fades, and gives the shell its dissolve for tab changes
+ Dissolve.tool(toolRoot,{frame:()=>invalidate(1000)});   // builds in as the loading screen fades, and gives the shell its dissolve for tab changes
 })();
 })();
