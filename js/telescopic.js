@@ -2,7 +2,7 @@
 (function(){
 const $=id=>document.getElementById(id);
 if(typeof THREE==='undefined'||!window.__TG){$('view').insertAdjacentHTML('beforeend','<div style="position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:#8a8f97">The 3D engine failed to load in this browser. Try a current Chrome, Edge, Firefox or Safari.</div>');return;}
-const TG=window.__TG,D2R=Math.PI/180,clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const TG=window.__TG,D2R=Math.PI/180,FAR_F=24,clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 
 /* ================= DATA ================= */
 // the six gauges A to F (js/tgauge.js), shortest to longest
@@ -52,19 +52,108 @@ const camera=new THREE.PerspectiveCamera(32,1,1,4000);
 const hemi=new THREE.HemisphereLight(0xcfe0ff,0x1b2026,.45);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffffff,1.5);sun.position.set(90,170,130);scene.add(sun);
 const rim=new THREE.DirectionalLight(0x8fb8ff,.6);rim.position.set(-120,60,-80);scene.add(rim);
-[hemi,sun,rim].forEach(l=>l.layers.enable(1));   // layer 1 is the flight: the gauge alone, drawn over the whole window (see THE GAUGE FLIES)
-(function env(){
- // plain canvas cube-map (no float render targets, so it works on every GPU)
- const face=(top,mid,bot,soft)=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
-  const g=x.createLinearGradient(0,0,0,128);g.addColorStop(0,top);g.addColorStop(.5,mid);g.addColorStop(1,bot);x.fillStyle=g;x.fillRect(0,0,128,128);
-  if(soft){x.fillStyle=soft.c;x.fillRect(soft.x,soft.y,soft.w,soft.h);}return c;};
- const side=soft=>face('#e9f0f8','#7d8a99','#10151b',soft);
- const imgs=[side({c:'#ffffff',x:20,y:14,w:44,h:34}),side({c:'#dfe9ff',x:70,y:20,w:40,h:50}),
-  face('#ffffff','#f3f7fb','#c9d3de',{c:'#ffffff',x:30,y:30,w:68,h:68}),face('#0c1015','#0c1015','#0c1015'),
-  side({c:'#ffffff',x:34,y:10,w:60,h:30}),side({c:'#cfe0ff',x:10,y:30,w:50,h:40})];
- const t=new THREE.CubeTexture(imgs);t.encoding=THREE.sRGBEncoding;t.needsUpdate=true;scene.environment=t;
-})();
+// layer 1 is the flight: the gauge alone, drawn over the whole window (see THE GAUGE FLIES). It has lights of its own (RIG), which start as
+// the lab's and become the tool's as the gauge lands, so it looks the way the tool's own gauge looks the moment it is handed over.
+const RIG={dirs:[0,1,2].map(()=>{const l=new THREE.DirectionalLight(0xffffff,1);l.layers.set(1);scene.add(l);return l;}),hemi:new THREE.HemisphereLight(0xffffff,0x000000,1)};
+RIG.hemi.layers.set(1);scene.add(RIG.hemi);
+scene.environment=TG.env(THREE);   // the studio the gauge's metal reflects (js/tgauge.js): the tools put the very same one on their copy of it
+
 const cutPlane=new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+
+/* ================= THE FLYING GAUGE'S LOOK ================= */
+// A tool lights, tones and reflects the gauge its own way (js/tgauge.js look()). So that the gauge flying over looks exactly like the tool's own copy
+// of it by the time it lands, its lights, tone mapping and reflections change, as it flies, from the lab's to the tool's. All of it is on the gauge's
+// own materials and on the flight canvas' own lights: nothing else in this view is touched.
+const TGU={rot:{value:new THREE.Matrix3()},exp:{value:1.1},neu:{value:0},vd:{value:new THREE.Vector3(0,0,1)},vm:{value:0}};
+const TONE=`
+vec3 tgAces(vec3 c){
+ const mat3 I=mat3(vec3(0.59719,0.07600,0.02840),vec3(0.35458,0.90834,0.13383),vec3(0.04823,0.01566,0.83777));
+ const mat3 O=mat3(vec3(1.60475,-0.10208,-0.00327),vec3(-0.53108,1.10813,-0.07276),vec3(-0.07367,-0.00605,1.07602));
+ c*=tgExp/0.6;c=I*c;
+ vec3 a=c*(c+0.0245786)-0.000090537,b=c*(0.983729*c+0.4329510)+0.238081;
+ c=O*(a/b);return clamp(c,0.,1.);
+}
+vec3 tgNeutral(vec3 color){
+ const float StartCompression=0.8-0.04;const float Desaturation=0.15;
+ color*=tgExp;
+ float x=min(color.r,min(color.g,color.b));
+ float offset=x<0.08?x-6.25*x*x:0.04;
+ color-=offset;
+ float peak=max(color.r,max(color.g,color.b));
+ if(peak<StartCompression)return color;
+ float d=1.-StartCompression;
+ float newPeak=1.-d*d/(peak+d-StartCompression);
+ color*=newPeak/peak;
+ float g=1.-1./(Desaturation*(peak-newPeak)+1.);
+ return mix(color,vec3(newPeak),g);
+}
+vec3 tgTone(vec3 c){return tgNeu<=0.?tgAces(c):mix(tgAces(c),tgNeutral(c),tgNeu);}
+`;
+const LOOKED=new WeakSet();
+// the gauge's materials: the page's tone mapping is done by hand (the same ACES, until a tool's is blended in), and the studio they reflect can be turned
+function patchLook(root){
+ root.traverse(o=>{
+  if(!o.isMesh)return;
+  for(const m of Array.isArray(o.material)?o.material:[o.material]){
+   if(!m||!m.isMeshStandardMaterial||!m.toneMapped||LOOKED.has(m))continue;
+   LOOKED.add(m);
+   const prev=m.onBeforeCompile,key=m.customProgramCacheKey?m.customProgramCacheKey():'';
+   m.onBeforeCompile=(sh,r)=>{
+    if(prev)prev.call(m,sh,r);
+    sh.uniforms.tgRot=TGU.rot;sh.uniforms.tgExp=TGU.exp;sh.uniforms.tgNeu=TGU.neu;sh.uniforms.tgVd=TGU.vd;sh.uniforms.tgVm=TGU.vm;
+    const env=TG.envChunk(THREE,(v,all)=>'(tgRot * '+all+')');
+    const lights=THREE.ShaderChunk.lights_fragment_begin.replace('normalize( vViewPosition )','tgView( normalize( vViewPosition ) )');
+    sh.fragmentShader='uniform mat3 tgRot;uniform float tgExp;uniform float tgNeu;uniform vec3 tgVd;uniform float tgVm;\nvec3 tgView(vec3 d){return tgVm>0.?normalize(mix(d,tgVd,tgVm)):d;}\n'+TONE+sh.fragmentShader.replace('#include <envmap_physical_pars_fragment>',env).replace('#include <lights_fragment_begin>',lights).replace('#include <tonemapping_fragment>','gl_FragColor.rgb=tgTone(gl_FragColor.rgb);');
+   };
+   m.customProgramCacheKey=()=>key+'|tglook';
+   m.needsUpdate=true;
+  }
+ });
+}
+// a look as plain numbers: tone (exposure, how much of a tool's), three lights, the sky light, and how the studio is turned. Directions are in the gauge's own axes.
+const _lq=new THREE.Quaternion(),_lv=new THREE.Vector3(),_lm=new THREE.Matrix4(),_lid=new THREE.Quaternion(),_le=new THREE.Quaternion();
+const lcol=(c,i)=>[c.r*i,c.g*i,c.b*i];
+function labParams(){
+ _lq.copy(pivot.quaternion).invert();
+ const dl=l=>_lv.copy(l.position).normalize().applyQuaternion(_lq).toArray();
+ return{exp:1.1,neu:0,er:_lid.clone(),vd:[0,0,1],vm:0,
+  dirs:[{c:lcol(sun.color,sun.intensity),v:dl(sun)},{c:lcol(rim.color,rim.intensity),v:dl(rim)},{c:[0,0,0],v:[0,1,0]}],
+  hemi:{sky:lcol(hemi.color,hemi.intensity),ground:lcol(hemi.groundColor,hemi.intensity),v:_lv.set(0,1,0).applyQuaternion(_lq).toArray()}};
+}
+function toolParams(lk){
+ const qi=_lq.copy(FLY.qc||_lid).invert(),L=v=>_lv.set(v[0],v[1],v[2]).applyQuaternion(qi).toArray();
+ const dirs=lk.dirs.map(d=>({c:[d.c[0],d.c[1],d.c[2]],v:L(d.v)}));
+ while(dirs.length<3)dirs.push({c:[0,0,0],v:[0,1,0]});
+ const h=lk.hemi,sl=FLY.spot&&FLY.spot.sl;
+ return{exp:lk.exp,neu:lk.neutral,dirs,
+  hemi:h?{sky:[h.sky[0],h.sky[1],h.sky[2]],ground:[h.ground[0],h.ground[1],h.ground[2]],v:L(h.v)}:{sky:[0,0,0],ground:[0,0,0],v:[0,1,0]},
+  // how the gauge stands in the tool's world (its camera's turn and the gauge's turn in front of it): this view's studio is turned from the gauge's world to that
+  pt:new THREE.Quaternion(lk.camq[0],lk.camq[1],lk.camq[2],lk.camq[3]).multiply(FLY.qc||_lid),
+  // which way the tool's camera looks back at the gauge (a straight-on camera's, or a perspective camera's, leaning with where the gauge sits on screen), in the gauge's own axes
+  vg:L(sl?[-sl[0],-sl[1],1]:[0,0,1]),vm:1};
+}
+// the studio's turn and the look-back direction in this view's terms (the gauge stands a little differently here than in the tool, to look the same on screen)
+const _rel=new THREE.Quaternion();
+function erOf(P){return P.pt?new THREE.Quaternion().copy(P.pt).multiply(_le.copy(pivot.quaternion).invert()):P.er;}
+function vdOf(P){
+ if(!P.vg)return P.vd;
+ _rel.copy(camera.quaternion).invert().multiply(pivot.quaternion);
+ return _lv.set(P.vg[0],P.vg[1],P.vg[2]).normalize().applyQuaternion(_rel).toArray();
+}
+const mixA=(a,b,t)=>a.map((x,i)=>x+(b[i]-x)*t);
+function mixP(a,b,t){
+ const out={exp:a.exp+(b.exp-a.exp)*t,neu:a.neu+(b.neu-a.neu)*t,er:erOf(a).clone().slerp(erOf(b),t),vm:a.vm+(b.vm-a.vm)*t,vd:mixA(vdOf(a),vdOf(b),t),
+  dirs:a.dirs.map((d,i)=>({c:mixA(d.c,b.dirs[i].c,t),v:mixA(d.v,b.dirs[i].v,t)})),
+  hemi:{sky:mixA(a.hemi.sky,b.hemi.sky,t),ground:mixA(a.hemi.ground,b.hemi.ground,t),v:mixA(a.hemi.v,b.hemi.v,t)}};
+ return out;
+}
+function applyLook(P){
+ RIG.dirs.forEach((l,i)=>{const d=P.dirs[i];_lv.set(d.v[0],d.v[1],d.v[2]).normalize().applyQuaternion(pivot.quaternion);l.position.copy(_lv).multiplyScalar(100);l.color.setRGB(d.c[0],d.c[1],d.c[2]);l.intensity=1;});
+ const h=P.hemi;_lv.set(h.v[0],h.v[1],h.v[2]).normalize().applyQuaternion(pivot.quaternion);
+ RIG.hemi.position.copy(_lv);RIG.hemi.color.setRGB(h.sky[0],h.sky[1],h.sky[2]);RIG.hemi.groundColor.setRGB(h.ground[0],h.ground[1],h.ground[2]);RIG.hemi.intensity=1;
+ TGU.exp.value=P.exp;TGU.neu.value=P.neu;TGU.vd.value.set(P.vd[0],P.vd[1],P.vd[2]);TGU.vm.value=P.vm;TGU.rot.value.setFromMatrix4(_lm.makeRotationFromQuaternion(P.er));
+}
+function resetLook(){TGU.exp.value=1.1;TGU.neu.value=0;TGU.vm.value=0;TGU.rot.value.identity();}
 
 /* ================= MATERIALS ================= */
 // fine turning lines round the tubes and rods, as a bump map
@@ -153,6 +242,7 @@ function buildGauge(i){
  const dL=new THREE.Mesh(dotG,dotM),dR=new THREE.Mesh(dotG,dotM);dL.renderOrder=dR.renderOrder=20;dL.visible=dR.visible=false;gaugeGrp.add(dL,dR);
  GP={rods,tips,knobG:hg.knob,tubeLen,dL,dR,arrows};
  if(!S.shop)shopLook(gaugeGrp);
+ patchLook(gaugeGrp);
  FLY.layer=0;if(FLY.on)setFlyLayer(1);
  if(oldGauge){retire(oldGauge,gaugeRoot);Dissolve.in(gaugeGrp,{cells:40,frame:()=>invalidate(120)});}
 }
@@ -755,8 +845,8 @@ function ensureHome(cb){
 // This view's canvas stops at the border, so the gauge is drawn on a second, see-through canvas the size of the whole window (made in the
 // page around this one): the same scene and camera, but only the gauge (layer 1), placed on screen where it should be.
 const AW={t:0,dir:0,sent:null,afterBack:null};
-const FLY={ok:null,use:false,native:false,on:false,clip:'none',hidden:false,attached:false,swapping:false,waiting:false,fadeEnd:0,lost:0,last:0,spot:null,qc:null,slide:null,shown:{x:0,y:0,p:0,q:new THREE.Quaternion(),ok:false},
- pd:null,frame:null,cv:null,r:null,cam:new THREE.PerspectiveCamera(32,1,1,4000),W:0,H:0,
+const FLY={ok:null,use:false,native:false,on:false,clip:'none',hidden:false,attached:false,swapping:false,waiting:false,fadeEnd:0,lost:0,last:0,spot:null,qc:null,slide:null,shown:{x:0,y:0,p:0,f:0,q:new THREE.Quaternion(),ok:false},
+ tl:null,pd:null,frame:null,cv:null,r:null,cam:new THREE.PerspectiveCamera(32,1,1,4000),W:0,H:0,
  v:new THREE.Vector3(),d:new THREE.Vector3(),f:new THREE.Vector3(),layer:0};
 function flyInit(){
  if(FLY.ok!==null)return FLY.ok;
@@ -815,9 +905,8 @@ function spotSet(spot){
 const _sv=new THREE.Vector3(),_sq=new THREE.Quaternion(),_sm=new THREE.Matrix4(),_sd=new THREE.Vector3(),_sr=new THREE.Quaternion(),_sj=new THREE.Matrix3(),_sg=new THREE.Vector3(),_sx=new THREE.Vector3(),_sy=new THREE.Vector3(),_sz=new THREE.Vector3();
 function toolFacing(tx,ty,W,H,c2,out){
  const sp=FLY.spot;if(!sp||!sp.ax||!sp.hd||!sp.sl)return null;
- _sv.set(tx/W*2-1,-(ty/H*2-1),.5).unproject(c2).sub(c2.position).normalize().applyQuaternion(_sq.copy(c2.quaternion).invert());
- if(_sv.z>-1e-6)return null;
- const lx=_sv.x/-_sv.z,ly=_sv.y/-_sv.z,sx=sp.sl[0],sy=sp.sl[1];
+ // (the flight camera is shifted, as it lands, to look straight at the gauge from where it ends up, as the tool's camera does: no lean from where it sits on screen)
+ const lx=0,ly=0,sx=sp.sl[0],sy=sp.sl[1];
  const hs=[new THREE.Vector3(...sp.ax).normalize(),new THREE.Vector3(...sp.hd)];
  hs[1].addScaledVector(hs[0],-hs[1].dot(hs[0])).normalize();
  const want=hs.map(h=>[h.x+sx*h.z,h.y+sy*h.z]),rot=new THREE.Quaternion();
@@ -847,7 +936,7 @@ function flyPose(){
  if(live!==FLY.on){
   FLY.on=live;setFlyLayer(live?1:0);
   if(live){FLY.cv.style.display='block';FLY.cv.style.transition='none';FLY.cv.style.opacity='1';}
-  else FLY.cv.style.display='none';
+  else{FLY.cv.style.display='none';resetLook();}
  }
  if(!live){if(FLY.native&&FLY.attached&&AW.dir===0&&!FLY.swapping)nativeWatch(dt);return;}
  // where the tool's gauge is right now (it moves: the tool's camera, its slide into the faces). Not followed while the gauge is changing
@@ -860,13 +949,22 @@ function flyPose(){
  const pd=FLY.pd,W=pd.documentElement.clientWidth,H=pd.documentElement.clientHeight,c2=FLY.cam;
  if(W!==FLY.W||H!==FLY.H){FLY.r.setSize(W,H,false);FLY.W=W;FLY.H=H;}
  // on the tool, it is seen only inside the tool's own canvas, as if the tool had drawn it (in the air, over the whole window)
- {const k=FLY.attached&&AW.t>=1&&AW.dir===0&&FLY.spot&&FLY.spot.clip&&!FLY.slide?FLY.spot.clip:null,cs=k?'inset('+Math.max(0,k[1]).toFixed(1)+'px '+Math.max(0,W-k[2]).toFixed(1)+'px '+Math.max(0,H-k[3]).toFixed(1)+'px '+Math.max(0,k[0]).toFixed(1)+'px)':'none';
+ {const k=FLY.attached&&AW.t>=1&&AW.dir===0&&FLY.spot&&FLY.spot.clip&&!FLY.slide?FLY.spot.clip:null;
+  let cs='none';
+  if(k){
+   const x0=Math.max(0,k[0]),y0=Math.max(0,k[1]),x1=Math.min(W,k[2]),y1=Math.min(H,k[3]),f=n=>n.toFixed(1);
+   const hs=(FLY.spot.holes||[]).map(h=>[Math.max(x0,h[0]),Math.max(y0,h[1]),Math.min(x1,h[2]),Math.min(y1,h[3])]).filter(h=>h[2]>h[0]&&h[3]>h[1]);
+   // (the tool's buttons stay over the gauge, as they do over the tool's own drawing of it)
+   cs=hs.length?'path(evenodd,"M'+f(x0)+' '+f(y0)+'H'+f(x1)+'V'+f(y1)+'H'+f(x0)+'Z'+hs.map(h=>'M'+f(h[0])+' '+f(h[1])+'H'+f(h[2])+'V'+f(h[3])+'H'+f(h[0])+'Z').join('')+'")'
+    :'inset('+f(y0)+'px '+f(W-x1)+'px '+f(H-y1)+'px '+f(x0)+'px)';
+  }
   if(cs!==FLY.clip){FLY.clip=cs;FLY.cv.style.clipPath=cs;}}
  // the flight camera is this view's camera, widened to the whole window: same place and angle, the picture offset to where this canvas sits
  const fr=FLY.frame.getBoundingClientRect(),cr=cv.getBoundingClientRect(),rw=cr.width,rh=cr.height;
  if(W<2||H<2||rw<2||rh<2)return;   // nothing is laid out (a hidden window): leave the gauge where it is
  c2.position.copy(camera.position);c2.quaternion.copy(camera.quaternion);c2.fov=camera.fov;c2.near=camera.near;c2.far=camera.far;c2.aspect=rw/rh;
  c2.setViewOffset(rw,rh,-(fr.left+cr.left),-(fr.top+cr.top),W,H);c2.updateMatrixWorld(true);
+ const labF=rh/(2*Math.tan(camera.fov*D2R/2));
  // home: where the gauge is on screen right now
  const home=FLY.v.copy(pivot.position),e=AW.t*AW.t*(3-2*AW.t);
  FLY.f.set(0,0,-1).applyQuaternion(c2.quaternion);
@@ -875,25 +973,39 @@ function flyPose(){
  const hx=(FLY.d.x*.5+.5)*W,hy=(-FLY.d.y*.5+.5)*H;
  // where it is going: the tool's gauge (gliding over from where it was, when the gauge moves from one tool to another)
  let tx,ty,tp=0,tq=null;
- if(FLY.spot){tx=FLY.spot.x;ty=FLY.spot.y;tp=FLY.spot.ppm;if(FLY.qc)tq=toolFacing(tx,ty,W,H,c2,_qt)||_qt.copy(camera.quaternion).multiply(FLY.qc);}
+ let tf=labF;
+ if(FLY.spot){tx=FLY.spot.x;ty=FLY.spot.y;tp=FLY.spot.ppm;tf=FLY.spot.fp>0?FLY.spot.fp:rh*FAR_F;if(FLY.qc)tq=toolFacing(tx,ty,W,H,c2,_qt)||_qt.copy(camera.quaternion).multiply(FLY.qc);}
  else{flyTarget(_ft);tx=_ft.x;ty=_ft.y;}
- if(FLY.slide){
-  const s=FLY.slide;s.t=Math.min(1,s.t+dt/.8);const k=s.t*s.t*(3-2*s.t);
-  tx=s.x+(tx-s.x)*k;ty=s.y+(ty-s.y)*k;tp=s.p+(tp-s.p)*k;if(tq)tq=_qa.copy(s.q).slerp(tq,k);
+ const gliding=FLY.slide;let slK=1;
+ if(gliding){
+  const s=gliding;s.t=Math.min(1,s.t+dt/.8);const k=s.t*s.t*(3-2*s.t);slK=k;
+  tx=s.x+(tx-s.x)*k;ty=s.y+(ty-s.y)*k;tp=s.p+(tp-s.p)*k;tf=s.f+(tf-s.f)*k;if(tq)tq=_qa.copy(s.q).slerp(tq,k);
   if(s.t>=1)FLY.slide=null;
  }
- const sh=FLY.shown;sh.x=tx;sh.y=ty;sh.p=tp;if(tq)sh.q.copy(tq);sh.ok=true;
+ const sh=FLY.shown;sh.x=tx;sh.y=ty;sh.p=tp;sh.f=tf;if(tq)sh.q.copy(tq);sh.ok=true;
  // how big it ends up: the same size on screen as the tool's gauge (its pixels to the millimetre, against this one's), or just smaller
- const ppm=rh/(2*depth*Math.tan(camera.fov*D2R/2)),sEnd=tp>0?clamp(tp/ppm,.04,4):.55;
+ // it ends up the size of the tool's gauge on screen, seen with the tool's own lens: the same focal length (in pixels) at the same distance (in the gauge's
+ // millimetres), so perspective leans every part of it just as it does there (a straight-on, no-perspective camera is a very long lens from very far).
+ // The flight camera's lens and the gauge's distance change from the lab's to that on the way. With no tool to land on it just shrinks.
+ const mim=tp>0,sEnd=mim?1:.55;
+ const fe=mim?labF+(tf-labF)*e:labF,de=mim?depth+(tf/tp-depth)*e:depth;
  const arc=Math.min(H*.2,170);
  const sx=hx+(tx-hx)*e,sy=hy+(ty-hy)*e-Math.sin(Math.PI*e)*arc;
+ // the flight camera's centre of view moves from where the lab's is to the gauge, as it lands: there it looks straight at it (as the tool's does)
+ {const p0x=fr.left+cr.left+rw/2,p0y=fr.top+cr.top+rh/2,px=p0x+(sx-p0x)*e,py=p0y+(sy-p0y)*e;
+  c2.fov=2*Math.atan(rh/(2*fe))/D2R;c2.far=Math.max(camera.far,de*1.6);
+  c2.setViewOffset(rw,rh,-(px-rw/2),-(py-rh/2),W,H);c2.updateMatrixWorld(true);}
  FLY.d.set(sx/W*2-1,-(sy/H*2-1),.5).unproject(c2).sub(c2.position).normalize();
- pivot.position.copy(c2.position).addScaledVector(FLY.d,depth/Math.max(.05,FLY.d.dot(FLY.f)));
- pivot.scale.setScalar(1+(sEnd-1)*e);
+ pivot.position.copy(c2.position).addScaledVector(FLY.d,de/Math.max(.05,FLY.d.dot(FLY.f)));
+ pivot.scale.setScalar(mim?1:1+(sEnd-1)*e);
  // which way it faces: it turns, as it flies, to face exactly the way the tool's gauge faces in the tool's own view (tumbling on the way)
  if(tq)_qh.copy(pivot.quaternion).slerp(tq,e);else _qh.copy(pivot.quaternion);
  pivot.quaternion.copy(_qh);   // (no tumbling on the way: it keeps its straight form, turning only to face the way the tool's gauge faces)
  pivot.updateMatrixWorld(true);
+ // how it is lit and toned: the lab's, becoming the tool's as it lands (and, gliding from one tool to the next, the one tool's becoming the other's)
+ {const lab=labParams();let tl=null;
+  if(FLY.spot&&FLY.spot.lk){tl=toolParams(FLY.spot.lk);if(gliding&&gliding.tl)tl=mixP(gliding.tl,tl,slK);}
+  FLY.tl=tl;applyLook(tl?mixP(lab,tl,e):lab);}
 }
 // the tool draws the gauge itself now (handOff): this view only keeps track of where it is, and notices when the tool lets go of it
 function nativeWatch(dt){
@@ -907,7 +1019,7 @@ function toolReady(spot){
  spotSet(spot);
  if(FLY.waiting){FLY.waiting=false;AW.dir=1;AW.sent=null;}
  else if(FLY.attached){
-  const s=FLY.shown;if(s.ok)FLY.slide={t:0,x:s.x,y:s.y,p:s.p,q:s.q.clone()};
+  const s=FLY.shown;if(s.ok)FLY.slide={t:0,x:s.x,y:s.y,p:s.p,f:s.f,q:s.q.clone(),tl:FLY.tl};
   FLY.swapping=false;FLY.lost=0;
   try{window.parent.__shell.reveal();}catch(e){}
  }

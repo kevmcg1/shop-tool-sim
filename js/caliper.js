@@ -86,7 +86,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve || m.userData.tgLook) continue;   // a dissolve's own copy is already finished; the telescopic gauge's metal is dressed by js/tgauge.js
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -108,7 +108,7 @@ scene.environmentIntensity = 0.55;
 const camera = new T.PerspectiveCamera(30, 1, 0.05, 300);
 
 const CENTER = new T.Vector3(3.9, -0.45, 0);
-scene.add(new T.HemisphereLight(0xffffff, 0x9aa2aa, 0.35));
+const hemi = new T.HemisphereLight(0xffffff, 0x9aa2aa, 0.35); scene.add(hemi);
 const key = new T.DirectionalLight(0xffffff, 1.9);
 key.shadow.bias = -0.0004; key.shadow.normalBias = 0.01; key.shadow.intensity = 0.7;
 Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10, near: 0.5, far: 60 });
@@ -672,8 +672,9 @@ function applyFinish() {
     }
     m.needsUpdate = true;
   }
-  
+  if (sample && sample.type === 'tgauge' && sample.obj && window.__TG) window.__TG.dress(THREE, sample.obj, realFinish);
 }
+function tgShop() { try { return localStorage.getItem('pt-real-finish') === '1'; } catch (e) { return false; } }
 function bindFinish() {
   const c = document.getElementById('realChk');
   c.checked = realFinish; if (realFinish) makeShopTable(); if (shopTable) shopTable.visible = realFinish;
@@ -768,6 +769,7 @@ const PARTS = {
       const TG = window.__TG; if (tgGaugeIdx >= 0) TG.force(tgGaugeIdx);
       let made; try { made = TG.group(THREE, L*25.4, TG.materials(THREE), { handle: 'down' }); } finally { TG.force(-1); }
       const { obj, hr } = made;
+      TG.dress(THREE, obj, tgShop());   // (the gauge's own metal, as the lab draws it: the lab's gauge flies over this one and has to look just like it)
       return { obj, ext: Math.max(0.5, 2*hr) };
     } },
 
@@ -2687,7 +2689,9 @@ function tgPose(obj, axisLocal, handleLocal){
   const dir = l => { const d = l.clone().transformDirection(obj.matrixWorld).applyQuaternion(qi); return [d.x, d.y, d.z]; };
   // how this camera's perspective leans things at that spot (the slope of the ray through it): the lab's gauge is drawn by another camera, and needs it to look the same
   const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
-  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
+  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom],
+    fp: camera.isPerspectiveCamera ? r.height/(2*Math.tan(camera.fov*Math.PI/360))*(camera.zoom || 1) : 0,   // (its camera's focal length in pixels; 0 for a straight-on, no-perspective camera)
+    lk: window.__TG ? window.__TG.look(T, renderer, camera, { dirs: [key, fill, rim], hemi }) : null };   // (how this tool lights the gauge: the lab's flying gauge takes on the same look as it lands)
 }
 // "How do I use it?": the cleaning step shows a slip of paper between the outside jaws (js/paper.js). The jaws open a little, the paper
 // slides in between them, the jaws close on it, and the paper is pulled out downward against their grip with a slight stain on it.
