@@ -2704,7 +2704,7 @@ window.__paperRun = alive => {
     T, scene, invalidate: () => invalidate(120), alive,
     faceA: () => new T.Vector3(0, Y, 0),   // the fixed jaw's face (x = 0); the moving jaw's face is at x = the reading
     normal: new T.Vector3(1, 0, 0), slide: new T.Vector3(0, -1, 0),
-    size: [3, 3], thick: 0.004, stain: 0.5,
+    size: [3, 3], thick: 0.004,
     look: () => {
       const target = new T.Vector3(0.4, -1.7, 0), dir = new T.Vector3(0.9, 0.22, 0.95).normalize();
       curView = 'paper';

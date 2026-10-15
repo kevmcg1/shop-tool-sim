@@ -3445,7 +3445,7 @@ window.__paperRun = alive => {
     T, scene, invalidate, alive,
     faceA: () => new T.Vector3(0, 0.95, 0),   // the anvil's face (x = 0) and where the paper's middle is held: up out of the throat, its lower edge between the faces and clear of the frame's arch; the spindle's face is at x = the reading
     normal: new T.Vector3(1, 0, 0), slide: new T.Vector3(0, 1, 0),
-    size: [3, 3], thick: 0.004, stain: 0.5,
+    size: [3, 3], thick: 0.004,
     look: () => {
       camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom,
         toDir: new T.Vector3(0.95, 0.3, 0.75).normalize(), toTarget: new T.Vector3(0.6, 0.5, 0), toZoom: 0.62 };
