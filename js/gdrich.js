@@ -128,7 +128,7 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
     row.innerHTML = hits.map(([ks, d]) => '<span><span class="caps">' + ks.map(cap).join('') + '</span>' + d + '</span>').join('');
   }
   // the cleaning reminder, appended to every "clean the contact points" step
-  const PAPER = '\nThen slide a clean slip of paper between the contact points and pull it out.\nThe more dirt there is on the paper, the less there is left on the tool.\nIf the paper comes out clean, that is fine too: making sure the contact points are clean is the proper procedure every time, whether or not anything comes off.';
+  const PAPER = '\nThen slide a clean slip of paper between the contact points, close them lightly on it, and pull it out.\nAny dirt on the paper came off the tool.\nA clean slip is fine too: checking is the proper procedure every time, whether or not anything comes off.';
   // a small picture in the card: two contact faces, a slip of paper sliding in between, the dirt moving onto it, and the paper taken out with the dirt on it
   const SPECKS = [[22, 10, 2.4], [34, 18, 1.8], [47, 8, 2.1], [58, 20, 1.6], [70, 12, 2.6], [29, 24, 1.5], [52, 23, 2]];
   function paper(card, on){

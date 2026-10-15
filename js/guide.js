@@ -26,10 +26,11 @@
   const offThenOn = () => ({ enter: s => { s.phase = 0; }, waitFor: s => { const on = touching[tool](); if (!on) s.phase = 1; return s.phase === 1 && on; } });
 
   // said where each tool's minimap (the flat view) first comes up
-  const MINIMAP_NOTE = 'You won’t have this in real life, this is just your <b>minimap</b> you can use to make things easier to see.\nFeel free to either hide it or maximize it to see it more up close.';
-  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: () => (window.__quip ? window.__quip.cur : 'Hi, and welcome.\nI’ll walk you through it.') + '\nWe’ll do one real measurement, one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.' });
-  // Every walkthrough starts with the habit that matters most: clean the contact points, then check that the lowest
-  // value really reads the lowest value. The part comes off first, so nothing is in the way of closing up.
+  const MINIMAP_NOTE = 'This corner view is the <b>flat view</b>, a minimap of the scales.\nYou won’t have one in real life. It’s only here to make the marks easier to see.\nHide it, or enlarge it for a closer look, whenever you like.';
+  const INTRO = name => ({ title: 'Let’s measure with the ' + name, text: () => (window.__quip ? window.__quip.cur : 'Hi, and welcome.\nI’ll walk you through it.') + '\nWe’ll do one real measurement, one small step at a time. Everything except what you need right now gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.' });
+  // Every walkthrough starts with the habit that matters most: clean the contact points (a cloth, then the slip of paper), then
+  // check that the lowest value really reads the lowest value. `wipe` says what to clean and `zero` what the closed tool should
+  // read. The part comes off first, so nothing is in the way of closing up.
   // Closes the tool all the way once the part is off (the jaws, the spindle, the depth rod; the height gage comes down
   // onto the plate and is zeroed there), so the zero can be shown on the 3D tool. The second try is for when the
   // part was still being let go of at the first.
@@ -38,13 +39,13 @@
     if ($('closeBtn')){ at('closeBtn', 700); at('closeBtn', 3400); }
     else if ($('lowerBtn')){ at('lowerBtn', 700); at('zeroBtn', 3800); }
   };
-  const CLEAN = (text, extra) => Object.assign({ target: '#closeQuick, #view', title: 'First, clean and check zero',
+  const CLEAN = (wipe, zero, extra) => Object.assign({ target: '#closeQuick, #view', title: 'First, clean and check zero',
     enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); STEPS.forEach(x => { if (x.part) x.done = false; }); }   // (the part is gone, so "Pick a part" has to be shown again)
       // the paper between the contact faces (js/paper.js) where the tool can show it; then the tool closes right up for the zero check
       const nav = navId, alive = () => !!root && navId === nav;
       Promise.resolve(window.__paperRun ? window.__paperRun(alive) : false).then(ok => { if (!alive()) return; if (!ok && card && window.__gdRich) window.__gdRich.paper(card, true); closeUp(); });
     },
-    paper: true, paper3d: !!window.__paperRun, text: () => (typeof text === 'function' ? text() : text) + (window.__gdRich ? window.__gdRich.PAPER : '') }, extra);
+    paper: true, paper3d: !!window.__paperRun, text: () => { return wipe + (window.__gdRich ? window.__gdRich.PAPER : '') + '\n' + (typeof zero === 'function' ? zero() : zero); } }, extra);
   // "Pick a part" waits for a part to be picked from the list while the step is showing (the walkthrough
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
@@ -60,13 +61,15 @@
     enter: () => { partPicked = false; }, waitFor: () => false });
   // right after a part is picked: the part needs wiping where the tool's faces will touch it, the same as the tool's own faces were
   const WIPE_PART = {
-    dial: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
-    vern: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
-    mic: 'Same habit for the part, at the two spots the anvil and spindle will touch.\nEven a speck of grit or a film of oil there reads as size.\nA clean cloth on both faces of the part, and you’re set.',
-    depth: 'Same habit for the part: the surface the base will sit on, and the floor the rod will land on.\nA metal chip or speck of grit under the base lifts the tool, and one on the floor stops the rod short.\nEither way, the reading comes out wrong.\nA clean cloth on both spots, and you’re set.',
-    height: 'Same habit for the part: the face the scriber will land on, and the spot it sits on.\nA speck of grit under the base lifts the whole gage, and one under the scriber holds it up.\nEither way, the height comes out wrong.\nA clean cloth on both spots, and you’re set.'
+    dial: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth over the spots the jaws will grip takes care of it.',
+    vern: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth over the spots the jaws will grip takes care of it.',
+    mic: 'Same habit for the part, at the two spots the anvil and spindle will touch.\nEven a speck of grit or a film of oil there adds to the reading.\nA clean cloth over both spots takes care of it.',
+    depth: 'Same habit for the part: the surface the base will sit on, and the floor the rod will land on.\nA metal chip or speck of grit under the base lifts the tool, and one on the floor stops the rod short.\nEither way, the reading comes out wrong.\nA clean cloth over both spots takes care of it.',
+    height: 'Same habit for the part: the face the scriber will land on, and the spot the base will sit on.\nA speck of grit under the base lifts the whole gage, and one under the scriber holds it up.\nEither way, the height comes out wrong.\nA clean cloth over both spots takes care of it.'
   };
-  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? window.__gdRich.PAPER : '') });
+  // the contact points are about to touch the part, so they get the paper check once more (the picture shows it again)
+  const PART_PAPER = '\nThen run the slip of paper between the contact points once more, since they’re about to touch the part.';
+  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? PART_PAPER : '') });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
   const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 1, title: 'Look around', text: `Get your bearings on the ${what} before reading it.\nJust a tiny nudge: drag on an empty spot.\nScroll if you want to zoom.\nThe camera buttons up top reset the view any time.` });
@@ -84,8 +87,8 @@
   };
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
   // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
-  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nIf your readings differ a little, you’re not doing it wrong. That’s simply how measuring works.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.' };
-  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Click <b>Practice</b>.\nThe answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.\nHands-on time with a real tool is just as valuable, if not more so.\nThis simulator is a way to practice when you can’t get to one in person.' };
+  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nThat’s why tolerances exist: a tolerance says how far off is still good enough.' };
+  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Click <b>Practice</b>.\nThe answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nTime with a real tool is worth just as much, if not more.\nThis simulator is for practicing when you can’t get to one in person.\nYou can run <b>How do I use it?</b> again any time.' };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
   const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
@@ -102,19 +105,20 @@
   const TOURS = {
     dial: [
       INTRO('dial caliper'),
-      CLEAN(() => 'A quick habit, and a very good one: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
-      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the slider edge sits right on the beam’s 0.\nNo inch number has been passed.\nThat’s the first zero.' + now('vA') },
-      { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the lines', text: () => 'Not a single hundred-thou line has been passed.\nZero lines, zero thou.' + now('vB') },
+      CLEAN('Start with a habit worth keeping: wipe the jaws’ contact points with a clean cloth.\nA little grit or oil there throws every reading off.',
+        () => 'Now watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
+      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the slider edge sits right on the beam’s 0.\nNot a single inch number has been passed, so that’s zero whole inches.' + now('vA') },
+      { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the hundred-thou lines', text: () => 'Not a single hundred-thou line has been passed either.\nZero lines means zero hundred thou.' + now('vB') },
       { spot: 'dial', view: 'dial', hl: 'dial', title: 'Zero on the dial', text: () => 'The needle points straight at 0.\nIf yours ever drifts, turn the bezel to bring it back.' + now('vC') },
-      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe beam shows the slider edge on 0.\nThe needle sits on 0 too.' },
-      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the beam shows the slider edge on 0, and the needle sits on 0 too.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.' + now('vT', 'The reading is') + '\nThat’s a tool you can trust.\nNow you’re ready to measure.' },
       PART('.sample-sec .dd, #sampleSel'),
       CLEAN_PART(),
       BY_HAND_CAL,
       LOOK('caliper'),
-      { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook at the last whole-inch number the slider edge has passed.\nTake the one it has already passed, not the next one.\nIt’s outlined in yellow.' + now('vA') },
-      { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou line', title: 'Count the hundred-thou lines', text: () => 'Next, the lines after that number.\nEach one is a hundred thou (0.100″).\nThe last line the slider edge passed is lit up.' + now('vB') },
-      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'The needle adds the thou, one (0.001″) per mark.\nThe mark under the needle is lit.' + now('vC') },
+      { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook for the last whole-inch number the slider edge has passed.\nNot the next one: only a number it has already passed counts.\nIt’s outlined.' + now('vA') },
+      { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou line', title: 'Count the hundred-thou lines', text: () => 'Next, the lines after that number.\nEach line is a hundred thou (0.100″).\nCount the ones the slider edge has passed. The last one is lit up.' + now('vB') },
+      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'Each mark on the dial is one thou (0.001″).\nThe mark under the needle is lit.' + now('vC') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + dial = the reading.\nThese cards do the adding, so you can check yourself.' + now('vT', 'This one reads') },
       SHORT('cal'),
       TOLERANCE,
@@ -123,25 +127,26 @@
     vern: u => [
       CHOOSE,
       INTRO('vernier caliper'),
-      CLEAN(() => 'A quick habit, and a very good one: wipe the jaws’ contact faces with a clean cloth.\nA little grit or oil there throws every reading off.\nNow watch the jaws close all the way.\nAt the lowest value, the vernier’s 0 should sit right on the beam’s 0.\nIt reads 0 and nothing else.' + zeroNote()),
-      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the vernier’s 0 sits right on the beam’s 0.\nNo inch number has been passed.' + now('vA') },
-      { spot: 'vern', view: 'dial', hl: 'vern', title: 'Zero on the vernier', text: () => 'Up close, its 0 line meets the beam’s 0 line exactly.\nThat’s the line that lines up, so there are zero thou to add.' + now('vV') },
-      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the beam’s 0.\nThe magnifier shows it up close.' },
-      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
+      CLEAN('Start with a habit worth keeping: wipe the jaws’ contact points with a clean cloth.\nA little grit or oil there throws every reading off.',
+        () => 'Now watch the jaws close all the way.\nAt the lowest value, the vernier’s 0 should sit right on the beam’s 0.\nThe reading should be 0 and nothing else.' + zeroNote()),
+      { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the vernier’s 0 sits right on the beam’s 0.\nNot a single ' + (u === 'mm' ? 'centimeter' : 'inch') + ' number has been passed.' + (u === 'mm' ? nowMM : now)('vA') },
+      { spot: 'vern', view: 'dial', hl: 'vern', title: 'Zero on the vernier', text: () => 'Up close, its 0 line meets the beam’s 0 line exactly.\nThat’s the line that lines up, so there is nothing to add from the vernier.' + (u === 'mm' ? nowMM : now)('vV') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the vernier’s 0 sits right on the beam’s 0, and the magnifier shows it up close.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.' + (u === 'mm' ? nowMM : now)('vT', 'The reading is') + '\nThat’s a tool you can trust.\nNow you’re ready to measure.' },
       PART('.sample-sec .dd, #sampleSel'),
       CLEAN_PART(),
       BY_HAND_CAL,
       LOOK('caliper'),
       ...(u === 'mm' ? [
-        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the centimeter number', title: 'Read the centimeter number', text: () => 'Millimeters are along the top edge.\nFind the last centimeter number the top vernier’s 0 has passed.\nIt’s outlined. Each one is 10 mm.' + nowMM('vA') },
-        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last millimeter line', title: 'Count the millimeter lines', text: () => 'Next, the lines after that number.\nEach one is one millimeter.\nCount the ones the top vernier’s 0 has passed.' + nowMM('vB') },
-        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Look for the one top-vernier line that meets a beam line exactly.\nEach vernier line is 0.05 mm.\nIts numbers 1 to 10 are tenths of a millimeter.' + nowMM('vV') },
+        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the centimeter number', title: 'Read the centimeter number', text: () => 'Millimeters are along the top edge.\nLook for the last centimeter number the top vernier’s 0 has passed.\nIt’s outlined. Each number is 10 mm.' + nowMM('vA') },
+        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last millimeter line', title: 'Count the millimeter lines', text: () => 'Next, the lines after that number.\nEach line is 1 mm.\nCount the ones the top vernier’s 0 has passed.' + nowMM('vB') },
+        { spot: 'vern', view: 'scale', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Look for the one top-vernier line that meets a beam line exactly.\nEach vernier line is 0.05 mm, and its numbers 1 to 10 count tenths of a millimeter.' + nowMM('vV') },
         { target: '#reading .bd', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.05 mm per line) = the reading in millimeters.' + nowMM('vT', 'This one reads') }
       ] : [
-        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook at the last whole-inch number the vernier’s 0 has passed.\nIt’s outlined.' + now('vA') },
-        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou digit', title: 'Count the hundred-thou digits', text: () => 'Next, the small digits on the beam.\nEach one is a hundred thou (0.100″).\nThe last one before the vernier’s 0 is lit.' + now('vB') },
-        { spot: 'sub', view: 'scale', hl: 'sub', flat: 'the last 25-thou line', title: 'Add the 25-thou lines', text: () => 'Now the short lines after that digit.\nEach one is 25 thou (0.025″).\nCount the ones the vernier’s 0 has passed.' + now('vS') },
-        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Close up on the vernier.\nFind the one vernier line that meets a beam line exactly.\nEach one is a single thou (0.001″).\nIts number is how many thou to add.' + now('vV') },
+        { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook for the last whole-inch number the vernier’s 0 has passed.\nIt’s outlined.' + now('vA') },
+        { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou digit', title: 'Read the hundred-thou digit', text: () => 'Next, the small digits on the beam.\nEach digit is a hundred thou (0.100″).\nLook for the last one the vernier’s 0 has passed. It’s lit.' + now('vB') },
+        { spot: 'sub', view: 'scale', hl: 'sub', flat: 'the last 25-thou line', title: 'Count the 25-thou lines', text: () => 'Now the short lines after that digit.\nEach line is 25 thou (0.025″).\nCount the ones the vernier’s 0 has passed.' + now('vS') },
+        { spot: 'vern', view: 'dial', hl: 'vern', flat: 'the vernier line that lines up', loupe: 'loupe', title: 'Find the line that lines up', text: () => 'Now close up on the vernier.\nLook for the one vernier line that meets a beam line exactly.\nEach vernier line is a single thou (0.001″), and its number is how many thou to add.' + now('vV') },
         { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + 25-thou lines + vernier = the reading.' + now('vT', 'This one reads') }
       ]),
       SHORT('cal'),
@@ -150,25 +155,26 @@
     ],
     mic: [
       INTRO('outside micrometer'),
-      CLEAN(() => 'A quick habit, and a very good one: wipe the anvil and spindle faces with a clean cloth.\nEven a speck of grit changes the reading.\nNow watch the spindle close all the way.\nAt the lowest value, it should read exactly the frame size.\nThat’s 0.0000″ on the 0–1″ micrometer.' + zeroNote()),
-      { spot: 'a', view: 'scale', hl: 'num', title: 'Zero on the sleeve', text: () => 'Spindle closed, so the thimble’s edge sits right at the sleeve’s start.\nNothing is showing past the frame size.' + now('vA') },
+      CLEAN('Start with a habit worth keeping: wipe the two contact points, the anvil and spindle faces, with a clean cloth.\nEven a speck of grit changes the reading.',
+        () => 'Now watch the spindle close all the way.\nAt the lowest value, it should read exactly the frame size.\nThat’s 0.0000″ on the 0–1″ micrometer.' + zeroNote()),
+      { spot: 'a', view: 'scale', hl: 'num', title: 'Zero on the sleeve', text: () => 'Spindle closed, so the thimble’s edge sits right at the start of the sleeve.\nNothing on the sleeve has been uncovered yet.' + now('vA') },
       { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Its 0 line sits right on the index line.\nThat’s the zero.' + now('vC') },
-      { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', title: 'Zero on the vernier', text: () => 'Its 0 line lines up with a thimble line.\nZero tenths to add.' + now('vD') },
-      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe sleeve, the thimble and the vernier all sit on their lowest marks.' },
-      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'The cards agree too.\nThe reading is the frame size and nothing more.\nThat’s a micrometer you can trust.' + now('vT', 'The reading is') },
+      { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', title: 'Zero on the vernier', text: () => 'Its 0 line lines up with a thimble line.\nThat’s zero tenths to add.' + now('vD') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the sleeve, the thimble and the vernier all sit on their lowest marks.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'The cards agree too.\nThe reading is the frame size and nothing more.' + now('vT', 'Here that’s') + '\nThat’s a micrometer you can trust.' },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
       CLEAN_PART(),
       { target: '#view', view: 'iso', hands: true, next: 'Next', title: 'How to hold it', text: () => window.__guideHandsOption && window.__guideHandsOption() === 2
-        ? 'Hold the micrometer in your right hand.\nThe frame rests in your palm, and your last fingers wrap round it.\nYour thumb and first finger reach up to the <b>ratchet</b>.\nHold the part in your left hand, between the faces.\nKeep it quick and light. Warm hands make the steel grow.'
-        : 'Rest the frame on your left palm, under its left side, with your fingers curled up round the back of it.\nTurn the <b>ratchet</b> with the thumb, first finger and middle finger of your right hand.\nTuck the other two fingers into your palm.\nNever the thimble: the ratchet clicks at the right feel.\nKeep it quick and light. Warm hands make the steel grow.' },
+        ? 'Hold the micrometer in your right hand.\nThe frame rests in your palm, and your other fingers wrap round it.\nYour thumb and first finger reach up to the <b>ratchet</b>.\nHold the part in your left hand, between the faces.\nKeep it quick and light: warm hands make the steel grow.'
+        : 'Rest the frame in your left palm, with your fingers curled round the back of it.\nTurn the <b>ratchet</b> with the thumb, first finger and middle finger of your right hand.\nTuck the other two fingers into your palm.\nUse the ratchet, not the thimble: it clicks when the pressure is right.\nKeep it quick and light: warm hands make the steel grow.' },
       Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Close it on the part by hand',
-        text: 'The part slides in between the anvil and spindle for you.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nBring the spindle down until the ratchet clicks on the part.\nThat click is the right feel.' }, offThenOn()),
+        text: 'The part slides in between the anvil and spindle for you.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nClose the spindle on the part until the ratchet clicks.\nThat click is the right feel.' }, offThenOn()),
       LOOK('micrometer'),
-      { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera’s on the sleeve now.\nLook at the last number showing.\nEach one is a hundred thou (0.100″).' + now('vA') },
-      { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Next, the small lines past that number.\nEach one adds 25 thou (0.025″).' + now('vB') },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'Each line on the thimble adds one thou (0.001″).\nFollow the index line, the long one along the sleeve, across onto the thimble.\nTake the highest mark that sits on it or just below it.\nA mark above the line hasn’t reached it yet, so skip it.' + now('vC') },
+      { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera’s on the sleeve now.\nLook for the last number the thimble has uncovered.\nEach number is a hundred thou (0.100″).' + now('vA') },
+      { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Next, the small lines past that number.\nEach line adds 25 thou (0.025″).\nCount the ones the thimble has uncovered.' + now('vB') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'Follow the index line, the long one along the sleeve, across onto the thimble.\nTake the mark that sits on it, or the nearest one below it.\nA mark above the line hasn’t reached it yet, so skip it.\nEach thimble mark adds one thou (0.001″).' + now('vC') },
       { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', flat: 'the vernier line that lines up with a thimble line', title: 'Find the vernier line',
-        text: () => 'Almost there.\nLook for the one vernier line that lines up with a thimble line.\nThe two run on as one straight line.\nIts number is the tenths, 0.0001″ each.' + now('vD') },
+        text: () => 'Almost there.\nLook for the one vernier line that lines up with a thimble line.\nThe two run on as one straight line.\nIts number is how many tenths to add, 0.0001″ each.' + now('vD') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Frame size + sleeve number + sleeve lines + thimble + vernier = the reading.' + now('vT', 'This one reads') },
       SHORT('mic'),
       TOLERANCE,
@@ -176,28 +182,30 @@
     ],
     depth: [
       INTRO('depth micrometer'),
-      CLEAN(() => 'A quick habit, and a very good one: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and wind the rod in until its end sits flush with the base.\nAt that lowest value, it should read exactly 0.\nNow watch the rod wind in all the way.'),
+      CLEAN('Start with a habit worth keeping: wipe the base and the rod’s end face, the two contact points, with a clean cloth.\nA little grit there throws every reading off.',
+        'Set the base flat on a clean surface.\nNow watch the rod wind in until its end sits flush with the base.\nAt that lowest value, it should read exactly 0.'),
       { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'The rod is flush with the base, so the thimble’s 0 line sits right on the center line.\nThat’s the zero.' + now('vC') },
-      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe thimble line sits right on the center line.' },
-      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
+      { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the thimble’s 0 line sits right on the center line.' },
+      { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.' + now('vT', 'The reading is') + '\nThat’s a tool you can trust.\nNow you’re ready to measure.' },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
       CLEAN_PART(),
       Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Run the rod down by hand',
-        text: 'The part slides under the base, and the base sits down on it.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nRun the rod down until the ratchet clicks on the bottom.' }, offThenOn()),
+        text: 'The part slides under the base, and the base sits down on it.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nRun the rod down until it lands on the floor and the ratchet clicks.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'nextNum', view: 'scale', flat: 'the first number showing below the thimble', title: 'Find the first number you can see', text: () => {
         const a = depA(), n = a == null ? null : a + 1;
-        return 'The thimble hides part of the sleeve on a depth mic.\nThat’s normal: a depth mic reads backward. Work from what you can see.\nFind the first number showing below the thimble’s edge'
+        return 'The thimble hides part of the sleeve on a depth mic.\nThat’s normal: a depth mic reads backward, so work from the numbers you can see.\nFind the first number showing below the thimble’s edge'
           + (n == null ? '.\nThe number just above it is hidden, so the hundred thou is one less.'
-            : (n === 10 ? ' (past “9” it’s the end of the inch).' : `: <b>“${n}”</b>.`) + `\nThe number above it is hidden, so the hundred thou is one less: <b>${a}</b>, or ${a * 100} thou.`);
+            : n === 10 ? `: there isn’t one, because “9” is the last number on the sleeve.\nSo “9” is the hidden one, and the hundred thou is <b>${a}</b>, or ${a * 100} thou.`
+            : `: <b>“${n}”</b>.\nThe number above it is hidden, so the hundred thou is one less: <b>${a}</b>, or ${a * 100} thou.`);
       } },
-      { spot: 'openLines', view: 'scale', flat: 'the lines still showing between the thimble and that number', title: 'Count the lines you can see', text: () => {
+      { spot: 'openLines', view: 'scale', flat: 'the group of lines still showing between the thimble and that number', title: 'Count the lines you can see', text: () => {
         const b = depB();
-        return 'The small lines you can still see sit between the thimble’s edge and that number.\nThree lines fit in that gap, 25 thou (0.025″) each.\nSo the thimble has passed 3 minus the ones you see.'
-          + (b == null ? '' : `\nHere you see <b>${3 - b}</b>, so it’s passed <b>${b}</b>: ${b * 25} thou.`);
+        return 'The small lines you can still see sit between the thimble’s edge and that number.\nThree lines fit in that gap, 25 thou (0.025″) each.\nSo the thimble has covered 3 minus the ones you see.'
+          + (b == null ? '' : `\nHere you see <b>${3 - b}</b>, so it has covered <b>${b}</b>: ${b * 25} thou.`);
       } },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'The line on the center line adds the thou, one (0.001″) per line.' + now('vC') },
-      { target: '#reading .bd', title: 'Add them up', text: () => 'Rod size + (first number you see − 1) hundred thou + (3 − lines you see) × 25 thou + thimble = the reading.' + now('vT', 'This one reads') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'Find the thimble line that sits on the center line.\nEach line is one thou (0.001″).' + now('vC') },
+      { target: '#reading .bd', title: 'Add them up', text: () => 'Rod size + hundred thou (first number you see − 1) + 25-thou lines (3 − lines you see) + thimble = the reading.' + now('vT', 'This one reads') },
       SHORT('depth'),
       TOLERANCE,
       PRACTICE
@@ -205,15 +213,16 @@
     height: u => [
       CHOOSE,
       INTRO('height gage'),
-      CLEAN(() => 'A quick habit, and a very good one: wipe the scriber and the base with a clean cloth.\nA little grit under either throws the zero off.\nWatch the scriber come down onto a clean flat surface.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
+      CLEAN('Start with a habit worth keeping: wipe the scriber, the base and the plate with a clean cloth.\nA little grit under either one throws the zero off.',
+        'Now watch the scriber come down onto the plate.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
       ...(u === 'mm' ? [
         { spot: 'mvernLine', side: 'left', box: [180, 90], frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so the vernier’s 0 line meets the main scale’s 0 line.\nThat’s the zero.' + nowMM('mVern') },
-        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the main scale’s 0.' },
-        { target: '#reading .rgroup ~ .rgroup', title: 'Zero all the way round', text: () => 'The reading says zero too.\nThat’s a gage you can trust.\nNow you’re ready to measure.' + nowMM('mTot', 'The reading is') },
+        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the vernier’s 0 sits right on the main scale’s 0.' },
+        { target: '#reading .rgroup ~ .rgroup', title: 'Zero all the way round', text: () => 'The readout says zero too.' + nowMM('mTot', 'The reading is') + '\nThat’s a gage you can trust.\nNow you’re ready to measure.' },
       ] : [
         { spot: 'vernLine', side: 'right', box: [180, 90], frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so the vernier’s 0 line meets the main scale’s 0 line.\nThat’s the zero.' + now('iVern') },
-        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe vernier’s 0 sits right on the main scale’s 0.' },
-        { target: '#reading .rgroup', title: 'Zero all the way round', text: () => 'The reading says zero too.\nThat’s a gage you can trust.\nNow you’re ready to measure.' + now('iTot', 'The reading is') },
+        { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the vernier’s 0 sits right on the main scale’s 0.' },
+        { target: '#reading .rgroup', title: 'Zero all the way round', text: () => 'The readout says zero too.' + now('iTot', 'The reading is') + '\nThat’s a gage you can trust.\nNow you’re ready to measure.' },
       ]),
       PART('section:has(#partSel) .dd, #partSel'),
       CLEAN_PART(),
@@ -225,28 +234,28 @@
       ...(u === 'mm' ? [
         { spot: 'mmNum', side: 'left', box: [150, 110], flat: 'the centimeter number', frame: ['mmNum', 'mvernZero'], title: 'Find the centimeter mark', text: () => {
           const v = parseFloat(val('mMain'));
-          return 'Look at the metric scale on the beam, on the right.\nThe big numbers are centimeters, 10 mm each.\nFind the last one at or below the vernier’s 0'
+          return 'Look at the metric scale on the beam, on the right.\nThe big numbers are centimeters, 10 mm each.\nLook for the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v/10)} cm</b>, which is ${Math.floor(v/10)*10} mm.`);
         } },
-        { spot: 'mmLine', side: 'left', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the line at or below the zero', text: () => {
+        { spot: 'mmLine', side: 'left', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the main-scale line', text: () => {
           const v = parseFloat(val('mMain'));
-          return 'Now go up from that number.\nFind the last main-scale line at or below the vernier’s 0, or the one that meets it.\nEach line is one millimeter.'
+          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is one millimeter.'
             + (isNaN(v) ? '' : `\nHere it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
-        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Now focus on the vernier scale', text: () => 'Find the one vernier line that lines up exactly with a main-scale line.\nEach vernier line is 0.02 mm.\nIts big numbers are tenths of a millimeter.' + nowMM('mVern') },
+        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is 0.02 mm, and its big numbers count tenths of a millimeter.' + nowMM('mVern') },
         { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
       ] : [
         { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
           const v = parseFloat(val('iMain'));
-          return 'Look at the inch scale on the beam, on the left.\nThe big numbers are whole inches.\nFind the last one at or below the vernier’s 0'
+          return 'Look at the inch scale on the beam, on the left.\nThe big numbers are whole inches.\nLook for the last one at or below the vernier’s 0'
             + (isNaN(v) ? '.' : `: <b>${Math.floor(v)}″</b>.`);
         } },
-        { spot: 'mainLine', side: 'right', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the line at or below the zero', text: () => {
+        { spot: 'mainLine', side: 'right', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the main-scale line', text: () => {
           const v = parseFloat(val('iMain')), n = parseInt(val('iMainH'), 10);
-          return 'Now go up from that number.\nFind the last main-scale line at or below the vernier’s 0, or the one that meets it.\nEach line is 50 thou (0.050″).'
+          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is 50 thou (0.050″).'
             + (isNaN(v) || isNaN(n) ? '' : `\nHere it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
-        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Now focus on the vernier scale', text: () => 'Find the one vernier line that lines up exactly with a main-scale line.\nEach one is a single thou (0.001″).\nIts number is how many thou to add.' + now('iVern') },
+        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is a single thou (0.001″), and its number is how many thou to add.' + now('iVern') },
         { target: '#reading .rgroup', title: 'Add them up', text: () => 'Inch + main-scale lines + vernier = the reading in inches.' + now('iTot', 'This one reads') }
       ]),
       SHORT('height'),
@@ -260,26 +269,29 @@
   // one thing. The first of them says what every part of the flat view is; a vernier step also gets the
   // magnifier (the close-up of the lines that line up) explained, where the tool has one.
   const MINI = {
-    dial: 'The flat view in the corner is a minimap of the scales, drawn out flat so nothing curves away. The strip on top is the beam at the slider edge (inch numbers and hundred-thou lines); under it is the dial, needle and all.',
-    vern: 'The flat view in the corner is a minimap of the scales, drawn out flat so nothing curves away. On top is the beam with the vernier plate under its edge, just as on the tool; the strip at the bottom is a magnifier on the lines round the vernier line that lines up.',
-    mic: 'The flat view in the corner is a minimap of the sleeve and thimble, unrolled flat so nothing curves round out of sight. The sleeve is on the left, its numbers and lines along the index line (and the vernier lines up its left side); the thimble marks run down the right.',
-    depth: 'The flat view in the corner is a minimap of the sleeve and thimble, unrolled flat so nothing curves round out of sight. The thimble is at the top: it covers the reading as the rod goes down. The sleeve numbers under it run toward the base.',
-    height: 'The flat view on the right is a minimap of the scales, drawn out flat. The close-up at the top magnifies the vernier line that lines up (the inch row, then the metric row); below it, the beam’s inch scale (left) and metric scale (right) run up the middle with both verniers riding beside them.'
+    dial: 'The flat view draws the scales out flat, so nothing curves away.\nThe strip on top is the beam at the slider edge, with its inch numbers and hundred-thou lines.\nUnder it is the dial, needle and all.',
+    vern: 'The flat view draws the scales out flat, so nothing curves away.\nOn top is the beam with the vernier plate under its edge, just as on the tool.\nThe strip at the bottom is a magnifier on the lines round the vernier line that lines up.',
+    mic: 'The flat view unrolls the sleeve and thimble, so nothing curves round out of sight.\nThe sleeve is on the left, with its numbers and lines along the index line and the vernier lines running up its left side.\nThe thimble marks run down the right.',
+    depth: 'The flat view unrolls the sleeve and thimble, so nothing curves round out of sight.\nThe thimble is at the top, hiding part of the sleeve just as it does on the tool.\nThe sleeve numbers under it run toward the base.',
+    height: 'The flat view draws the scales out flat.\nThe close-up at the top magnifies the vernier line that lines up, the inch row first and then the metric row.\nBelow it, the beam’s inch scale (left) and metric scale (right) run up the middle, with both verniers riding beside them.'
   };
   const LOUPES = {
-    loupe: () => curUnit === 'mm' ? 'The strip along the bottom of the flat view magnifies the millimeter scale round the top vernier line that lines up: the vernier’s lines above the edge, the beam’s millimeter lines below. Only the vernier line counts, 0.05 mm per line: the lit one meets a beam line exactly, while the lines either side plainly miss.' + nowMM('vV')
-      : 'The strip along the bottom of the flat view magnifies the lines round the one that lines up, ten times over: the beam’s lines above the edge, the vernier’s numbered lines below. Only the vernier number counts, one thou per line: the lit vernier line meets a beam line exactly, while the lines either side plainly miss.' + now('vV'),
-    loupeIn: () => 'The close-up at the top of the flat view magnifies the inch vernier (the top row), centered on the vernier line that meets a main-scale line. It is lit and labeled with the thou it adds, so you can see it meet exactly while its neighbors miss.' + now('iVern'),
-    loupeMm: () => 'The close-up at the top of the flat view magnifies the metric vernier in its lower row, centered on the vernier line that meets a main-scale line. It is lit and labeled with what it adds, so you can see it meet exactly while its neighbors miss.' + nowMM('mVern')
+    loupe: () => curUnit === 'mm' ? 'The strip along the bottom of the flat view shows the millimeter scale round the top vernier line that lines up, magnified.\nThe vernier’s lines are above the edge and the beam’s millimeter lines below.\nThe lit vernier line meets a beam line exactly, while the lines either side plainly miss.\nThat lit line is the one that counts, 0.05 mm per line.' + nowMM('vV')
+      : 'The strip along the bottom of the flat view shows the lines round the one that lines up, magnified ten times.\nThe beam’s lines are above the edge and the vernier’s numbered lines below.\nThe lit vernier line meets a beam line exactly, while the lines either side plainly miss.\nThat lit line is the one that counts, one thou per line.' + now('vV'),
+    loupeIn: () => 'At the top of the flat view, the inch vernier (the top row) is magnified.\nThe view is centered on the vernier line that meets a main-scale line.\nThat line is lit and labeled with the thou it adds, so you can see it meet exactly while its neighbors miss.' + now('iVern'),
+    loupeMm: () => 'At the top of the flat view, the metric vernier (the lower row) is magnified.\nThe view is centered on the vernier line that meets a main-scale line.\nThat line is lit and labeled with what it adds, so you can see it meet exactly while its neighbors miss.' + nowMM('mVern')
   };
   // a mark that sits just past an edge of the flat view (it only draws so much round the reading) is shown by a
   // strip along that edge, and the card says so
   let flatEdge = '';
-  const edgeNote = () => flatEdge === 'note' ? ' Here the number itself is just off the edge of the flat view, so the flat view says where it is, in the lit note.'
-    : flatEdge ? ` Here it sits just past the ${flatEdge} edge of the flat view, where the lit strip is; the scale carries on past it.` : '';
-  const FLAT = (s, first) => ({ flatSpot: s.flatKey || s.spot, target: '#flat', hl: s.hl, flatStep: true, title: first ? 'Meet the flat view' : 'Now on the flat view',
-    text: () => ((first ? MINI[tool] + ' ' : 'The flat view draws the same scales out flat, so nothing curves away. ')
-      + (flatEdge === 'note' ? '' : `Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}.`) + edgeNote() + ' Use it to check what you read on the tool.').replace(/  +/g, ' ') });
+  const edgeNote = () => flatEdge === 'note' ? 'Here the number itself is just off the edge of the flat view, so the flat view says where it is, in the lit note.'
+    : flatEdge ? `Here it sits just past the ${flatEdge} edge of the flat view, where the lit strip is. The scale carries on past it.` : '';
+  // the first of these explains the flat view; the rest only point out the mark again, so the same explanation isn't read five times
+  const FLAT = (s, first) => ({ flatSpot: s.flatKey || s.spot, target: '#flat', hl: s.hl, flatStep: true, title: first ? 'What the flat view shows' : 'Now on the flat view',
+    text: () => [first ? MINI[tool] : '',
+      flatEdge === 'note' ? '' : `Here’s ${s.flat} again, in the lit window${s.hl ? ' and in the same color' : ''}.`,
+      edgeNote(),
+      'Use it to check what you read on the tool.'].filter(Boolean).join('\n').replace(/  +/g, ' ') });
   const LOUPE = s => ({ flatSpot: s.loupe, target: '#flat', hl: s.hl, flatStep: true, title: tool === 'height' ? 'The close-up' : 'The magnifier', text: () => LOUPES[s.loupe]() });
   const STEPS = [];
   let curUnit = 'in';
