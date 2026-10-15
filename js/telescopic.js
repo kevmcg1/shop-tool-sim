@@ -1063,12 +1063,12 @@ const GSTEPS=[
 ];
 const toolName=()=>(TOOL_NAME[S.mTool]||'other tool').toLowerCase();
 const CHOICES=[['micrometer','Outside micrometer','reads to 0.001″'],['caliper','Dial caliper','reads to 0.001″'],['vernier','Vernier caliper','reads to 0.001″']];
-let gdRoot=null,gdHole,gdCard,gdTitle,gdText,gdDo,gdChoose,gdCount,gdBack,gdNext;
+let gdRoot=null,gdArrow,gdHole,gdCard,gdTitle,gdText,gdDo,gdChoose,gdCount,gdBack,gdNext;
 function guideBuild(){
  gdRoot=document.createElement('div');gdRoot.className='gd';gdRoot.hidden=true;
- gdRoot.innerHTML='<div class="gd-hole none"></div><div class="gd-card" role="dialog" aria-label="How do I use it?"><button class="gd-x" type="button" aria-label="Exit">✕</button><h4></h4><p aria-live="polite"></p><div class="gd-do" hidden></div><div class="gd-choose" hidden></div><div class="gd-foot"><span class="gd-count"></span><button type="button" class="gd-back">Back</button><button type="button" class="gd-next primary">Next</button></div></div>';
+ gdRoot.innerHTML='<div class="gd-hole none"></div><svg class="gd-svg" aria-hidden="true" style="display:none"><path/><polygon/></svg><div class="gd-card" role="dialog" aria-label="How do I use it?"><button class="gd-x" type="button" aria-label="Exit">✕</button><h4></h4><p aria-live="polite"></p><div class="gd-do" hidden></div><div class="gd-choose" hidden></div><div class="gd-foot"><span class="gd-count"></span><button type="button" class="gd-back">Back</button><button type="button" class="gd-next primary">Next</button></div></div>';
  document.body.appendChild(gdRoot);
- gdHole=gdRoot.querySelector('.gd-hole');gdCard=gdRoot.querySelector('.gd-card');gdTitle=gdCard.querySelector('h4');gdText=gdCard.querySelector('p');
+ gdHole=gdRoot.querySelector('.gd-hole');gdArrow=gdRoot.querySelector('.gd-svg');gdCard=gdRoot.querySelector('.gd-card');gdTitle=gdCard.querySelector('h4');gdText=gdCard.querySelector('p');
  gdDo=gdCard.querySelector('.gd-do');gdChoose=gdCard.querySelector('.gd-choose');gdCount=gdCard.querySelector('.gd-count');gdBack=gdCard.querySelector('.gd-back');gdNext=gdCard.querySelector('.gd-next');
  gdCard.querySelector('.gd-x').onclick=guideStop;gdBack.onclick=()=>guideGo(G.i-1);gdNext.onclick=()=>{if(G.i>=GSTEPS.length-1)guideStop();else guideGo(G.i+1);};
  gdChoose.innerHTML=CHOICES.map(c=>'<button type="button" data-tool="'+c[0]+'">'+c[1]+'<small>'+c[2]+'</small></button>').join('');
@@ -1127,19 +1127,27 @@ function guideTick(force){
  const r=targetRect(s),pad=6;
  if(r){gdHole.className='gd-hole';gdHole.style.left=(r.x-pad)+'px';gdHole.style.top=(r.y-pad)+'px';gdHole.style.width=(r.w+pad*2)+'px';gdHole.style.height=(r.h+pad*2)+'px';}
  else gdHole.className='gd-hole none';
- placeCard(r);
+ placeCard(r,s);
 }
-function placeCard(r){
- const W=innerWidth,H=innerHeight,cw=gdCard.offsetWidth,ch=gdCard.offsetHeight,m=12;let x,y;
+function placeCard(r,s){
+ const W=innerWidth,H=innerHeight,cw=gdCard.offsetWidth,ch=gdCard.offsetHeight,m=12;let x,y,aim=null;
+ // beside an open Part list the card keeps clear of the part preview too, and goes on past it
+ const te=r&&s&&typeof s.target==='string'?document.querySelector(s.target):null,pv=te&&window.__holo?window.__holo.area(te):null;
  if(!r){x=(W-cw)/2;y=(H-ch)/2;}
  else{
-  const g=20,opts=[[r.x+r.w+g,r.y+r.h/2-ch/2],[r.x-cw-g,r.y+r.h/2-ch/2],[r.x+r.w/2-cw/2,r.y+r.h+g],[r.x+r.w/2-cw/2,r.y-ch-g]];
+  const A=pv?{x:Math.min(r.x,pv.x),y:Math.min(r.y,pv.y),w:Math.max(r.x+r.w,pv.x+pv.w)-Math.min(r.x,pv.x),h:Math.max(r.y+r.h,pv.y+pv.h)-Math.min(r.y,pv.y)}:r;
+  const g=20,opts=[[A.x+A.w+g,r.y+r.h/2-ch/2],[A.x-cw-g,r.y+r.h/2-ch/2],[r.x+r.w/2-cw/2,A.y+A.h+g],[r.x+r.w/2-cw/2,A.y-ch-g]];
   let best=opts.find(o=>o[0]>=m&&o[0]+cw<=W-m&&o[1]>=m&&o[1]+ch<=H-m);
   if(!best)best=[r.x+r.w-cw-m,r.y+r.h-ch-m];
   x=best[0];y=best[1];
  }
  x=clamp(x,m,Math.max(m,W-cw-m));y=clamp(y,m,Math.max(m,H-ch-m));
  gdCard.style.left=Math.round(x)+'px';gdCard.style.top=Math.round(y)+'px';
+ // an arrow from the card to the Part list that goes round the preview while it is up, never across it
+ const pvUp=pv&&window.__holo.area(te,true),pad=6;
+ aim=pv&&window.__holo.arrow({x:Math.round(x),y:Math.round(y),w:cw,h:ch},{x:r.x-pad,y:r.y-pad,w:r.w+pad*2,h:r.h+pad*2},pvUp);
+ gdArrow.style.display=aim?'':'none';
+ if(aim){gdArrow.firstChild.setAttribute('d',aim.d);gdArrow.lastChild.setAttribute('points',aim.pts);}
 }
 function pointInit(){}
 document.addEventListener('keydown',e=>{if(!$('ask').hidden&&e.key==='Escape'){e.preventDefault();e.stopPropagation();askClose();return;}if(EX.on&&e.key==='Escape'){e.preventDefault();e.stopPropagation();setExam(false);return;}if(G.on&&e.key==='Escape'){e.preventDefault();e.stopPropagation();guideStop();}},true);
