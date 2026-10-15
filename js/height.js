@@ -1315,7 +1315,7 @@ function setExam(on){
   if (on){
     if (state.practice) setPractice(false);
     examTags = EXAM.map(([title, sub]) => { const t = makeTag(); t.b.textContent = title; t.sm.textContent = sub; return t; });
-    popTags(examTags); setSpin(true); setLabels(true);
+    popTags(examTags); setSpin(false); setLabels(true);
     setTimeout(() => setView('iso'), 60);
   } else {
     examTags.forEach(dropTag); examTags = [];

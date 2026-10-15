@@ -326,7 +326,7 @@ function statusInfo(){
 // panning and zooming are offsets from the gauge, so they carry on as it goes down into the hole and comes back out. An orbit
 // drag swings the view a little and it settles back to facing the gauge when you let go.
 const cam={th:0,ph:1.45,r:140,t:new THREE.Vector3(0,-8,0),off:new THREE.Vector3(),dth:0,dph:0,zoom:1,zs:1,speed:5,snap:true,fixed:false,orb:false,auto:null};
-const EX={on:false,spin:true,saved:false};   // Examine
+const EX={on:false,spin:false,saved:false};   // Examine
 const TANF=Math.tan(camera.fov*D2R/2);
 const _anc=new THREE.Vector3();
 // the point the camera keeps hold of: the middle of the cross-bar, wherever the gauge is right now (each view then aims a little up the handle)
@@ -444,10 +444,10 @@ cv.addEventListener('pointerdown',e=>{
  if(ptrs.size===1){
   const pan=e.button===2||e.button===1||e.shiftKey,h=pan?null:hitPart(e);
   const free=AW.t>0;   // away on the measuring panel the gauge can't be rocked
-  const mode=pan?'pan':(EX.on?'orbit':h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';
+  const mode=pan?'pan':(!EX.on&&h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';   // (in Examine a drag always turns the camera, never rocks the gauge)
   drag={mode,part:h,x:e.clientX,y:e.clientY,moved:0,vy:0,vOn:false,acc:0,dep:null};
   if(pan)cv.style.cursor='move';
-  if(mode==='orbit'){cam.orb=true;pvPick(e);}else PV.p=null;
+  if(mode==='orbit'){cam.orb=true;if(EX.on)PV.p=null;else pvPick(e);}else PV.p=null;   // (Examine turns about the gauge itself, not the point under the pointer, so the tool never swings)
   if(h&&AM.on)autoCancel();   // taking hold of the gauge by hand ends Auto measure
  }
  else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch0=Math.hypot(a.x-b.x,a.y-b.y);pinchMid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};drag=null;cam.orb=false;}
@@ -1156,7 +1156,7 @@ function setExam(on){
   if(AW.t>0||AW.dir!==0||FLY.waiting){ensureHome(()=>setExam(true));return;}   // the gauge comes home from the other tool first
   EX.on=true;EX.saved=S.labels;
   document.body.classList.add('exam');
-  setSpin(true);setExamLabels(true);
+  setSpin(false);setExamLabels(true);
   camGo('gauge');cam.fixed=true;
  }else{
   EX.on=false;
