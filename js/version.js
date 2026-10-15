@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.3',
+  version: '1.3.4',
   changelog: [
+    { v: '1.3.4', date: '2026-10-15', title: 'A knob on every gauge', items: [
+      'Every telescopic gauge now ends in a small knurled lock knob on a short neck, like the real set, and you can see it wherever the gauge is drawn.',
+      'The first walkthrough step now tells you to clean both pistons, the two sliding rods and their contact heads.'
+    ] },
     { v: '1.3.3', date: '2026-10-15', title: 'Clearer cleaning tip', items: [
       'The depth micrometer and height gage cleaning tips now say plainly how a chip or speck of grit changes the reading, instead of the confusing “reads as depth that isn’t there”.'
     ] },
