@@ -340,6 +340,8 @@ function camPreset(n){const D=S.sample.actual,g=S.g,asp=Math.max(.6,camera.aspec
  // close on the cross-bar and the first stretch of handle (the part's rim is just above it)
  // close on the right-hand head, for the cleaning picture (a slip of paper between it and a clean block)
  if(n==='paper')return{th:-.8,ph:1.36,r:fit(120,100),t:[S.curL/2+6,22,0],rel:true};   // (from the gauge's own side, so the paper's face and its stain are in view)
+ // the same for the left-hand head
+ if(n==='paperL')return{th:.8,ph:1.36,r:fit(120,100),t:[-S.curL/2-6,22,0],rel:true};
  // the hole itself, from the side through the cutaway: the part's section faces the camera, and the whole gauge stays in the picture, from the
  // bottom of the hole to the very top of the knob (wherever the gauge is just now, tipped over as far as it can go)
  if(n==='hole'){const H=S.sample.H,e=S.insertT,ee=e*e*(3-2*e),my=-S.depth+(1-ee)*(S.depth+HOVER),top=Math.max(my+g.hl,0)+8,bot=-H-6,w=Math.max(2*(S.partHalfW||40),g.max,g.hl*.9)+30,h=top-bot;
@@ -1277,27 +1279,31 @@ $('goBtn').onclick=goDepth;
 $('setTo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();goDepth();}e.stopPropagation();});
 
 /* ================= THE CLEANING PICTURE: PAPER BETWEEN A CONTACT HEAD AND A CLEAN BLOCK ================= */
-// A steel block comes up to the right-hand head, closes on a slip of paper held against it, and the paper is pulled out against the grip
-// with a slight brown stain on it (js/paper.js). Returns whether it could be shown.
+// A steel block comes up to a head, closes on a slip of paper held against it, and the paper is pulled out against the grip with a slight
+// brown stain on it (js/paper.js). It cleans both ends: the right-hand head first, then the left-hand one. Returns whether it could be shown.
 async function labPaper(idx){
  if(!window.__paper||window.__paper.busy)return false;
  const alive=()=>G.on&&G.i===idx&&!EX.on;
- const tip=()=>{pivot.updateMatrixWorld(true);return pivot.localToWorld(new THREE.Vector3(S.curL/2,0,0));};
- const block=new THREE.Mesh(new THREE.BoxGeometry(14,34,34),new THREE.MeshStandardMaterial({color:0xb3bcc8,metalness:.85,roughness:.32}));
- block.visible=false;block.userData.noShadow=true;scene.add(block);
- let gap=45;
- const put=()=>{const t=tip();block.position.set(t.x+gap+7,t.y,t.z);invalidate(120);};
- const slide=(to,ms)=>new Promise(res=>{const g0=gap,t0=performance.now();const f=()=>{if(!alive()){res();return;}const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);gap=g0+(to-g0)*e;put();if(k<1)requestAnimationFrame(f);else res();};f();});
- const ok=await window.__paper.run({
-  T:THREE,scene,invalidate:()=>invalidate(120),alive,
-  faceA:()=>tip(),normal:new THREE.Vector3(1,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,stain:11,
-  look:()=>{camGo('paper');cam.fixed=true;},
-  open:async()=>{await new Promise(r=>setTimeout(r,1300));gap=45;put();block.visible=true;await slide(22,700);},
-  closeOn:async()=>{await slide(.12,950);}
- });
- await slide(50,500);
- scene.remove(block);block.geometry.dispose();block.material.dispose();
- return ok;
+ for(const dir of [1,-1]){   // (1 is the right-hand head, -1 the left-hand one)
+  if(!alive())return true;
+  const tip=()=>{pivot.updateMatrixWorld(true);return pivot.localToWorld(new THREE.Vector3(dir*S.curL/2,0,0));};
+  const block=new THREE.Mesh(new THREE.BoxGeometry(14,34,34),new THREE.MeshStandardMaterial({color:0xb3bcc8,metalness:.85,roughness:.32}));
+  block.visible=false;block.userData.noShadow=true;scene.add(block);
+  let gap=45;
+  const put=()=>{const t=tip();block.position.set(t.x+dir*(gap+7),t.y,t.z);invalidate(120);};
+  const slide=(to,ms)=>new Promise(res=>{const g0=gap,t0=performance.now();const f=()=>{if(!alive()){res();return;}const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);gap=g0+(to-g0)*e;put();if(k<1)requestAnimationFrame(f);else res();};f();});
+  const ok=await window.__paper.run({
+   T:THREE,scene,invalidate:()=>invalidate(120),alive,
+   faceA:()=>tip(),normal:new THREE.Vector3(dir,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,stain:11,
+   look:()=>{camGo(dir>0?'paper':'paperL');cam.fixed=true;},
+   open:async()=>{await new Promise(r=>setTimeout(r,dir>0?1300:500));gap=45;put();block.visible=true;await slide(22,700);},
+   closeOn:async()=>{await slide(.12,950);}
+  });
+  await slide(50,500);
+  scene.remove(block);block.geometry.dispose();block.material.dispose();
+  if(!ok)return false;
+ }
+ return true;
 }
 
 /* ================= START ================= */
