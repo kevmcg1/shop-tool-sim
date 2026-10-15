@@ -3251,7 +3251,7 @@ const plane = new T.Plane(), tmpV = new T.Vector3();
 // registered before OrbitControls so these handlers can claim the event first
 function bindPointer() {
   canvas.addEventListener('pointerdown', e => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || state.exam) return;   // Examine: a drag turns the camera instead of moving the tool
     const p = pick(e);
     if (p && p.role === 'part') return;
     if (!p || !p.role) return;
@@ -3280,6 +3280,7 @@ function bindPointer() {
   canvas.addEventListener('pointermove', e => {
     if (!drag) {
       if (e.buttons || hoverPending) return;
+      if (state.exam) { canvas.style.cursor = ''; return; }
       hoverPending = true;
       requestAnimationFrame(() => {
         hoverPending = false;
@@ -3303,8 +3304,9 @@ function bindPointer() {
   const endDrag = e => { if (!drag) return; drag = null; canvas.style.cursor = 'grab'; try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
-  wheelSkip = e => { const p = pick(e); return !!(p && p.role === 'wheel'); };
+  wheelSkip = e => { if (state.exam) return false; const p = pick(e); return !!(p && p.role === 'wheel'); };
   canvas.addEventListener('wheel', e => {
+    if (state.exam) return;
     const p = pick(e);
     if (!p || p.role !== 'wheel') return;
     e.preventDefault(); e.stopImmediatePropagation();

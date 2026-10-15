@@ -3104,7 +3104,7 @@ function knobTurn(e, d){
 }
 // which way a clicked face points, snapped to the nearest square direction
 el.addEventListener('pointerdown', e => {
-  if (e.button !== 0) return;
+  if (e.button !== 0 || state.exam) return;   // Examine: a drag turns the camera instead of moving the tool
   const h = pick(e), kind = h && h.object.userData.kind;
   if (!kind || kind === 'none') return;
   controls.enabled = false; camTween = null;
@@ -3175,6 +3175,7 @@ el.addEventListener('pointerup', endDrag);
 el.addEventListener('pointercancel', endDrag);
 let hoverPending = false;
 function hover(e){
+  if (state.exam){ el.style.cursor = ''; return; }
   if (hoverPending) return; hoverPending = true;
   requestAnimationFrame(() => {
     hoverPending = false;
