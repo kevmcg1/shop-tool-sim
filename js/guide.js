@@ -511,6 +511,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   // number, the vernier's 0 and so on), every one of them that is in sight, with a little room round each
   function keepClear(s, r){
     let l = r.x, t = r.y, rt = r.x + r.w, bt = r.y + r.h;
+    // the part preview beside an open Part list is something else the card must keep off, so it goes on past it
+    const pv = !s.spot && window.__holo && window.__holo.area(targetOf(s));
+    if (pv){ l = Math.min(l, pv.x); t = Math.min(t, pv.y); rt = Math.max(rt, pv.x + pv.w); bt = Math.max(bt, pv.y + pv.h); }
     const vr = s.spot && s.frame && window.__guideSpot && $('view') && $('view').getBoundingClientRect();
     if (vr) for (const n of s.frame){
       const p = window.__guideSpot(n), m = 28;
@@ -833,7 +836,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (r){
       const c = { x: cx, y: cy, w: cw, h: ch };
       const overlap = c.x < r.x + r.w && r.x < c.x + c.w && c.y < r.y + r.h && r.y < c.y + c.h;
-      if (!overlap){
+      const pv = !s.spot && window.__holo && window.__holo.area(targetOf(s), true), way = overlap ? null : pv && window.__holo.arrow(c, r, pv);
+      if (way){ d = way.d; pts = way.pts; }   // round the preview, never across it
+      else if (!overlap){
         const clampTo = (v, a, b) => Math.max(a, Math.min(b, v));
         const tc = { x: r.x + r.w / 2, y: r.y + r.h / 2 };
         const p0 = { x: clampTo(tc.x, c.x, c.x + c.w), y: clampTo(tc.y, c.y, c.y + c.h) };

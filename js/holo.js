@@ -15,10 +15,12 @@
 .holo-cap b{display:block;font-size:13px;font-weight:600;color:#cdf6ff}
 .holo-cap small{display:block;font-size:11.5px;color:#8a8f97}
 .holo-pill{position:absolute;top:10px;left:12px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5ee7ff;border:1px solid rgba(94,231,255,.55);border-radius:999px;padding:1px 7px}
+body.guiding .holo{z-index:940}
 @media (prefers-reduced-motion: reduce){.holo,.holo.show{transition:none}}
 @media (max-width:860px){.holo{display:none}}`;
   let cssDone = false;
   const rad = Math.PI/180;
+  const areas = [];   // one per attached Part list: where its preview sits
 
   function attach(o){
     const T = o && o.THREE, sel = o && o.select;
@@ -100,10 +102,16 @@
         st.pop = .82;
         return true;
       }
-      function place(){
+      // where the preview sits beside the Part list, shown or not (null where it never shows)
+      function spot(){
+        if (matchMedia('(max-width:860px)').matches || !dd.getClientRects().length) return null;
         const as = sel.closest('aside'), ar = as ? as.getBoundingClientRect() : { right: 330 }, r0 = dd.getBoundingClientRect(), h = el.offsetHeight || 230;
-        el.style.left = Math.round(ar.right + 12) + 'px';
-        el.style.top = Math.round(Math.max(8, Math.min(r0.top - 4, innerHeight - h - 8))) + 'px';
+        return { x: Math.round(ar.right + 12), y: Math.round(Math.max(8, Math.min(r0.top - 4, innerHeight - h - 8))), w: el.offsetWidth || 238, h };
+      }
+      areas.push({ dd, spot, shown: () => el.classList.contains('show') });
+      function place(){
+        const p = spot(); if (!p) return;
+        el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
       }
       function loop(now){
         if (!st.vis){ st.raf = 0; return; }
@@ -138,5 +146,52 @@
       new MutationObserver(sync).observe(dd, { attributes: true, childList: true, subtree: true, attributeFilter: ['class', 'aria-selected'] });
     }
   }
-  window.__holo = { attach };
+  // The box the preview takes up beside the Part list that `el` belongs to (its list, or the select under it), for the
+  // walkthrough to keep its card and arrow clear of; null when `el` is not a Part list or the preview never shows (and,
+  // with `onlyShown`, while it is not up).
+  function area(el, onlyShown){
+    if (!el) return null;
+    for (const a of areas) if (a.dd === el || a.dd.contains(el)) return onlyShown && !a.shown() ? null : a.spot();
+    return null;
+  }
+  // An arrow from a card to a lit window as { d, pts } (a path and its arrowhead), or null where the two touch. When the
+  // straight way would cross `avoid` (the preview) it goes round it instead: up and over the top, or under the bottom where
+  // there is no room above, and lands on the window's edge from that side.
+  function arrow(c, r, avoid){
+    if (c.x < r.x + r.w && r.x < c.x + c.w && c.y < r.y + r.h && r.y < c.y + c.h) return null;
+    const f = v => v.toFixed(1), cl = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const head = (end, ax, ay) => `${f(end.x)},${f(end.y)} ${f(end.x - ax*13 - ay*7)},${f(end.y - ay*13 + ax*7)} ${f(end.x - ax*13 + ay*7)},${f(end.y - ay*13 - ax*7)}`;
+    const a = avoid ? { x: avoid.x - 12, y: avoid.y - 12, w: avoid.w + 24, h: avoid.h + 24 } : null;
+    const inA = (x, y) => a && x > a.x && x < a.x + a.w && y > a.y && y < a.y + a.h;
+    // straight from the card's nearest edge to the window's nearest edge, with a slight bend
+    const p0 = { x: cl(r.x + r.w/2, c.x, c.x + c.w), y: cl(r.y + r.h/2, c.y, c.y + c.h) };
+    const p1 = { x: cl(p0.x, r.x, r.x + r.w), y: cl(p0.y, r.y, r.y + r.h) };
+    const dx = p1.x - p0.x, dy = p1.y - p0.y, L = Math.hypot(dx, dy);
+    let crosses = false;
+    if (a) for (let i = 0; i <= 30; i++) if (inA(p0.x + dx*i/30, p0.y + dy*i/30)){ crosses = true; break; }
+    if (!crosses){
+      if (L <= 14) return null;
+      const ux = dx/L, uy = dy/L, end = { x: p1.x - ux*6, y: p1.y - uy*6 };
+      const bend = Math.min(40, L*0.25), mx = (p0.x + end.x)/2 - uy*bend, my = (p0.y + end.y)/2 + ux*bend;
+      const hx = end.x - mx, hy = end.y - my, hl = Math.hypot(hx, hy) || 1, ax = hx/hl, ay = hy/hl;
+      return { d: `M${f(p0.x)},${f(p0.y)} Q${f(mx)},${f(my)} ${f(end.x - ax*8)},${f(end.y - ay*8)}`, pts: head(end, ax, ay) };
+    }
+    const up = a.y >= 36 || a.y > innerHeight - (a.y + a.h), s = up ? -1 : 1;
+    const q0 = { x: c.x + Math.min(48, c.w/2), y: up ? c.y : c.y + c.h };
+    const xe = cl(r.x + r.w - 24, r.x + 12, r.x + r.w - 12), end = { x: xe, y: up ? r.y - 4 : r.y + r.h + 4 };
+    let top = up ? Math.min(a.y, q0.y, end.y) - 24 : Math.max(a.y + a.h, q0.y, end.y) + 24;
+    // lift the bridge until no point of it is over the preview
+    for (let k = 0; k < 8; k++){
+      let hit = false;
+      for (let i = 0; i <= 40 && !hit; i++){
+        const t = i/40, m = 1 - t, x = m*m*m*q0.x + 3*m*m*t*q0.x + 3*m*t*t*xe + t*t*t*xe, y = m*m*m*q0.y + 3*m*m*t*top + 3*m*t*t*top + t*t*t*end.y;
+        if (inA(x, y)) hit = true;
+      }
+      if (!hit) break;
+      top += s*16;
+    }
+    top = cl(top, 8, innerHeight - 8);
+    return { d: `M${f(q0.x)},${f(q0.y)} C${f(q0.x)},${f(top)} ${f(xe)},${f(top)} ${f(xe)},${f(end.y + s*8)}`, pts: head({ x: xe, y: end.y }, 0, -s) };
+  }
+  window.__holo = { attach, area, arrow };
 })();
