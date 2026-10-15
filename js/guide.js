@@ -60,8 +60,8 @@
     dial: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
     vern: 'Same habit for the part, where the jaws will touch it.\nChips, oil or a burr on the part reads as extra size.\nA clean cloth on the spots the jaws will grip, and you’re set.',
     mic: 'Same habit for the part, at the two spots the anvil and spindle will touch.\nEven a speck of grit or a film of oil there reads as size.\nA clean cloth on both faces of the part, and you’re set.',
-    depth: 'Same habit for the part: the surface the base will sit on, and the floor the rod will land on.\nA chip under the base or on the floor reads as depth that isn’t there.\nA clean cloth on both spots, and you’re set.',
-    height: 'Same habit for the part: the face the scriber will land on, and the spot it sits on.\nA speck of grit under the scriber or the base reads as height that isn’t there.\nA clean cloth on both spots, and you’re set.'
+    depth: 'Same habit for the part: the surface the base will sit on, and the floor the rod will land on.\nA metal chip or speck of grit under the base lifts the tool, and one on the floor stops the rod short.\nEither way, the reading comes out wrong.\nA clean cloth on both spots, and you’re set.',
+    height: 'Same habit for the part: the face the scriber will land on, and the spot it sits on.\nA speck of grit under the base lifts the whole gage, and one under the scriber holds it up.\nEither way, the height comes out wrong.\nA clean cloth on both spots, and you’re set.'
   };
   const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? window.__gdRich.PAPER : '') });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)

@@ -3,8 +3,11 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.2',
+  version: '1.3.3',
   changelog: [
+    { v: '1.3.3', date: '2026-10-15', title: 'Clearer cleaning tip', items: [
+      'The depth micrometer and height gage cleaning tips now say plainly how a chip or speck of grit changes the reading, instead of the confusing “reads as depth that isn’t there”.'
+    ] },
     { v: '1.3.2', date: '2026-10-15', title: 'Examine starts still', items: [
       'Auto-rotate is now off to begin with in every tool, so Examine opens with the view held still until you turn it on.',
       'On the telescopic gauge, dragging in Examine now turns the view around the gauge instead of rocking the gauge itself.'
