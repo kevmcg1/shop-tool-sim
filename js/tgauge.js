@@ -135,7 +135,7 @@ window.__TG = (function(){
   // a knurled band: a plain cylinder wearing the diamond relief, n cells round and square cells along (axis y)
   function knurlBand(T, r, len, n, mat){
     const geo = new T.CylinderGeometry(r, r, len, 96, 1, true), pitch = 2*Math.PI*r/n;
-    const m = mat.clone(); m.flatShading = false; m.bumpMap = knurlTex(T).clone(); m.bumpMap.needsUpdate = true;
+    const m = mat.clone(); m.userData.knurl = true; m.flatShading = false; m.bumpMap = knurlTex(T).clone(); m.bumpMap.needsUpdate = true;
     m.bumpMap.repeat.set(n, Math.max(1, len/pitch)); m.bumpScale = 0.7;
     return new T.Mesh(geo, m);
   }
