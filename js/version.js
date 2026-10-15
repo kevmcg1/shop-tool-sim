@@ -3,11 +3,14 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.11',
+  version: '1.3.12',
   changelog: [
-    { v: '1.3.11', date: '2026-10-15', title: 'Pick a part, clearly', items: [
+    { v: '1.3.12', date: '2026-10-15', title: 'Pick a part, clearly', items: [
       'In Show me, the part preview stays bright instead of being dimmed, and the card now sits to the right of it.',
       'The arrow goes up and over the preview to the Part list, so it never crosses the preview.'
+    ] },
+    { v: '1.3.11', date: '2026-10-15', title: 'Test both pistons', items: [
+      'The telescopic gauge cleaning step now tells you to slowly push each piston in and let it spring back out, to check both are smooth and not sticky.'
     ] },
     { v: '1.3.10', date: '2026-10-15', title: 'Both ends cleaned', items: [
       'On the telescopic gauge, the cleaning step now wipes both contact heads with the slip of paper, the right-hand one first and then the left-hand one.'
