@@ -17,6 +17,10 @@
 //     look: () => void            aim the camera at the faces
 //     alive: () => boolean        false once the walkthrough has been left (the paper goes at once)
 //   }
+// The paper is always the size in spec.size (the tools pass 3 in by 3 in, or 76.2 mm in the lab): it is never scaled, bent or tilted, so it
+// never grows or shrinks, and it cannot pass through the tool. Each frame the new place for the paper is tested against every solid mesh in the
+// scene (triangle against the paper's box); if it would cut into the tool, the paper stops at the last place that was clear. A tool closes on
+// the paper to a little more than its thickness (CLEAR below), so the faces never have to squeeze it.
 (function(){
   const frame = () => new Promise(r => requestAnimationFrame(r));
   // (the clock can be taken over by a test, window.__paperNow, to step through the animation moment by moment)
@@ -45,6 +49,52 @@
     const t = new T.CanvasTexture(c); if ('sRGBEncoding' in T) t.encoding = T.sRGBEncoding; else if (T.SRGBColorSpace) t.colorSpace = T.SRGBColorSpace; return t;
   }
 
+  // ---- collision: is a thin box (half sizes hx, hy, hz, in the box's own frame) cutting into any solid mesh of the scene? ----
+  // Triangle against box, by the separating axis test; the numbers are the triangle's corners already in the box's frame.
+  const tri = new Float64Array(9);
+  function triBox(hx, hy, hz){
+    const h = [hx, hy, hz];
+    for (let k = 0; k < 3; k++){ const a = tri[k], b = tri[3 + k], c = tri[6 + k]; if (Math.min(a, b, c) > h[k] || Math.max(a, b, c) < -h[k]) return false; }
+    const e = [[tri[3] - tri[0], tri[4] - tri[1], tri[5] - tri[2]], [tri[6] - tri[3], tri[7] - tri[4], tri[8] - tri[5]], [tri[0] - tri[6], tri[1] - tri[7], tri[2] - tri[8]]];
+    const sep = (lx, ly, lz) => {
+      const p0 = lx*tri[0] + ly*tri[1] + lz*tri[2], p1 = lx*tri[3] + ly*tri[4] + lz*tri[5], p2 = lx*tri[6] + ly*tri[7] + lz*tri[8];
+      const r = hx*Math.abs(lx) + hy*Math.abs(ly) + hz*Math.abs(lz);
+      return Math.min(p0, p1, p2) > r || Math.max(p0, p1, p2) < -r;
+    };
+    const n = [e[0][1]*e[1][2] - e[0][2]*e[1][1], e[0][2]*e[1][0] - e[0][0]*e[1][2], e[0][0]*e[1][1] - e[0][1]*e[1][0]];
+    if (sep(n[0], n[1], n[2])) return false;
+    for (const E of e){ if (sep(0, E[2], -E[1]) || sep(-E[2], 0, E[0]) || sep(E[1], -E[0], 0)) return false; }
+    return true;
+  }
+  // the solid meshes of the scene: everything drawn, bar the paper, anything see-through, and what a tool marks with userData.noCollide
+  function solids(root, skip, out){
+    if (!root.visible || root === skip || (root.userData && root.userData.noCollide)) return out;
+    if (root.isMesh && root.geometry && root.geometry.attributes.position && !(root.material && root.material.transparent && root.material.opacity < 0.5)) out.push(root);
+    for (let i = 0; i < root.children.length; i++) solids(root.children[i], skip, out);
+    return out;
+  }
+  // does the paper, as it now stands (its group g, half sizes hx, hy, hz), cut into the tool?
+  function cutsTool(T, scene, g, hx, hy, hz){
+    g.updateMatrixWorld(true); scene.updateMatrixWorld(true);
+    const toBox = new T.Matrix4().copy(g.matrixWorld).invert(), pb = new T.Box3(), mb = new T.Box3(), m4 = new T.Matrix4();
+    const c = [-1, 1];
+    for (const x of c) for (const y of c) for (const z of c) pb.expandByPoint(new T.Vector3(x*hx, y*hy, z*hz).applyMatrix4(g.matrixWorld));
+    for (const mesh of solids(scene, g, [])){
+      const geo = mesh.geometry; if (!geo.boundingBox) geo.computeBoundingBox();
+      if (!mb.copy(geo.boundingBox).applyMatrix4(mesh.matrixWorld).intersectsBox(pb)) continue;
+      m4.multiplyMatrices(toBox, mesh.matrixWorld);
+      const e = m4.elements, pos = geo.attributes.position, idx = geo.index, n = idx ? idx.count : pos.count;
+      for (let i = 0; i + 2 < n; i += 3){
+        for (let k = 0; k < 3; k++){
+          const v = idx ? idx.getX(i + k) : i + k, x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v);
+          tri[3*k] = e[0]*x + e[4]*y + e[8]*z + e[12]; tri[3*k + 1] = e[1]*x + e[5]*y + e[9]*z + e[13]; tri[3*k + 2] = e[2]*x + e[6]*y + e[10]*z + e[14];
+        }
+        if (triBox(hx, hy, hz)) return true;
+      }
+    }
+    return false;
+  }
+
   async function run(spec){
     const T = spec.T, [w, L] = spec.size, th = spec.thick;
     if (!T || !spec.scene || window.__paper.busy) return false;
@@ -62,12 +112,24 @@
     const ax = new T.Vector3().crossVectors(spec.slide, spec.normal).normalize(), basis = new T.Matrix4().makeBasis(ax, spec.slide.clone(), spec.normal.clone());
     g.quaternion.setFromRotationMatrix(basis);
     const base = new T.Vector3(), off = new T.Vector3(), a0 = L*0.95;
-    // a is how far the paper's middle is from the faces along the pull direction; wob bows it a little as it drags
-    const place = (a, wob, fade) => {
+    // a is how far the paper's middle is from the faces along the pull direction. The paper stays flat and square to the faces, at exactly its own
+    // size: no bowing, tilting or scaling. If a place would put it through the tool, it stays at the last place that was clear.
+    let safe = null;
+    const put = a => {
       base.copy(spec.faceA()).addScaledVector(spec.normal, th/2 + th*0.05);
       off.copy(spec.slide).multiplyScalar(a); g.position.copy(base).add(off);
-      g.quaternion.setFromRotationMatrix(basis); if (wob) g.rotateX(wob);
-      mat.opacity = fade; g.visible = fade > 0.01; inv();
+      g.quaternion.setFromRotationMatrix(basis); g.scale.set(1, 1, 1);
+    };
+    const clear = a => { put(a); return !cutsTool(T, spec.scene, g, w/2, L/2, th/2*0.9); };
+    const place = (a, fade) => {
+      if (clear(a)) safe = a;
+      else if (safe !== null){
+        // it would go through the tool: it stays at the last clear place between where it was and where it was asked to go
+        let lo = safe, hi = a;
+        for (let i = 0; i < 7; i++){ const mid = (lo + hi)/2; if (clear(mid)) lo = mid; else hi = mid; }
+        a = safe = lo;
+      }
+      put(a); mat.opacity = fade; g.visible = fade > 0.01; inv();
     };
     const cleanup = () => { spec.scene.remove(g); mat.map.dispose(); mat.dispose(); sMat.map.dispose(); sMat.dispose(); body.geometry.dispose(); stain.forEach(m => m.geometry.dispose()); inv(); window.__paper.busy = false; };
     const tween = async (ms, fn) => { const t0 = now(); for (;;){ if (!alive()) return false; const k = clamp((now() - t0)/ms, 0, 1); fn(k); if (k >= 1) return true; await frame(); } };
@@ -77,13 +139,13 @@
       await spec.open(); if (window.__paperLog) console.warn('paper: opened ' + Math.round(now())); if (!alive()) throw 0;
       await sleep(350);
       // 1. it comes in from the side it will be pulled out of, and slides down between the faces
-      place(a0, 0, 0);
-      if (!await tween(1100, k => place(a0*(1 - smooth(k)), 0, Math.min(1, k*3)))) throw 0;
+      place(a0, 0);
+      if (!await tween(1100, k => place(a0*(1 - smooth(k)), Math.min(1, k*3)))) throw 0;
       await sleep(250); if (!alive()) throw 0;
       // 2. the tool closes on it
       await spec.closeOn(); if (window.__paperLog) console.warn('paper: closed ' + Math.round(now())); if (!alive()) throw 0;
       await sleep(650);
-      // 3. it is pulled out against the grip of the faces: it sticks, gives, sticks again, and the bow in the paper comes and goes
+      // 3. it is pulled out against the grip of the faces: it sticks, gives, sticks again
       const r = rng(5), steps = []; let tot = 0;
       for (let i = 0; i < 9; i++){ const s = 0.35 + r()*0.65, f = 0.3 + r()*0.7; steps.push([s, f]); tot += s; }
       const total = 2900, pull = a0*0.9; let acc = 0, ptr = 0;
@@ -91,15 +153,15 @@
         // the pulling hand moves steadily, but the paper stops against the faces and then slips: it follows the hand in short bursts
         const hand = k*pull, slip = Math.sin(k*Math.PI*9)*0.5 + 0.5, grip = 0.55 + 0.45*Math.sin(k*Math.PI*5.3 + 1.2);
         acc += (hand - acc)*(0.04 + 0.2*slip*slip*(1 - 0.5*grip));
-        const a = Math.min(hand, acc); const bow = (1 - slip)*0.07*grip;
-        place(a, bow, 1);
+        const a = Math.min(hand, acc);
+        place(a, 1);
         sMat.opacity = clamp(a/(L*0.2), 0, 1)*0.75;
       })) throw 0;
       // it comes free and is held up for a moment, stain showing
-      if (!await tween(600, k => { const a = pull*(1 + 0.18*smooth(k)); place(a, 0, 1); sMat.opacity = 0.75; })) throw 0;
+      if (!await tween(600, k => { const a = pull*(1 + 0.18*smooth(k)); place(a, 1); sMat.opacity = 0.75; })) throw 0;
       if (window.__paperLog) console.warn('paper: pulled ' + Math.round(now()));
       await sleep(1300);
-      if (!await tween(650, k => place(pull*1.18 + L*0.5*smooth(k), 0, 1 - smooth(k)))) throw 0;
+      if (!await tween(650, k => place(pull*1.18 + L*0.5*smooth(k), 1 - smooth(k)))) throw 0;
     } catch (e) { if (e !== 0) console.warn('paper', e); }   // (0 means the walkthrough was left early)
     cleanup();
     return true;
