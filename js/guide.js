@@ -39,8 +39,12 @@
     else if ($('lowerBtn')){ at('lowerBtn', 700); at('zeroBtn', 3800); }
   };
   const CLEAN = (text, extra) => Object.assign({ target: '#closeQuick, #view', title: 'First, clean and check zero',
-    enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); } closeUp(); },
-    text }, extra);
+    enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); }
+      // the paper between the contact faces (js/paper.js) where the tool can show it; then the tool closes right up for the zero check
+      const nav = navId, alive = () => !!root && navId === nav;
+      Promise.resolve(window.__paperRun ? window.__paperRun(alive) : false).then(ok => { if (!alive()) return; if (!ok && card && window.__gdRich) window.__gdRich.paper(card, true); closeUp(); });
+    },
+    paper: true, paper3d: !!window.__paperRun, text: () => (typeof text === 'function' ? text() : text) + (window.__gdRich ? window.__gdRich.PAPER : '') }, extra);
   // "Pick a part" waits for a part to be picked from the list while the step is showing (the walkthrough
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
@@ -59,7 +63,7 @@
     depth: 'Wipe the part too: the surface the base will sit on, and the floor the rod will land on.\nA chip under the base or on the floor reads as depth that isn’t there.\nA clean cloth on both spots, and you’re set.',
     height: 'Wipe the part too: the face the scriber will land on, and the spot it sits on.\nA speck of grit under the scriber or the base reads as height that isn’t there.\nA clean cloth on both spots, and you’re set.'
   };
-  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', text: WIPE_PART[tool] });
+  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? window.__gdRich.PAPER : '') });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
   const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 1, title: 'Look around', text: `Take a quick look around the ${what}.\nJust a tiny nudge: drag on an empty spot.\nScroll if you want to zoom.\nThe camera buttons up top reset the view any time.` });
@@ -78,7 +82,7 @@
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
   // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
   const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nIf your readings differ a little, you’re not doing it wrong. That’s simply how measuring works.\nParts, tools and hands all vary a little.\nThat’s exactly why tolerances exist: a tolerance says how far off is still good enough.' };
-  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Ready to try one on your own?\nClick <b>Practice</b>. The answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.\nIt’s also good, if not better, to have in-person experience with these tools.\nThese online tools are really just a way to get practice if you don’t have access to one in person for whatever reason.' };
+  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Ready to try one on your own?\nClick <b>Practice</b>. The answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.\nHands-on time with a real tool is just as valuable, if not more so.\nThis simulator is a way to practice when you can’t get to one in person.' };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
   const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
@@ -169,8 +173,8 @@
     ],
     depth: [
       INTRO('depth micrometer'),
-      CLEAN(() => 'Quick habit first, and a very good one: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and run the rod down to it.\nAt the lowest value, it should read exactly 0.\nNow watch the rod wind all the way back.'),
-      { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'Rod all the way in, so look at the thimble.\nIts 0 line sits right on the center line.\nThat’s the zero.' + now('vC') },
+      CLEAN(() => 'Quick habit first, and a very good one: wipe the base and the rod’s end face with a clean cloth.\nA little grit there throws every reading off.\nSet the base flat on a clean surface and wind the rod in until its end sits flush with the base.\nAt that lowest value, it should read exactly 0.\nNow watch the rod wind in all the way.'),
+      { spot: 'c', view: 'scale', hl: 'thimble', title: 'Zero on the thimble', text: () => 'The rod is flush with the base, so look at the thimble.\nIts 0 line sits right on the center line.\nThat’s the zero.' + now('vC') },
       { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\n' + 'The flat view agrees.\nThe thimble line sits right on the center line.' },
       { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.\nThat’s a tool you can trust.\nNow you’re ready to measure.' + now('vT', 'The reading is') },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
@@ -659,6 +663,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (s.flatStep) showFlat();
     card.querySelector('h4').textContent = s.title;
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
+    if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d); }   // the phase, its color, the progress bar, the cleaning picture
     card.querySelector('.gd-back').disabled = i === 0;
     const next = card.querySelector('.gd-next');
     next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip' : 'Next');
@@ -704,7 +709,11 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!root) return;
     const s = STEPS[stepI];
     const text = fn(s.text, s);
-    if (text !== lastText){ card.querySelector('p').innerHTML = String(text).split('\n').map(l => '<span class="gd-l">' + l + '</span>').join(''); lastText = text; measureCard(); }
+    if (text !== lastText){
+      card.querySelector('p').innerHTML = window.__gdRich ? window.__gdRich.lines(String(text)) : String(text).split('\n').map(l => '<span class="gd-l">' + l + '</span>').join('');
+      if (window.__gdRich) window.__gdRich.shortcuts(card, tool, text);
+      lastText = text; measureCard();
+    }
     syncMax();
     if (s.refit && window.__guideRefit) window.__guideRefit();
     if (s.waitFor && !waitDone && s.waitFor(s)){

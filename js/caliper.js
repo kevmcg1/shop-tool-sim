@@ -2683,6 +2683,28 @@ function tgPose(obj, axisLocal, handleLocal){
   const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
   return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
 }
+// "How do I use it?": the cleaning step shows a slip of paper between the outside jaws (js/paper.js). The jaws open a little, the paper
+// slides in between them, the jaws close on it, and the paper is pulled out downward against their grip with a slight stain on it.
+window.__paperRun = alive => {
+  if (!window.__paper) return Promise.resolve(false);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const settle = async () => { const t0 = performance.now(); while (state.animQ.length && performance.now() - t0 < 9000) await wait(60); await wait(150); };
+  const Y = -1.95;   // the middle of the paper, below the beam, level with the jaws
+  return window.__paper.run({
+    T, scene, invalidate: () => invalidate(120), alive,
+    faceA: () => new T.Vector3(0, Y, 0),   // the fixed jaw's face (x = 0); the moving jaw's face is at x = the reading
+    normal: new T.Vector3(1, 0, 0), slide: new T.Vector3(0, -1, 0),
+    size: [3, 3], thick: 0.004, stain: 0.5,
+    look: () => {
+      const target = new T.Vector3(0.4, -1.7, 0), dir = new T.Vector3(0.9, 0.22, 0.95).normalize();
+      curView = 'paper';
+      camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), toPos: target.clone().add(dir.multiplyScalar(13.5)), toTarget: target, turn: false };
+      invalidate(120);
+    },
+    open: async () => { if (state.sliderLocked) setSliderLock(false); state.animQ = [{ to: 0.5, speed: 6 }]; await settle(); },
+    closeOn: async () => { state.animQ = [{ to: 0.004, speed: 2.2 }]; await settle(); }
+  });
+};
 window.__tgSpot = () => (sample.type === 'tgauge' && (tgGhost || (tgNat && tgHeld)) && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;
 // the lab's gauge has landed on this one (it stays drawn over it): start measuring it
 window.__tgReveal = () => {

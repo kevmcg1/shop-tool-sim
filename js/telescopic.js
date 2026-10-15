@@ -330,6 +330,8 @@ function camPreset(n){const D=S.sample.actual,g=S.g,asp=Math.max(.6,camera.aspec
  // the whole gauge, hub to knob, with the cross-bar's full reach
  if(n==='gauge'||n==='travel')return{th:0,ph:1.45,r:fit(g.max+56,g.hl+g.rb+40),t:[0,(g.hl-g.rb)/2,0],rel:true};
  // close on the cross-bar and the first stretch of handle (the part's rim is just above it)
+ // close on the right-hand head, for the cleaning picture (a slip of paper between it and a clean block)
+ if(n==='paper')return{th:-.8,ph:1.36,r:fit(120,100),t:[S.curL/2+6,22,0],rel:true};   // (from the gauge's own side, so the paper's face and its stain are in view)
  // the hole itself, from the side through the cutaway: the part's section faces the camera, and the whole gauge stays in the picture, from the
  // bottom of the hole to the very top of the knob (wherever the gauge is just now, tipped over as far as it can go)
  if(n==='hole'){const H=S.sample.H,e=S.insertT,ee=e*e*(3-2*e),my=-S.depth+(1-ee)*(S.depth+HOVER),top=Math.max(my+g.hl,0)+8,bot=-H-6,w=Math.max(2*(S.partHalfW||40),g.max,g.hl*.9)+30,h=top-bot;
@@ -990,8 +992,8 @@ const gaugeBox=()=>{const g=S.g,pts=[[-S.curL/2,0,0],[S.curL/2,0,0],[0,g.hl,0],[
 const GSTEPS=[
  {title:'Let’s measure a hole',view:'overview',enter:()=>{S.partChanged=false;if(S.inserted||S.unlocked||S.lockInfo)resetGauge();},
   text:()=>(window.__quip?window.__quip.cur:'Hi, and welcome.\nI’ll walk you through it.')+'\nA telescopic gauge doesn’t show a number itself. It copies the size of a hole, then you measure the gauge with a micrometer or caliper.\nWe’ll go one small step at a time. Everything but the one thing you need gets dimmed.\nPress <b>Exit</b> or <b>Esc</b> whenever you like.'},
- {title:'First, clean and check the gauge',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
-  text:()=>'Quick habit first, and a very good one: wipe the hole, both contact heads and the rods with a clean cloth.\nChips, coolant or a speck of grit can throw the reading off by thousandths.\nA telescopic gauge has no zero to set. What you check is that it moves freely.\nWatch it close up all the way: the rods should slide smoothly, with no sticking or grit.'},
+ {title:'First, clean and check the gauge',paper:true,view:'gauge',zero:true,target:'#view',labels:false,
+  text:()=>'Quick habit first, and a very good one: wipe the hole, both contact heads and the rods with a clean cloth.\nChips, coolant or a speck of grit can throw the reading off by thousandths.\nA telescopic gauge has no zero to set. What you check is that it moves freely.\nWatch it close up all the way: the rods should slide smoothly, with no sticking or grit.'+(window.__gdRich?window.__gdRich.PAPER:'')},
  {title:'The rods move freely',view:'gauge',zero:true,target:gaugeBoxL,labels:true,
   text:()=>'Rods all the way in.\nEach head sits right at the end of its tube, and nothing sticks out past them.\nThat’s the closed position, the bottom of this gauge’s range.\nOn a real one, you also press a head in with a finger: it should spring back evenly.'},
  {title:'Where its range begins',view:'gauge',zero:true,target:'#reading .value',
@@ -1023,14 +1025,14 @@ const GSTEPS=[
   text:()=>'Before you measure the gauge, check the tool you’ll read it with.\nClose it on its own, with nothing between the faces, and it should read zero.\nThe gauge is only as good as the tool that reads it.\nIn this simulator the tool is already set, so a quick look is all it needs.'},
  {title:'A light touch',view:'gauge',target:gaugeBoxL,labels:true,
   text:()=>'Next you’ll measure across the two round heads.\nHold the gauge square between the tool’s faces, and rock it slightly to find the largest reading. The heads are domed, so it reads longest when the faces meet their high points.\nClose the tool with a very light touch, using the ratchet on a micrometer.\nSqueeze too hard and the rods slide in, so you read short.\nMeasure two or three times and compare.'},
- tolerance,
  {title:'Measure the gauge',view:'gauge',choose:true,
-  text:()=>'The gauge has copied the hole.\nNow measure the gauge itself, across its two round heads.\nWhich tool do you want to use?\nThe screen splits, and the gauge flies over the border to it.\nIt’s also good, if not better, to have in-person experience with these tools.\nThese online tools are really just a way to get practice if you don’t have access to one in person for whatever reason.'},
+  text:()=>'The gauge has copied the hole.\nNow measure the gauge itself, across its two round heads.\nWhich tool do you want to use?\nThe screen splits, and the gauge flies over the border to it.\nHands-on time with a real tool is just as valuable, if not more so.\nThis simulator is a way to practice when you can’t get to one in person.'},
  // the walkthrough goes on after the choice: the gauge crosses to the tool on the right and this card stays here on the left
  {title:'Off it goes',done:()=>AW.t>=1&&AW.dir===0&&!FLY.waiting,hint:'Watching the gauge fly over…',
   text:()=>'The screen splits, and the '+toolName()+' opens on the right.\nWatch the gauge fly across the border and land on it.\nFrom here it’s the very same gauge, locked at the size it copied from the hole.'},
  {title:'The same number on both sides',target:'#reading .value',next:'Next',
   text:()=>'Look at the big number down here on the left: <b>'+fmtLen(S.lockedL)+'</b>.\nThat’s the gauge’s length, the size it copied from the hole.\nNow look over at the '+toolName()+' on the right.\nClose it gently on the gauge’s two round heads, and it reads the very same number, give or take the last digit it can show.\nLeft and right are one measurement, read two different ways.'},
+ tolerance,
  {title:'You won’t get this number for free',target:'#reading .value',next:'Next',
   text:()=>'One more thing, and it matters.\nThis simulator tells you the gauge’s length on the left, so you can check your work.\nA real telescopic gauge doesn’t. It has no scale and no display.\nYou won’t know the size until you take it out and measure it with another tool, like the '+toolName()+' here.\nThat’s the whole job: the gauge copies the hole, and the other tool reads it.\nWhen you’re done looking, close the panel on the right and the gauge comes home.'}
 ];
@@ -1066,12 +1068,14 @@ function guideGo(i){
  const s=GSTEPS[i];S.zeroCheck=!!s.zero;
  if(s.enter)s.enter();
  if(s.view)camGo(s.view);
+ if(s.paper){const my=i;labPaper(my).then(ok=>{if(window.__gdRich&&G.on&&G.i===my)window.__gdRich.paper(gdCard,!ok);});}
  gdTitle.textContent=s.title;
  gdChoose.hidden=!s.choose;gdNext.hidden=!!s.choose;
  gdBack.disabled=i===0;
  gdNext.textContent=i===GSTEPS.length-1?'Done':(s.done?'Skip':'Next');
  gdNext.classList.toggle('primary',!s.done);
  gdCount.textContent='Step '+(i+1)+' of '+GSTEPS.length;
+ if(window.__gdRich){window.__gdRich.paint(gdRoot,gdCard,GSTEPS,i,'gauge');window.__gdRich.paper(gdCard,false);}   // the phase, its color, the progress bar
  guideTick(true);
 }
 function targetRect(s){
@@ -1092,7 +1096,7 @@ function guideTick(force){
  if(s.done&&!G.done&&s.done()){G.done=true;G.t=performance.now();gdNext.textContent=G.i===GSTEPS.length-1?'Done':'Next';gdNext.classList.add('primary');}
  if(G.done&&s.done&&performance.now()-G.t>1100&&G.i<GSTEPS.length-1){guideGo(G.i+1);return;}
  const text=s.text();
- if(force||text!==G.lastText){G.lastText=text;gdText.innerHTML=text.split('\n').map(l=>'<span class="gd-l">'+l+'</span>').join('');}
+ if(force||text!==G.lastText){G.lastText=text;gdText.innerHTML=window.__gdRich?window.__gdRich.lines(text):text.split('\n').map(l=>'<span class="gd-l">'+l+'</span>').join('');if(window.__gdRich)window.__gdRich.shortcuts(gdCard,'gauge',text);}
  if(s.done){gdDo.hidden=false;gdDo.className='gd-do'+(G.done?' ok':'');gdDo.textContent=G.done?'Nice! On to the next step…':((typeof s.hint==='function'?s.hint():s.hint)||'Give it a go…');}else gdDo.hidden=true;
  // the dimmed window and the card beside it
  const r=targetRect(s),pad=6;
@@ -1246,6 +1250,30 @@ function goDepth(){
 const fmtDepthNum=mm=>S.unit==='in'?(mm/25.4).toFixed(2)+' in':mm+' mm';
 $('goBtn').onclick=goDepth;
 $('setTo').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();goDepth();}e.stopPropagation();});
+
+/* ================= THE CLEANING PICTURE: PAPER BETWEEN A CONTACT HEAD AND A CLEAN BLOCK ================= */
+// A steel block comes up to the right-hand head, closes on a slip of paper held against it, and the paper is pulled out against the grip
+// with a slight brown stain on it (js/paper.js). Returns whether it could be shown.
+async function labPaper(idx){
+ if(!window.__paper||window.__paper.busy)return false;
+ const alive=()=>G.on&&G.i===idx&&!EX.on;
+ const tip=()=>{pivot.updateMatrixWorld(true);return pivot.localToWorld(new THREE.Vector3(S.curL/2,0,0));};
+ const block=new THREE.Mesh(new THREE.BoxGeometry(14,34,34),new THREE.MeshStandardMaterial({color:0xb3bcc8,metalness:.85,roughness:.32}));
+ block.visible=false;block.userData.noShadow=true;scene.add(block);
+ let gap=45;
+ const put=()=>{const t=tip();block.position.set(t.x+gap+7,t.y,t.z);};
+ const slide=(to,ms)=>new Promise(res=>{const g0=gap,t0=performance.now();const f=()=>{if(!alive()){res();return;}const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);gap=g0+(to-g0)*e;put();if(k<1)requestAnimationFrame(f);else res();};f();});
+ const ok=await window.__paper.run({
+  T:THREE,scene,invalidate:()=>{},alive,
+  faceA:()=>tip(),normal:new THREE.Vector3(1,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,stain:11,
+  look:()=>{camGo('paper');cam.fixed=true;},
+  open:async()=>{await new Promise(r=>setTimeout(r,1300));gap=45;put();block.visible=true;await slide(22,700);},
+  closeOn:async()=>{await slide(.12,950);}
+ });
+ await slide(50,500);
+ scene.remove(block);block.geometry.dispose();block.material.dispose();
+ return ok;
+}
 
 /* ================= START ================= */
 window.__load&&window.__load.set(.5,'Building the gauge…');

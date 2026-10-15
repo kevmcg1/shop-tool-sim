@@ -3429,6 +3429,27 @@ function tgPose(obj, axisLocal, handleLocal){
   const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
   return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
 }
+// "How do I use it?": the cleaning step shows a slip of paper between the anvil and the spindle (js/paper.js). The spindle opens a little, the
+// paper slides down between the faces, the spindle closes on it, and the paper is pulled out against their grip with a slight stain on it.
+// Only the 0-1" frame closes right down onto it (the larger frames are checked against a setting standard instead).
+window.__paperRun = alive => {
+  if (!window.__paper || B > 0) return Promise.resolve(false);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const settle = async () => { const t0 = performance.now(); while (state.anim && performance.now() - t0 < 8000) await wait(60); await wait(120); };
+  return window.__paper.run({
+    T, scene, invalidate, alive,
+    faceA: () => new T.Vector3(0, 0, 0),   // the anvil's face; the spindle's face is at x = the reading
+    normal: new T.Vector3(1, 0, 0), slide: new T.Vector3(0, 1, 0),
+    size: [3, 3], thick: 0.004, stain: 0.5,
+    look: () => {
+      camTween = { t: 0, fromDir: camera.position.clone().sub(controls.target).normalize(), fromTarget: controls.target.clone(), fromZoom: camera.zoom,
+        toDir: new T.Vector3(0.95, 0.3, 0.75).normalize(), toTarget: new T.Vector3(0.1, 1.0, 0), toZoom: 0.62 };
+      invalidate();
+    },
+    open: async () => { if (state.locked) setLock(false); goTo(0.2, true); await settle(); },
+    closeOn: async () => { goTo(0.004, true); await settle(); }
+  });
+};
 window.__tgSpot = () => (state.sample && state.sample.key === 'tgauge' && tgLab &&Math.abs((state.sample.vals && state.sample.vals.len) - tgLen) < 1e-3 && tgVis && !partWait) ? tgPose(tgVis, new T.Vector3(1, 0, 0), new T.Vector3(0, 1, 0)) : null;
 // the lab's gauge has landed on this one (it stays drawn over it): start measuring it
 window.__tgReveal = () => { const go = tgPend; tgPend = null; if (go) go(); };
