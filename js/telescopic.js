@@ -1411,13 +1411,13 @@ async function labPaper(idx){
   if(!alive())return true;
   const tip=()=>{pivot.updateMatrixWorld(true);return pivot.localToWorld(new THREE.Vector3(dir*S.curL/2,0,0));};
   const block=new THREE.Mesh(new THREE.BoxGeometry(14,34,34),new THREE.MeshStandardMaterial({color:0xb3bcc8,metalness:.85,roughness:.32}));
-  block.visible=false;block.userData.noShadow=true;scene.add(block);
+  block.visible=false;block.userData.noShadow=true;block.userData.paperClean=true;scene.add(block);   // (the block is a clean reference: it touches the paper but leaves no dirt)
   let gap=45;
   const put=()=>{const t=tip();block.position.set(t.x+dir*(gap+7),t.y,t.z);invalidate(120);};
   const slide=(to,ms)=>new Promise(res=>{const g0=gap,t0=performance.now();const f=()=>{if(!alive()){res();return;}const k=Math.min(1,(performance.now()-t0)/ms),e=k*k*(3-2*k);gap=g0+(to-g0)*e;put();if(k<1)requestAnimationFrame(f);else res();};f();});
   const ok=await window.__paper.run({
    T:THREE,scene,invalidate:()=>invalidate(120),alive,
-   faceA:()=>tip(),normal:new THREE.Vector3(dir,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,stain:11,
+   faceA:()=>tip(),normal:new THREE.Vector3(dir,0,0),slide:new THREE.Vector3(0,1,0),size:[76.2,76.2],thick:.1,
    look:()=>{camGo(dir>0?'paper':'paperL');cam.fixed=true;},
    open:async()=>{await new Promise(r=>setTimeout(r,dir>0?1300:500));gap=45;put();block.visible=true;await slide(22,700);},
    closeOn:async()=>{await slide(.12,950);}
