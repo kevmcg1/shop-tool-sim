@@ -234,19 +234,93 @@ window.__TG = (function(){
 
   // The gauge's metal, the same wherever it is drawn (the lab, and the micrometer and calipers it is measured on), so the gauge that flies
   // from one to the other is plainly the same one. Made once per three.js.
+  // A colour written as 0xRRGGBB, taken as the plain numbers it holds in every three.js. (A newer three.js reads a hex as sRGB and turns it into
+  // linear light, which makes the very same colour darker there than in the lab: the gauge has to be the same metal wherever it is drawn.)
+  function raw(T, hex){ return new T.Color().setRGB(((hex >> 16) & 255)/255, ((hex >> 8) & 255)/255, (hex & 255)/255); }
   function materials(T){
     if (T.__tgMats) return T.__tgMats;
     // faint turning lines round the tubes and rods, as a very light bump map (kept gentle: a strong one reads as stripes)
     const c = document.createElement('canvas'); c.width = 4; c.height = 256; const x = c.getContext('2d');
     for (let y = 0; y < 256; y++){ const v = (128 + (Math.random() - .5)*18)|0; x.fillStyle = 'rgb(' + v + ',' + v + ',' + v + ')'; x.fillRect(0, y, 4, 1); }
     const turned = new T.CanvasTexture(c); turned.wrapS = turned.wrapT = T.RepeatWrapping; turned.repeat.set(1, 4);
+    // (tgLook marks the gauge's own metal: a tool leaves it out of the wear it gives its own metal, so the gauge looks the same in the lab, in flight and on the tool)
+    const M = o => { const hex = o.color; delete o.color; const m = new T.MeshStandardMaterial(o); m.color.copy(raw(T, hex)); m.userData.tgLook = true; return m; };
     return T.__tgMats = {
-      steel:  new T.MeshStandardMaterial({ color: 0xdde3ea, metalness: 1, roughness: .22, bumpMap: turned, bumpScale: .02 }),
-      knurl:  new T.MeshStandardMaterial({ color: 0xb4bdc8, metalness: 1, roughness: .36, flatShading: true }),
-      dark:   new T.MeshStandardMaterial({ color: 0x1b1e22, metalness: .6, roughness: .5 }),
-      chrome: new T.MeshStandardMaterial({ color: 0xf3f5f8, metalness: 1, roughness: .07 })
+      steel:  M({ color: 0xdde3ea, metalness: 1, roughness: .22, bumpMap: turned, bumpScale: .02 }),
+      knurl:  M({ color: 0xb4bdc8, metalness: 1, roughness: .36, flatShading: true }),
+      dark:   M({ color: 0x1b1e22, metalness: .6, roughness: .5 }),
+      chrome: M({ color: 0xf3f5f8, metalness: 1, roughness: .07 })
     };
   }
 
-  return { MM, GAUGES, force: i => { forced = i; }, materials, SHORTEST, LONGEST, pick, tubeProfile, crown, body, hub, hubProfile, handle, knurled, stemTex, handleGroup, hubGroup, group };
+  // The studio the gauge's metal reflects: a plain canvas cube-map (no float render targets, so it works on every GPU), the same pictures in every
+  // three.js. A tool puts it on the gauge's own materials (not on its scene), so the gauge reflects the same studio in the lab and on every tool.
+  function env(T){
+    if (T.__tgEnv) return T.__tgEnv;
+    const face = (top, mid, bot, soft) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+      const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, top); g.addColorStop(.5, mid); g.addColorStop(1, bot); x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      if (soft){ x.fillStyle = soft.c; x.fillRect(soft.x, soft.y, soft.w, soft.h); } return c; };
+    const side = soft => face('#e9f0f8', '#7d8a99', '#10151b', soft);
+    const imgs = [side({ c: '#ffffff', x: 20, y: 14, w: 44, h: 34 }), side({ c: '#dfe9ff', x: 70, y: 20, w: 40, h: 50 }),
+      face('#ffffff', '#f3f7fb', '#c9d3de', { c: '#ffffff', x: 30, y: 30, w: 68, h: 68 }), face('#0c1015', '#0c1015', '#0c1015'),
+      side({ c: '#ffffff', x: 34, y: 10, w: 60, h: 30 }), side({ c: '#cfe0ff', x: 10, y: 30, w: 50, h: 40 })];
+    const t = new T.CubeTexture(imgs);
+    if ('sRGBEncoding' in T) t.encoding = T.sRGBEncoding; else if (T.SRGBColorSpace) t.colorSpace = T.SRGBColorSpace;
+    t.needsUpdate = true;
+    return T.__tgEnv = t;
+  }
+
+  // The plain and the real finish of the gauge's metal (what the Shop graphics button switches), one formula for the lab and the tools.
+  // `real` holds the material as it was made. Plain: the shine and turning marks go, the metal turns a flat grey (the knurl stays: it is the grip's shape).
+  function finishMat(T, m, real, shop){
+    if (shop){
+      m.map = real.map; m.roughnessMap = real.roughnessMap; m.bumpMap = real.bumpMap; m.color.copy(real.color);
+      m.metalness = real.metalness; m.roughness = real.roughness; m.envMapIntensity = real.env;
+    } else {
+      if (real.metalness >= .5) m.color.copy(real.color).lerp(raw(T, 0x6f757c), .55);
+      m.roughnessMap = null; if (!m.userData.knurl) m.bumpMap = null;
+      m.metalness = real.metalness >= .5 ? .3 : real.metalness; m.roughness = real.metalness >= .5 ? .6 : Math.max(real.roughness, .55); m.envMapIntensity = .55;
+    }
+    m.needsUpdate = true;
+  }
+  const REAL = new WeakMap();
+  function realOf(m){ let r = REAL.get(m); if (!r){ r = { map: m.map, roughnessMap: m.roughnessMap, bumpMap: m.bumpMap, bump: m.bumpScale, color: m.color.clone(), metalness: m.metalness, roughness: m.roughness, env: m.envMapIntensity }; REAL.set(m, r); } return r; }
+  // The shader's env lookup, with the world turn on the way in made available (the lab turns the studio a little while the gauge is in the air).
+  function envChunk(T, wrap){
+    return T.ShaderChunk.envmap_physical_pars_fragment.replace(/inverseTransformDirection\( (geometry\.normal|reflectVec|normal), viewMatrix \)/g, (all, v) => wrap(v, all));
+  }
+  // a gauge a tool draws itself: the gauge's own metal in the finish the page is set to, reflecting the shared studio
+  function dress(T, obj, shop, k){
+    k = k || 1/MM;
+    const e = env(T);
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]){
+        if (!m || !m.isMeshStandardMaterial || m.transparent || !m.userData.tgLook) continue;
+        if (m.envMap !== e){ m.envMap = e; m.needsUpdate = true; }
+        const real = realOf(m);
+        finishMat(T, m, real, shop);
+        m.bumpScale = real.bump*k;   // (a bump's slope depends on the size of the world it is drawn in: the lab draws the gauge in millimetres, the tools in inches)
+      }
+    });
+  }
+
+  // How a tool lights and tones what it draws, as plain numbers, so the lab's flying gauge can take on exactly that look as it lands (and so be
+  // the same gauge, to the eye, the moment the tool starts drawing it itself). `L` = { dirs: [DirectionalLight...], hemi: HemisphereLight }.
+  // Directions are the way the light comes from, in the tool's camera space; colours are the light's own linear numbers with the intensity in, in the
+  // units the lab's three.js reads (a newer three.js lights with no factor of pi: 1/pi of the old intensity gives the same picture).
+  function look(T, renderer, camera, L){
+    const k = (parseInt(T.REVISION, 10) >= 155 && !renderer.useLegacyLights) ? 1/Math.PI : 1;
+    const q = camera.getWorldQuaternion(new T.Quaternion()), qi = q.clone().invert();
+    const rgb = (c, i) => [c.r*i*k, c.g*i*k, c.b*i*k];
+    const dir = (a, b) => { const v = new T.Vector3(); a.getWorldPosition(v); if (b){ const w = new T.Vector3(); b.getWorldPosition(w); v.sub(w); } return v.normalize().applyQuaternion(qi).toArray(); };
+    const neutral = T.NeutralToneMapping !== undefined && renderer.toneMapping === T.NeutralToneMapping;
+    return {
+      camq: q.toArray(), neutral: neutral ? 1 : 0, exp: renderer.toneMappingExposure,
+      dirs: L.dirs.map(l => ({ c: rgb(l.color, l.intensity), v: dir(l, l.target) })),
+      hemi: L.hemi ? { sky: rgb(L.hemi.color, L.hemi.intensity), ground: rgb(L.hemi.groundColor, L.hemi.intensity), v: dir(L.hemi) } : null
+    };
+  }
+
+  return { MM, GAUGES, force: i => { forced = i; }, materials, raw, env, envChunk, finishMat, dress, look, SHORTEST, LONGEST, pick, tubeProfile, crown, body, hub, hubProfile, handle, knurled, stemTex, handleGroup, hubGroup, group };
 })();

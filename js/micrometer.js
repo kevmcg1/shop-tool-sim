@@ -347,7 +347,7 @@ function shopFinish(root){
   root.traverse(o => {
     if (!o.isMesh) return;
     for (const m of Array.isArray(o.material) ? o.material : [o.material]){
-      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve) continue;   // a dissolve's own copy is already finished
+      if (!m || _finished.has(m) || !m.isMeshStandardMaterial || m.transparent || m.userData.dissolve || m.userData.tgLook) continue;   // a dissolve's own copy is already finished; the telescopic gauge's metal is dressed by js/tgauge.js
       _finished.add(m);
       if (m.emissive && m.emissive.getHex() !== 0 && m.emissiveIntensity > 0) continue;   // meant to glow
       if (m.metalness >= 0.6){
@@ -567,6 +567,7 @@ function applyFinish() {
     }
     m.needsUpdate = true;
   }
+  if (tgVis && window.__TG) window.__TG.dress(T, tgVis, realFinish);
   renderer.shadowMap.needsUpdate = true; invalidate();
 }
 function bindFinish() {
@@ -1053,6 +1054,7 @@ function ghostGauge(obj, on){
 function tgVisualGroup(mm){
   const TG = window.__TG, r = TG.group(T, mm, TG.materials(T), { handle: 'up' });
   r.obj.rotation.y = -Math.PI/2; r.obj.position.z = r.len/2;
+  TG.dress(T, r.obj, realFinish);   // (the gauge's own metal, as the lab draws it: the lab's gauge flies over this one and has to look just like it)
   return r.obj;
 }
 function primMesh(p){
@@ -3428,7 +3430,9 @@ function tgPose(obj, axisLocal, handleLocal){
   const dir = l => { const d = l.clone().transformDirection(obj.matrixWorld).applyQuaternion(qi); return [d.x, d.y, d.z]; };
   // how this camera's perspective leans things at that spot (the slope of the ray through it): the lab's gauge is drawn by another camera, and needs it to look the same
   const oc = o.clone().applyMatrix4(camera.matrixWorldInverse), sl = camera.isPerspectiveCamera && oc.z < -1e-6 ? [oc.x/-oc.z, oc.y/-oc.z] : [0, 0];
-  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom] };
+  return { x, y, ppm: Math.hypot(x2 - x, y2 - y), ax: dir(axisLocal), hd: dir(handleLocal), sl, box: [r.left, r.top, r.right, r.bottom],
+    fp: camera.isPerspectiveCamera ? r.height/(2*Math.tan(camera.fov*Math.PI/360)) : 0,   // (its camera's focal length in pixels; 0 for a straight-on, no-perspective camera)
+    lk: window.__TG ? window.__TG.look(T, renderer, camera, { dirs: [key, rimL], hemi }) : null };   // (how this tool lights the gauge: the lab's flying gauge takes on the same look as it lands)
 }
 // "How do I use it?": the cleaning step shows a slip of paper between the anvil and the spindle (js/paper.js). The spindle opens a little, the
 // paper slides down between the faces, the spindle closes on it, and the paper is pulled out against their grip with a slight stain on it.

@@ -314,7 +314,7 @@ lockDown(window);
         if ((sp && still >= 4) || Date.now() - s0 > 8000){
           const fr = f.getBoundingClientRect(), L = lab();
           if (!sp){ try { w.__tgShow && w.__tgShow(); } catch (err) {} }   // no pose to fly to: let the tool show its own gauge
-          if (L && L.toolReady) L.toolReady(sp ? { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl } : null);
+          if (L && L.toolReady) L.toolReady(sp ? { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, lk: sp.lk, fp: sp.fp } : null);
           return;
         }
         setTimeout(poll, 120);
@@ -353,10 +353,31 @@ lockDown(window);
     show(next.id); document.getElementById('tab-' + next.id).focus(); e.preventDefault();
   });
   window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+  // The tool's own buttons that sit over its drawing (they hide a gauge the tool draws itself, so a gauge drawn over it must not cover them either).
+  // Their rectangles in this window, a few times a second.
+  let holeAt = 0, holeOf = null, holeList = [];
+  function uiHoles(f){
+    const now = performance.now();
+    if (holeOf === f && now - holeAt < 200) return holeList;
+    holeOf = f; holeAt = now; holeList = [];
+    try {
+      const fr = f.getBoundingClientRect(), out = [];
+      f.contentDocument.querySelectorAll('button, input, select').forEach(el => {
+        if (!el.offsetParent) return;
+        const r = el.getBoundingClientRect();
+        if (r.width < 8 || r.height < 8 || r.width > 520 || r.height > 120) return;
+        const h = [fr.left + r.left, fr.top + r.top, fr.left + r.right, fr.top + r.bottom];
+        if (out.some(o => o[0] <= h[0] + .5 && o[1] <= h[1] + .5 && o[2] >= h[2] - .5 && o[3] >= h[3] - .5)) return;
+        out.push(h);
+      });
+      holeList = out.slice(0, 60);
+    } catch (err) { holeList = []; }
+    return holeList;
+  }
   // dev mode (js/devmode.js) drives the tabs through this
   window.__shell = { APPS, show, frameFor, frames, current: () => current,
   // where the tool's gauge is on screen right now (the lab's gauge is drawn over it), or null
-  pose: () => { try { const f = dock.frames[dock.tool]; if (!f || !dockShowing() || (dock.el && dock.el.hidden)) return null; const sp = f.contentWindow.__tgSpot && f.contentWindow.__tgSpot(); if (!sp) return null; const fr = f.getBoundingClientRect(); return { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, clip: sp.box && [fr.left + sp.box[0], fr.top + sp.box[1], fr.left + sp.box[2], fr.top + sp.box[3]] }; } catch (err) { return null; } },
+  pose: () => { try { const f = dock.frames[dock.tool]; if (!f || !dockShowing() || (dock.el && dock.el.hidden)) return null; const sp = f.contentWindow.__tgSpot && f.contentWindow.__tgSpot(); if (!sp) return null; const fr = f.getBoundingClientRect(); return { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, lk: sp.lk, fp: sp.fp, clip: sp.box && [fr.left + sp.box[0], fr.top + sp.box[1], fr.left + sp.box[2], fr.top + sp.box[3]], holes: uiHoles(f) }; } catch (err) { return null; } },
   unghost: () => { try { const f = dock.frames[dock.tool]; if (f && f.contentWindow.__tgShow) f.contentWindow.__tgShow(); } catch (err) {} },
   // the lab's gauge has landed: the tool draws it itself from here on, in its own scene (true when it can; the lab then lets its own copy go)
   native: () => { try { const f = dock.frames[dock.tool]; return !!(f && f.contentWindow.__tgNative && f.contentWindow.__tgNative()); } catch (err) { return false; } },
