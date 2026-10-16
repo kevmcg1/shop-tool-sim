@@ -328,7 +328,7 @@ lockDown(window);
       if (!ready){ if (Date.now() - t0 < 60000) setTimeout(tryIt, 250); return; }
       setTimeout(() => {
         if (give.n !== key) return;
-        const g = { mm: p.mm, truth: p.truth, gauge: p.gauge };
+        const g = { mm: p.mm, truth: p.truth, gauge: p.gauge, practice: !!p.practice };
         if (!fly){ w.__tgLoad(g); const L = lab(); if (L && L.landed) L.landed(); return; }
         w.__tgLoad(g, { hold: true });
         settle(w);

@@ -1829,7 +1829,7 @@ function bindSplit(){
 const showAns = () => !state.practice || state.pRevealed;
 let lastPracticeKey = '';
 let rhPracticeSet = false;
-function setPractice(on){
+function setPractice(on, keepPart){
   if (on && !rhPracticeSet){
     const mh = document.querySelector('main').clientHeight;
     RH.practice = Math.max(200, Math.min(380, mh - 400));
@@ -1840,7 +1840,7 @@ function setPractice(on){
   $('practiceBtn').setAttribute('aria-pressed', String(on));
   $('practiceBtn').dataset.tip = on ? 'Stop practicing\nShows the answers and the reading breakdown again.' : 'Practice reading\nHides the answers, picks a random frame size and part, and puts an answer box in the reading bar.';
   updateAll();
-  if (on) loadPractice();
+  if (on && !keepPart) loadPractice();   // (keepPart: the gauge lab handed over its own part, so no random one is picked)
 }
 function loadPractice(){
   // new frame size each time (different from the last one), with a part it can measure: the micrometer on
@@ -3404,13 +3404,19 @@ window.__tgLoad = (p, opts) => {
   tgHold = !!(opts && opts.hold); tgNat = false; tgPend = null;
   tgGaugeIdx = window.__TG ? window.__TG.GAUGES.findIndex(g => g.name === p.gauge) : -1; tgLen = Math.round(p.mm/25.4*1e4)/1e4;
   const inch = p.mm/25.4, nb = Math.max(0, Math.min(3, Math.floor(inch + 1e-9)));
-  if (state.practice) setPractice(false);
+  // in the lab's practice mode the reading stays hidden here too: practice carries over, with the gauge as the part to read
+  const prac = !!p.practice;
+  if (state.practice !== prac || prac) setPractice(prac, true);
+  if (prac){
+    $('guess').value = '';
+    $('feedback').innerHTML = `<p class="pintro">Read the length across the gauge’s heads on this <b>${nb}–${nb + 1}″</b> micrometer, type the reading and press <b>Check</b>. Score ${state.pScore.right}/${state.pScore.total}.</p>`;
+  }
   forcedVals = { key: 'tgauge', vals: { len: inch } };
   state.sampleKey = 'tgauge';
   const done = () => {
     $('sampleSel').value = 'tgauge'; setView('iso');
     // the gauge slides in between the faces and the spindle comes down onto its heads, ready to read
-    const msg = () => { goToFeature('len', true); updateAll(); toast('From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Read the length across its heads, with a light touch.'); };
+    const msg = () => { goToFeature('len', true); updateAll(); toast(prac ? 'From the gauge lab. Read the length across its heads, with a light touch.' : 'From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Read the length across its heads, with a light touch.'); };
     partReady.then(() => { if (state.sample && state.sample.key === 'tgauge'){ if (tgGhost) tgPend = msg; else msg(); } });
   };
   if (nb !== B) swapRange(nb, done); else { newSample('tgauge'); done(); }

@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.18',
+  version: '1.3.19',
   changelog: [
+    { v: '1.3.19', date: '2026-10-16', title: 'Practice carries over, and a tidier card', items: [
+      'When you send the gauge from the telescopic lab in practice mode, the micrometer or caliper stays in practice mode too, with the reading hidden and an answer box.',
+      'The “Where did the sidebar go?” card now finds a free spot and never covers a button, panel or message.'
+    ] },
     { v: '1.3.18', date: '2026-10-15', title: 'Dirt where it really touches', items: [
       'The slip of paper now finds what touches it and where, so the dirt stain lands only on the part of the paper the contact points actually touched.',
       'As the paper is pulled out the stain smears along it and fades, and the clean steel block in the telescopic gauge lab leaves none.'
