@@ -2661,7 +2661,10 @@ function removePart() { $('sampleSel').value = 'none'; changePart('none'); }
 // gauge flies over to the spot __tgSpot gives, and this one takes over exactly there.
 window.__tgLoad = function(p, opts) {
   if (!p || !(p.mm > 0)) return;
-  if (state.practice) setPractice(false);
+  // in the lab's practice mode the reading stays hidden here too: practice carries over, with the gauge as the part to read
+  const prac = !!p.practice;
+  if (state.practice !== prac || prac) setPractice(prac, true);
+  tgPrac = prac;
   const hold = !!(opts && opts.hold);
   tgHeld = hold; tgNat = false;
   autoAfter = !hold;
@@ -2670,10 +2673,14 @@ window.__tgLoad = function(p, opts) {
   tgSize = forcedSize;
   $('sampleSel').value = 'tgauge';
   changePart('tgauge');
-  if (!hold) setTimeout(() => toast('From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'), 900);
+  if (prac){
+    $('guess').value = '';
+    $('feedback').innerHTML = `<p class="pintro">The outside jaws are on the <b>telescopic gauge</b>. Read the locked length across its heads${metric() ? ' in millimeters (top scale)' : ''}, type it and press <b>Check</b>. Score ${state.pScore.right}/${state.pScore.total}.</p>`;
+  }
+  if (!hold) setTimeout(() => toast(prac ? 'From the gauge lab. Close the jaws gently on its heads and read it.' : 'From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'), 900);
   else tgNote = p.mm;
 };
-let tgNote = null, tgSize = 0, tgGaugeIdx = -1;   // tgGaugeIdx: which gauge of the set the lab handed over
+let tgNote = null, tgSize = 0, tgGaugeIdx = -1, tgPrac = false;   // tgGaugeIdx: which gauge of the set the lab handed over
 
 // Where the gauge is, as this window's camera sees it: where its origin (the middle of the cross-bar) falls on screen, how many pixels a
 // millimetre is there, and which way its cross-bar and handle point (unit vectors in the camera's own axes). The lab's gauge flies to
@@ -2718,7 +2725,7 @@ window.__paperRun = alive => {
 window.__tgSpot = () => (sample.type === 'tgauge' && (tgGhost || (tgNat && tgHeld)) && Math.abs(sample.size - tgSize) < 1e-3 && sample.obj && !sample.staged && !partSwap && !partWait) ? tgPose(sample.obj, new T.Vector3(1, 0, 0), new T.Vector3(0, -1, 0)) : null;
 // the lab's gauge has landed on this one (it stays drawn over it): start measuring it
 window.__tgReveal = () => {
-  if (sample.type === 'tgauge' && sample.obj && (tgGhost || tgNat)){ autoMeasure(); if (tgNote){ toast('From the gauge lab, locked at ' + tgNote.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'); tgNote = null; } }
+  if (sample.type === 'tgauge' && sample.obj && (tgGhost || tgNat)){ autoMeasure(); if (tgNote){ toast(tgPrac ? 'From the gauge lab. Close the jaws gently on its heads and read it.' : 'From the gauge lab, locked at ' + tgNote.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'); tgNote = null; } }
   else if (tgHeld){ tgHeld = false; autoAfter = true; }
 };
 // the lab's gauge can't be drawn over this one any more (the part changed, or the pose was lost): show this one's own
@@ -2749,7 +2756,7 @@ function changePart(type) {
 
 /* ================================================================== practice */
 let rhPracticeSet = false, lastPracticeKey = '';
-function setPractice(on) {
+function setPractice(on, keepPart) {
   if (on && !rhPracticeSet) {
     const mh = document.querySelector('main').clientHeight;
     RH.practice = Math.max(200, Math.min(380, mh - 400));
@@ -2761,7 +2768,7 @@ function setPractice(on) {
   $('practiceBtn').dataset.tip = on ? 'Stop practicing\nShows the answers and the reading breakdown again.' : 'Practice reading\nHides the answers, picks a random part and size, and puts an answer box in the reading bar.';
   lastKey = ''; hlKey = ''; flatKey = '';
   updateOutline();
-  if (on) loadPractice();
+  if (on && !keepPart) loadPractice();   // (keepPart: the gauge lab handed over its own part, so no random one is picked)
 }
 // which jaws practice uses: any mix of outside, inside and the depth rod (at least one stays on)
 const pTools = new Set(['od', 'id', 'depth']);

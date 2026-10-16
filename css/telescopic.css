@@ -285,6 +285,7 @@ button.pulse,label.pulse{animation:pulse 1.4s ease-in-out infinite;border-radius
 .dockhint{position:absolute;left:12px;bottom:12px;z-index:5;width:262px;display:flex;flex-direction:column;gap:3px;background:#0b0c0e;border:1px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.45;opacity:0;visibility:hidden;transform:translateY(10px);pointer-events:none;transition:opacity .28s ease,transform .34s var(--ease),visibility 0s linear .34s}
 body.dock-open .dockhint{opacity:1;visibility:visible;transform:none;pointer-events:auto;transition:opacity .28s ease,transform .34s var(--ease),visibility 0s}
 .dockhint b{font-size:13px;font-weight:600}.dockhint span{color:var(--muted)}
+.dockhint.compact{width:200px;padding:8px 10px}.dockhint.compact span{display:none}
 .dockhint .dh-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 .dockhint button{padding:4px 12px;font-size:12px;border-radius:999px;border-color:var(--accent);color:var(--accent)}
 .dockhint #bringBack{border-color:var(--line);color:var(--muted)}

@@ -677,7 +677,7 @@ function send(tool){
  if(AW.dir>0)return true;   // already on its way
  setTiltCmd(0);   // it stands straight for the trip: that is how it stands in the tool
  const tab=tool||S.mTool||'micrometer',li=S.lockInfo,truth=li&&li.inHole&&!S.practice?li.D:null,mm=S.lockedL,gauge=S.g.name;
- const post=fly=>{try{window.parent.postMessage({tgauge:{tool:tab,mm,truth,gauge,full:true,fly:!!fly}},'*');}catch(e){}};
+ const post=fly=>{try{window.parent.postMessage({tgauge:{tool:tab,mm,truth,gauge,full:true,fly:!!fly,practice:!!S.practice}},'*');}catch(e){}};
  S.mTool=tab;
  if(flyInit()){
   // the screen splits and the tool loads completely while the gauge waits here; then it flies across the border (see toolReady)
@@ -1345,6 +1345,56 @@ $('revealBtn').onclick=()=>{S.revealed=!S.revealed;buildSamples();};
 $('btnLock').onclick=()=>{autoCancel();ensureHome(()=>toggleLock());};$('btnInsert').onclick=()=>{autoCancel();ensureHome(()=>toggleInsert());};$('btnMeasure').onclick=()=>takeMeasure(null);$('btnTake').onclick=()=>takeMeasure(S.mTool);$('btnAuto').onclick=autoMeasure;
 $('seeWhere').onclick=()=>{try{window.parent.postMessage({tgauge:{seeWhere:true}},'*');}catch(e){}};
 $('bringBack').onclick=()=>{autoCancel();ensureHome();};
+// The "Where did the sidebar go?" card never sits over a button, a panel or a toast: it looks for the free spot nearest the bottom-left corner of
+// this view, avoiding everything that can be clicked or read (checked again whenever the layout or a toast changes), and slims down when nothing roomy is free.
+(function(){
+ const hint=$('dockHint');if(!hint)return;
+ const PAD=8,STEP=6,OBST='button,input,select,textarea,.hud,.toast.show,.card:not(.hidden),.cine,.reading';
+ let lastKey='';
+ function obstacles(box){
+  const out=[];
+  document.querySelectorAll(OBST).forEach(e=>{
+   if(hint.contains(e)||e.closest('.reading'))return;
+   const cs=getComputedStyle(e);if(cs.display==='none'||cs.visibility==='hidden'||+cs.opacity===0)return;
+   const r=e.getBoundingClientRect();if(r.width<2||r.height<2)return;
+   const x0=r.left-box.left-PAD,y0=r.top-box.top-PAD,x1=r.right-box.left+PAD,y1=r.bottom-box.top+PAD;
+   if(x1<=0||y1<=0||x0>=box.width||y0>=box.height)return;
+   if(out.some(o=>o[0]<=x0&&o[1]<=y0&&o[2]>=x1&&o[3]>=y1))return;
+   out.push([x0,y0,x1,y1]);
+  });
+  return out;
+ }
+ function overlap(x,y,w,h,ob){let a=0;for(const o of ob){const ox=Math.min(x+w,o[2])-Math.max(x,o[0]),oy=Math.min(y+h,o[3])-Math.max(y,o[1]);if(ox>0&&oy>0)a+=ox*oy;}return a;}
+ function search(W,H,w,h,ob){
+  let best=null,bd=1e12,minO=null,mo=1e12;
+  const px=12,py=H-h-12;
+  for(let y=H-h-4;y>=4;y-=STEP)for(let x=4;x<=W-w-4;x+=STEP){
+   const o=overlap(x,y,w,h,ob);
+   if(o===0){const d=(x-px)*(x-px)+(y-py)*(y-py);if(d<bd){bd=d;best=[x,y];}}
+   else if(!best&&o<mo){mo=o;minO=[x,y];}
+  }
+  return best||(minO&&{fallback:minO});
+ }
+ function place(){
+  const par=hint.offsetParent;if(!par)return;
+  const box=par.getBoundingClientRect(),W=box.width,H=box.height;if(W<50||H<50)return;
+  const ob=obstacles(box);
+  const key=Math.round(W)+'x'+Math.round(H)+'|'+ob.map(o=>o.map(Math.round).join(',')).join(';');
+  if(key===lastKey)return;lastKey=key;
+  let res=null;
+  for(const compact of [false,true]){
+   hint.classList.toggle('compact',compact);
+   const w=hint.offsetWidth,h=hint.offsetHeight;
+   res=search(W,H,w,h,ob);
+   if(res&&!res.fallback){hint.style.left=res[0]+'px';hint.style.top=res[1]+'px';hint.style.bottom='auto';return;}
+  }
+  if(res&&res.fallback){hint.style.left=res.fallback[0]+'px';hint.style.top=res.fallback[1]+'px';hint.style.bottom='auto';}
+ }
+ const tick=()=>{if(document.body.classList.contains('dock-open'))place();};
+ new MutationObserver(()=>{lastKey='';tick();}).observe(document.body,{attributes:true,attributeFilter:['class']});
+ addEventListener('resize',()=>{lastKey='';tick();});
+ setInterval(tick,300);
+})();
 $('ask').onclick=e=>{const b=e.target.closest('button[data-ask]');if(!b){if(e.target===$('ask'))askClose();return;}askClose();runAuto(b.dataset.ask==='none'?null:b.dataset.ask);};
 document.querySelectorAll('[data-send]').forEach(b=>{b.onclick=()=>{S.mTool=b.dataset.send;takeMeasure(b.dataset.send);};});
 $('toolSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.mTool=b.dataset.t;};
