@@ -311,7 +311,7 @@ lockDown(window);
         let sp = null; try { sp = w.__tgSpot && w.__tgSpot(); } catch (err) {}
         still = sp && last && Math.abs(sp.x - last.x) < 1 && Math.abs(sp.y - last.y) < 1 && Math.abs(sp.ppm - last.ppm) < 0.01*sp.ppm ? still + 1 : 0;
         last = sp;
-        if ((sp && still >= 4) || Date.now() - s0 > 8000){
+        if ((sp && still >= 4) || Date.now() - s0 > 45000){   // (a slow machine takes a long while to build the caliper's gauge: wait for it to settle rather than give up early)
           const fr = f.getBoundingClientRect(), L = lab();
           if (!sp){ try { w.__tgShow && w.__tgShow(); } catch (err) {} }   // no pose to fly to: let the tool show its own gauge
           if (L && L.toolReady) L.toolReady(sp ? { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, lk: sp.lk, fp: sp.fp } : null);
@@ -325,7 +325,7 @@ lockDown(window);
       if (give.n !== key) return;   // a newer gauge was handed over meanwhile
       let w; try { w = f.contentWindow; } catch (err) { return; }
       const ready = w && typeof w.__tgLoad === 'function' && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading');
-      if (!ready){ if (Date.now() - t0 < 60000) setTimeout(tryIt, 250); return; }
+      if (!ready){ if (Date.now() - t0 < 300000) setTimeout(tryIt, 250); return; }   // (a slow machine can take minutes to load a tool for the first time)
       setTimeout(() => {
         if (give.n !== key) return;
         const g = { mm: p.mm, truth: p.truth, gauge: p.gauge, practice: !!p.practice };
