@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.19',
+  version: '1.3.20',
   changelog: [
+    { v: '1.3.20', date: '2026-10-20', title: 'How do I read this?', items: [
+      'Every measurement now has a “How do I read this?” button just below it. It shows the value and how a machinist would say it out loud in a shop, like “two thirty-four and five tenths”.',
+      'In practice mode the button sits by the answer box and says your typed reading, without giving the answer away.'
+    ] },
     { v: '1.3.19', date: '2026-10-16', title: 'Practice carries over, and a tidier card', items: [
       'When you send the gauge from the telescopic lab in practice mode, the micrometer or caliper stays in practice mode too, with the reading hidden and an answer box.',
       'The “Where did the sidebar go?” card now finds a free spot and never covers a button, panel or message.'
