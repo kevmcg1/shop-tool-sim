@@ -408,3 +408,9 @@ body.exam .quick{display:none!important}
 .ap-rows .ap-k{color:var(--muted)}
 .ap-rows .ap{justify-self:start;color:var(--ink)}
 .ap .nw{white-space:nowrap}
+
+.warn-card{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:4;display:flex;gap:10px;align-items:flex-start;width:max-content;max-width:min(440px,calc(100% - 24px));background:#2a1f08;border:1px solid #e8a33a;border-radius:10px;padding:9px 12px;color:#f6e3c2;font-size:12.5px;line-height:1.4;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.warn-card i{color:#f0b54a;margin-top:2px;flex:none}
+.warn-card b{display:block;font-weight:600;color:#fff1d6}
+.warn-card span{display:block;color:#e9cf9f;margin-top:2px}
+.warn-card[hidden]{display:none}

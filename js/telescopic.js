@@ -355,6 +355,7 @@ function resetFlagsRock(){S.minSeen=Infinity;S.seenPos=S.seenNeg=false;}
 function resetGauge(){
  const g=S.g;S.unlocked=false;S.lockedL=+(g.min+(g.max-g.min)*.18).toFixed(2);S.inserted=false;S.insertT=0;
  S.tilt=0;setTiltCmd(0);S.curL=S.lockedL;S.knob=Math.PI;S.lockInfo=null;S.measured=null;S.entryLock=false;S.pinchT0=0;S.easeUntil=0;S.bubble=null;resetFlagsRock();
+ {const w=$('outWarn');if(w)w.hidden=true;}
  $('mic').classList.add('hidden');
 }
 function toggleLock(){
@@ -370,7 +371,13 @@ function toggleLock(){
  }
 }
 function toggleInsert(){
- if(S.inserted){S.inserted=false;S.entryLock=false;resetFlagsRock();return;}
+ if(S.inserted){
+  const straight=!!(S.lockInfo&&S.lockInfo.inHole&&Math.abs(S.tilt)<=SQUARE_TOL);   // locked square and lifted out the same way: warn that it should come out tilted
+  S.inserted=false;S.entryLock=false;resetFlagsRock();
+  const w=$('outWarn');if(w){w.hidden=!straight;clearTimeout(w._t);if(straight)w._t=setTimeout(()=>{w.hidden=true;},9000);}
+  return;
+ }
+ {const w=$('outWarn');if(w)w.hidden=true;}
  const g=S.g,Dm=Math.min(holeD(0),holeD(S.depth));
  if(g.min>Dm+.001){toast('Gauge '+g.name+' is too big for this hole. Try the next size down.');return;}
  // going in: both heads are pushed in and the knob is locked, so the gauge fits through the opening (it is unlocked again once it is down in the bore)

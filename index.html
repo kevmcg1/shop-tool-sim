@@ -310,7 +310,7 @@ if (location.protocol === 'file:'){
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
-<script src="js/quips.js?v=3"><\/script>
+<script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=9"><\/script>
 <script src="js/guide.js?v=79"><\/script>
 <script src="js/tips.js?v=52"><\/script>
@@ -556,7 +556,7 @@ if (location.protocol === 'file:'){
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
-<script src="js/quips.js?v=3"><\/script>
+<script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=9"><\/script>
 <script src="js/guide.js?v=79"><\/script>
 <script src="js/tips.js?v=52"><\/script>
@@ -814,7 +814,7 @@ if (location.protocol === 'file:'){
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
-<script src="js/quips.js?v=3"><\/script>
+<script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=9"><\/script>
 <script src="js/guide.js?v=79"><\/script>
 <script src="js/tips.js?v=52"><\/script>
@@ -1033,7 +1033,7 @@ if (location.protocol === 'file:'){
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
-<script src="js/quips.js?v=3"><\/script>
+<script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=9"><\/script>
 <script src="js/guide.js?v=79"><\/script>
 <script src="js/tips.js?v=52"><\/script>
@@ -1054,7 +1054,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=68">
+<link rel="stylesheet" href="css/telescopic.css?v=69">
 <link rel="stylesheet" href="css/icons.css?v=52">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
@@ -1189,6 +1189,7 @@ if (location.protocol === 'file:'){
         <button class="ib lock" type="button" id="lockQuick" aria-pressed="true" aria-label="Lock the knob" data-tip="Lock the knob&#10;Locks the knurled knob so the heads stay at their length. The lock turns red while it is locked."><i class="fa-solid fa-lock-open ic-off"></i><i class="fa-solid fa-lock ic-on"></i></button>
         <div class="goto" role="group" aria-label="Go to a depth"><input type="text" id="setTo" placeholder="Go to depth 0.55 in" inputmode="decimal" autocomplete="off" aria-label="Move the gauge to a depth in the bore"><button class="ib" type="button" id="goBtn" aria-label="Go to that depth">Go</button></div>
       </div>
+      <div class="warn-card" id="outWarn" role="note" hidden><i class="fa-solid fa-triangle-exclamation"></i><div><b>Take it out at an angle, not straight</b><span>Pulling it out straight can drag the heads and nudge the locked size. Tilt the handle slightly so the heads clear the wall.</span></div></div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
       <div class="cine top"><span class="ct">Examination</span><div class="cc">
         <button class="pbtn" type="button" id="spinBtn" aria-pressed="false"><i class="fa-solid fa-rotate"></i><span class="lbl">Auto-rotate</span></button>
@@ -1271,10 +1272,10 @@ if (location.protocol === 'file:'){
 <script src="js/dropdowns.js?v=50"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/tgauge.js?v=64"><\/script>
-<script src="js/quips.js?v=3"><\/script>
+<script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=9"><\/script>
 <script src="js/paper.js?v=5"><\/script>
-<script src="js/telescopic.js?v=91"><\/script>
+<script src="js/telescopic.js?v=92"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=1"><\/script>
 <script src="js/version.js?v=83"><\/script>
