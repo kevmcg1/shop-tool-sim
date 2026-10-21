@@ -3,8 +3,13 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.21',
+  version: '1.3.22',
   changelog: [
+    { v: '1.3.22', date: '2026-10-21', title: 'Walkthrough fits every screen', items: [
+      'The “How do I use it?” cards now always fit the window, down to short laptop screens: long steps scroll inside the card, with Back and Next always in view.',
+      'The tour closes the tool itself before the zero checks if you skip ahead early, the height gage’s key hints follow the unit you picked, and its zero step now names the knob and slider that really set it.',
+      'The telescopic gauge’s help now lists the steps in the order the walkthrough teaches: compress and lock, insert, unlock, rock, lock, take it out.'
+    ] },
     { v: '1.3.21', date: '2026-10-21', title: 'Icons move when a card pops up', items: [
       'When a message, warning, tour card or the changelog pops up, the icon on it moves once in the way that fits it, like the icons on buttons do.'
     ] },

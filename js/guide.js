@@ -214,7 +214,7 @@
       CHOOSE,
       INTRO('height gage'),
       CLEAN('Start with a habit worth keeping: wipe the scriber, the base and the plate with a clean cloth.\nA little grit under either one throws the zero off.',
-        'Now watch the scriber come down onto the plate.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Use the zero adjustment.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
+        'Now watch the scriber come down onto the plate.\nAt the lowest value, it should read exactly 0.\nNot on 0? That’s a common one. Turn the knob at the top of the beam (or drag the Main scale zero slider) until it is.', { target: '#view', view: 'iso', refit: true }),   // (the camera follows the scriber down to the plate)
       ...(u === 'mm' ? [
         { spot: 'mvernLine', side: 'left', box: [180, 90], frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Zero on the vernier', text: () => 'Scriber on the plate, so the vernier’s 0 line meets the main scale’s 0 line.\nThat’s the zero.' + nowMM('mVern') },
         { target: '#flat', title: 'Zero on the flat view', text: MINIMAP_NOTE + '\nIt agrees with the tool: the vernier’s 0 sits right on the main scale’s 0.' },
@@ -307,6 +307,7 @@
     }));
   };
   build('in');
+  window.__gdUnit = () => curUnit;
   const pressUnits = u => { const b = document.querySelector(`aside [data-units="${u}"]`); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); };
 
   /* ---------- the button, under the range line ---------- */
@@ -386,6 +387,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   let root = null, hole, dim, svg, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '';
   // the hand that shows a drag: its path, the moving hand, and its label (see showDrag)
   let dragSvg = null, dragEls = null, hand = null, dragLbl = null, pressing = false, lastDragKey = '', lastLbl = '';
+  let cardRO = null;
   let lastR = null, lastSide = -1, lastCard = null, lastSvg = '', arrowPath = null, arrowHead = null, cardW = 0, cardH = 0;
   // what is on screen now, easing toward where things belong: the window (x, y, w, h) and the card (x, y)
   let shown = null, lastPlaceT = 0;
@@ -464,6 +466,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (e.closest('aside') && b.classList.contains('side-off') && $('sideBtn')) $('sideBtn').click();
     if (e.closest('#reading') && b.classList.contains('panel-off') && $('panelBtn')) $('panelBtn').click();
     if (e.closest('aside')) e.scrollIntoView({ block: 'center', behavior: 'auto' });
+    // on a short window the reading bar can sit partly below the fold of the page (it scrolls): bring what the step points at fully into sight
+    else if (e.closest('main')){ const r = e.getBoundingClientRect(); if (r.bottom > innerHeight - 2 || r.top < 0) e.scrollIntoView({ block: 'nearest', behavior: 'auto' }); }
   }
   // the flat view floats over the 3D view: while the lit window round a spot on the tool would show it on top
   // of what the step points at, it fades out of the way, and comes back once the window moves off it or the walkthrough ends. Its box
@@ -571,6 +575,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       <button type="button" class="gd-hands" hidden aria-pressed="false"><i class="fa-solid fa-eye ic-eye"></i><i class="fa-solid fa-eye-slash ic-eyeoff"></i><span>Hide the hands</span></button>
       <div class="gd-foot"><span class="gd-count"></span><button type="button" class="gd-back">Back</button><button type="button" class="gd-next primary">Next</button></div>`;
     card.querySelector('.gd-x').addEventListener('click', stop);
+    // whatever changes the card's height (a hint line, the minimap or hands buttons, the paper picture, a window that got shorter) is measured at once, so it is never placed on a stale size and pushed off the bottom
+    if (window.ResizeObserver){ cardRO = new ResizeObserver(measureCard); cardRO.observe(card); }
     // picking a unit sets the tool to it, builds the steps for it, and moves on
     card.querySelector('.gd-choose').addEventListener('click', e => {
       const b = e.target.closest('[data-u]'); if (!b) return;
@@ -619,6 +625,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     window.removeEventListener('pointerup', onRelease, true);
     window.removeEventListener('pointercancel', onRelease, true);
     const gone = root; root = null; navId++;
+    if (cardRO){ cardRO.disconnect(); cardRO = null; }
     dodgeFlat(null);
     const fl = $('flat');
     if ($('flatMaxBtn') && flatIsMax() !== flatMax0) $('flatMaxBtn').click();   // back to the size it had
@@ -669,6 +676,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       card.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 240, easing: 'ease-out' });
     waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
+    // the first "Zero on ..." step says the tool is closed. When the cleaning step was moved past before it closed the tool itself (Next pressed while the paper was still in), the tool is closed here instead
+    if (/^Zero /.test(s.title) && !(i > 0 && /^Zero /.test(STEPS[i - 1].title))) closeUp();
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
     if (window.__guideHands) window.__guideHands(!!s.hands);     // the 3D hands that show how to hold the tool, where a step asks for them
     // only this step's highlight is lit, and the camera flies to where the step looks
@@ -827,7 +836,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     // the card eases over to its new place too
     if (shown.cx == null){ shown.cx = cx; shown.cy = cy; }
     else { const dx = cx - shown.cx, dy = cy - shown.cy; shown.cx = Math.abs(dx) < 0.25 ? cx : shown.cx + dx * k; shown.cy = Math.abs(dy) < 0.25 ? cy : shown.cy + dy * k; }
-    cx = shown.cx; cy = shown.cy;
+    cx = Math.max(0, Math.min(W - cw, shown.cx)); cy = Math.max(0, Math.min(H - ch, shown.cy));   // (still easing from where it was, but never off the screen, even when the card has just grown)
     lastCard = { x: cx, y: cy };
     put(card, 'transform', tr(cx, cy));
     // the arrow runs from the card's nearest edge to the window's nearest edge

@@ -38,12 +38,14 @@
   }
   const phaseOf = (step, i, n, steps) => steps ? phasesOf(steps)[i] : PHASES[0];
   // the keys each tool answers to: [keys, what it does, words in a step's text that make it relevant]
+  // (the height gage reads inches or millimeters, and its keys step by the unit the walkthrough is in)
+  const unitMM = () => !!window.__gdUnit && window.__gdUnit() === 'mm';
   const KEYS = {
     mic:    [[['↑','↓'], '0.001″', /thimble|turn|move|fine|close|open/i], [['Shift', '↑', '↓'], '0.0001″ steps', /fine|ten-?thousandth|vernier|0\.0001/i], [['PgUp', 'PgDn'], '0.025″ steps', /sleeve line|0\.025|coarse/i], [['R'], 'Ratchet', /ratchet/i], [['L'], 'Lock', /lock/i], [['A'], 'Auto measure', /auto measure/i]],
     depth:  [[['↑','↓'], '0.001″', /thimble|turn|move|fine|lower|raise/i], [['Shift', '↑', '↓'], '0.010″ steps', /coarse|shift/i], [['PgUp', 'PgDn'], '0.025″ steps', /sleeve line|0\.025/i], [['R'], 'Ratchet', /ratchet/i], [['L'], 'Lock', /lock|clamp/i], [['A'], 'Auto measure', /auto measure/i], [['C'], 'Section view', /section/i]],
     dial:   [[['←','→'], '0.001″', /slider|jaw|move|close|open|fine/i], [['Shift', '←', '→'], '0.010″ steps', /coarse|shift/i], [['PgUp', 'PgDn'], '0.100″ steps', /hundred thou line|0\.100/i], [['F'], 'Fine adjust', /fine/i], [['L'], 'Lock the slider', /lock/i], [['B'], 'Lock the bezel', /bezel/i], [['Z'], 'Zero the bezel', /zero the bezel|bezel.*zero|turn the bezel/i], [['A'], 'Auto measure', /auto measure/i]],
     vern:   [[['←','→'], '0.001″', /slider|jaw|move|close|open|fine/i], [['Shift', '←', '→'], '0.010″ steps', /coarse|shift/i], [['PgUp', 'PgDn'], '0.100″ steps', /hundred thou line|0\.100/i], [['F'], 'Fine adjust', /fine/i], [['L'], 'Lock the slider', /lock/i], [['A'], 'Auto measure', /auto measure/i]],
-    height: [[['↑','↓'], '0.001″', /slider|scriber|move|raise|lower|fine/i], [['Shift'], '0.050″ steps', /coarse|shift/i], [['F'], 'Fine adjust', /fine/i], [['U'], 'Clamp the upper unit', /upper unit|clamp/i], [['S'], 'Clamp the slider', /clamp the slider|slider clamp/i], [['V'], 'Vernier view', /vernier view|close-up/i]],
+    height: [[['↑','↓'], () => unitMM() ? '0.02 mm' : '0.001″', /slider|scriber|move|raise|lower|fine/i], [['Shift'], () => unitMM() ? '1 mm steps' : '0.050″ steps', /coarse|shift/i], [['F'], 'Fine adjust', /fine/i], [['U'], 'Clamp the upper unit', /upper unit|clamp/i], [['S'], 'Clamp the slider', /clamp the slider|slider clamp/i], [['V'], 'Vernier view', /vernier view|close-up/i]],
     gauge:  [[['A'], 'Auto measure', /auto measure|in a hurry/i], [['L'], 'Lock / unlock the knob', /lock|unlock/i], [['I'], 'Insert / take out', /insert|take it out|slide it in/i], [['M'], 'Measure', /measure the gauge|measure across|measure it/i], [['R'], 'Reset the gauge', /reset|start over/i], [['←','→'], 'Rock the handle', /\brock (the|it|through)|arrow keys|drag the gauge/i], [['↑','↓'], 'Depth in the bore', /depth|deeper|down into/i]]
   };
   const KEYNAMES = 'Esc|Shift|Ctrl|Enter|Tab|Space|PgUp|PgDn|Backspace';
@@ -68,6 +70,10 @@
 .gd{--ph:#5b93ea}
 .gd-card{border-color:color-mix(in srgb,var(--ph) 55%,#2a2d31)!important;box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px color-mix(in srgb,var(--ph) 25%,transparent),0 0 36px -8px color-mix(in srgb,var(--ph) 55%,transparent)!important;transition:border-color .35s ease,box-shadow .35s ease}
 .gd-card{width:min(360px,calc(100vw - 24px))!important}
+.gd-card{box-sizing:border-box;max-height:calc(100vh - 16px)!important;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+/* on a short window the card never outgrows it: the words scroll inside the card, and Back / Next stay in view at its foot */
+.gd-card .gd-foot{position:sticky;bottom:0;z-index:2;margin:12px -16px -12px!important;padding:9px 16px 12px;background:var(--panel,#16181b);border-top:1px solid var(--line,#26292e)}
+@media (max-height:760px){.gd-card{padding-top:11px!important}.gd-card p{gap:5px}.gd-l.lead{font-size:14px}.gd-l.act,.gd-l.tip,.gd-l.ok{padding-top:4px;padding-bottom:4px}.gd-paper{display:none!important}.gd-seg{margin-top:8px}.gd-keys{margin-top:8px;padding-top:7px}}
 .gd-card .gd-head{display:flex;align-items:center;gap:8px;margin:0 28px 8px 0;flex-wrap:wrap}
 .gd-card .gd-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 3px;border-radius:999px;background:color-mix(in srgb,var(--ph) 16%,transparent);border:1px solid color-mix(in srgb,var(--ph) 55%,transparent);color:var(--ph);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:all .35s ease}
 .gd-card .gd-badge b{display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:var(--ph);color:#0b0c0e;font-size:11px;font-weight:800;letter-spacing:0;font-variant-numeric:tabular-nums}
@@ -123,7 +129,7 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
     if (!row){ row = document.createElement('div'); row.className = 'gd-keys'; const foot = card.querySelector('.gd-seg') || card.querySelector('.gd-foot'); foot.parentNode.insertBefore(row, foot); }
     const plain = String(text).replace(/<[^>]+>/g, ' ');
     const asks = String(text).split('\n').slice(1).some(l => !/\b(Exit|Esc)\b/.test(l) && ACTRE.test(l.replace(/<[^>]+>/g, '').trim()));   // (shown only where the step asks you to do something)
-    const hits = (!asks ? [] : (KEYS[tool] || []).filter(k => k[2].test(plain))).slice(0, 3).map(k => [k[0], k[1]]).concat(extra || []);
+    const hits = (!asks ? [] : (KEYS[tool] || []).filter(k => k[2].test(plain))).slice(0, 3).map(k => [k[0], typeof k[1] === 'function' ? k[1]() : k[1]]).concat(extra || []);
     row.hidden = !hits.length;
     row.innerHTML = hits.map(([ks, d]) => '<span><span class="caps">' + ks.map(cap).join('') + '</span>' + d + '</span>').join('');
   }
