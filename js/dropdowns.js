@@ -29,6 +29,7 @@
         const changed = di.get.call(sel) !== i;
         di.set.call(sel, i); label();
         if (changed){ sel.dispatchEvent(new Event('input', { bubbles: true })); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+        sel.dispatchEvent(new Event('pick', { bubbles: true }));   // (every click on a name, even the one already chosen)
       }
       api.close(); btn.focus({ preventScroll: true });
     };

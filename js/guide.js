@@ -50,12 +50,14 @@
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
   let partPicked = false;
-  // picking a part while "Pick a part" is showing puts it in place and waits there: the next step ("Clean the part
-  // too") only comes up when Next is pressed, never from the part list itself
-  if (partList) partList.addEventListener('change', () => {
+  // picking a part while "Pick a part" is showing puts it in place and moves straight on to the next step. The
+  // list's own "change" only fires when the choice differs, so its "pick" (every click on a name, even the part
+  // already chosen) counts too
+  const onPartPick = () => {
     partPicked = true;
-    if (root && STEPS[stepI].part && partList.value !== 'none') partChosen();
-  });
+    if (root && STEPS[stepI].part && !STEPS[stepI].done && partList.value !== 'none') partChosen();
+  };
+  if (partList){ partList.addEventListener('change', onPartPick); partList.addEventListener('pick', onPartPick); }
   const PART = sel => ({ target: sel, part: true, title: 'Pick a part',
     text: s => s.done ? 'That part is in place.\nPick another from the list if you like, or press <b>Next</b> to carry on.' : 'Something to measure comes next.\nAny part from this list will do.',
     enter: () => { partPicked = false; }, waitFor: () => false });
@@ -102,11 +104,37 @@
     return Math.abs(v - base) < 1e-9 ? '\n<b>It reads ' + val('lcd') + ' with nothing in it. Perfect, you’re good to go.</b>' : '\nRight now it reads <b>' + val('lcd') + '</b>. That’s the most common slip: it isn’t quite closed yet. Close it up and see if it lands on the lowest value.';
   };
 
+  // "Show me how" for "Not on 0?": the bezel is turned by its own slider, so the face turns round until the needle is on 0.
+  // With the dial already on 0 it is turned off a little first, so there is something to put right.
+  let howJob = 0;
+  const showBezel = () => {
+    const rng = $('bezelRange'); if (!rng) return;
+    if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click();   // (a locked bezel won't turn)
+    const job = ++howJob, nav = navId, alive = () => root && navId === nav && howJob === job;
+    const turn = (to, ms) => new Promise(done => {
+      const from = +rng.value, t0 = performance.now();
+      const f = now => {
+        if (!alive()) return done(false);
+        const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        rng.value = Math.round(from + (to - from) * e); rng.dispatchEvent(new Event('input', { bubbles: true }));
+        k < 1 ? requestAnimationFrame(f) : done(true);
+      };
+      requestAnimationFrame(f);
+    });
+    const doEl = card.querySelector('.gd-do'), say = t => { doEl.hidden = false; doEl.querySelector('span').textContent = t; };
+    (async () => {
+      if (+rng.value === 0){ say('Say it reads a little off…'); if (!await turn(18, 900)) return; await new Promise(r => setTimeout(r, 700)); if (!alive()) return; }
+      say('Turn the bezel until the needle is on 0.');
+      if (!await turn(0, 1400)) return;
+      say('There. Dead on 0, and good to go.');
+    })();
+  };
+
   const TOURS = {
     dial: [
       INTRO('dial caliper'),
       CLEAN('Start with a habit worth keeping: wipe the jaws’ contact points with a clean cloth.\nA little grit or oil there throws every reading off.',
-        () => 'Now watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote()),
+        () => 'Now watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote(), { how: showBezel }),
       { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the slider edge sits right on the beam’s 0.\nNot a single inch number has been passed, so that’s zero whole inches.' + now('vA') },
       { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the hundred-thou lines', text: () => 'Not a single hundred-thou line has been passed either.\nZero lines means zero hundred thou.' + now('vB') },
       { spot: 'dial', view: 'dial', hl: 'dial', title: 'Zero on the dial', text: () => 'The needle points straight at 0.\nIf yours ever drifts, turn the bezel to bring it back.' + now('vC') },
@@ -361,6 +389,8 @@
 .gd-do[hidden]{display:none}
 .gd-card .gd-max{display:flex;width:100%;margin-top:10px;padding:7px 10px;gap:7px;align-items:center;justify-content:center;font-weight:600}
 .gd-card .gd-max[hidden]{display:none}
+.gd-card .gd-how{display:block;width:100%;margin-top:10px;padding:7px 10px;font-weight:600}
+.gd-card .gd-how[hidden]{display:none}
 .gd-card .gd-hands{display:flex;width:100%;margin-top:10px;padding:7px 10px;gap:7px;align-items:center;justify-content:center;font-weight:600}
 .gd-card .gd-hands[hidden]{display:none}
 .gd-hands.off .ic-eye,.gd-hands:not(.off) .ic-eyeoff{display:none}
@@ -566,6 +596,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     card.innerHTML = `<button class="gd-x" type="button" aria-label="Exit the walkthrough" data-tip="Exit">✕</button><h4></h4><p aria-live="polite"></p>
       <div class="gd-choose" hidden></div>
       <div class="gd-do" hidden><i class="fa-solid fa-hand-pointer"></i><span></span></div>
+      <button type="button" class="gd-how" hidden>Show me how</button>
       <button type="button" class="gd-max" hidden><i class="fa-solid fa-expand ic-grow"></i><i class="fa-solid fa-compress ic-shrink"></i><span>Expand the minimap</span></button>
       <div class="gd-opts" hidden role="group" aria-label="Ways to hold it"><button type="button" data-opt="1">Option 1<small>Left hand on the frame, right hand on the ratchet</small></button><button type="button" data-opt="2">Option 2<small>Right hand holds the micrometer, left hand holds the part</small></button></div>
       <button type="button" class="gd-hands" hidden aria-pressed="false"><i class="fa-solid fa-eye ic-eye"></i><i class="fa-solid fa-eye-slash ic-eyeoff"></i><span>Hide the hands</span></button>
@@ -579,6 +610,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
       go(1);
     });
     card.querySelector('.gd-back').addEventListener('click', () => go(stepI - 1));
+    card.querySelector('.gd-how').addEventListener('click', () => { const h = STEPS[stepI].how; if (h) h(); });
     // "Expand the minimap" / "Shrink the minimap back": the flat view grows to full height or goes back to its
     // corner; whichever size it had before the walkthrough comes back when it ends
     card.querySelector('.gd-max').addEventListener('click', () => {
@@ -691,6 +723,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     ch.innerHTML = s.choose ? s.choose.map(([u, label]) => `<button type="button" data-u="${u}">${label}</button>`).join('') : '';
     // on a flat-view step, a button to expand the flat view, or shrink it back once it is expanded
     syncMax(); syncHands();
+    card.querySelector('.gd-how').hidden = !s.how;   // "Show me how": a step that can act out its advice
     const doEl = card.querySelector('.gd-do');
     doEl.hidden = !(s.waitClick || s.waitFor || s.drag);
     doEl.querySelector('span').textContent = s.drag === 'look' ? 'Follow the hand: press on empty space, hold, and drag.'
@@ -711,13 +744,13 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     tick();
     setTimeout(() => { try { (s.choose ? ch.querySelector('button') : next).focus({ preventScroll: true }); } catch (e) {} }, 30);
   }
-  // a part is picked: the tool puts it in place by itself (the person brings the tool to it by hand), and the card
-  // waits for Next
+  // a part is picked: the tool puts it in place by itself (the person brings the tool to it by hand), and on we go
   function partChosen(){
     STEPS[stepI].done = true; waitDone = true;
     if (window.__guidePlacePart) setTimeout(() => { try { window.__guidePlacePart(); } catch (e) {} }, 150);
-    card.querySelector('.gd-next').textContent = 'Next';
-    card.querySelector('.gd-do span').textContent = 'Nice! Press Next when you’re ready.';
+    const doEl = card.querySelector('.gd-do'); doEl.hidden = false;
+    doEl.querySelector('span').textContent = 'Nice! On to the next step…';
+    const id = navId; setTimeout(() => { if (root && navId === id) advance(); }, 500);
   }
   // an automatic "on to the next step": always forward, never back to a step that is done
   function advance(){

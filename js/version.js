@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.21',
+  version: '1.3.22',
   changelog: [
+    { v: '1.3.22', date: '2026-10-21', title: 'Pick a part always moves on', items: [
+      'In How do I use it?, picking a part now always moves straight on to the next step, even when you pick the part that was already chosen.',
+      'The zero check on the dial caliper has a Show me how button that turns the bezel until the needle is on 0.'
+    ] },
     { v: '1.3.21', date: '2026-10-21', title: 'Icons move when a card pops up', items: [
       'When a message, warning, tour card or the changelog pops up, the icon on it moves once in the way that fits it, like the icons on buttons do.'
     ] },

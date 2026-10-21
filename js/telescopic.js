@@ -1338,6 +1338,7 @@ $('practiceBtn').onclick=()=>setPractice(!S.practice);$('checkBtn').onclick=prac
 $('guess').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();practiceCheck();}e.stopPropagation();});
 $('guideBtn').onclick=()=>G.on?guideStop():guideStart();
 $('sampleSel').onchange=e=>{S.partChanged=true;selectSample(+e.target.value);};
+$('sampleSel').addEventListener('pick',()=>{S.partChanged=true;});   // (picking the part already chosen still counts, so the walkthrough moves on)
 $('gset').onclick=e=>{const b=e.target.closest('.gchip');if(!b)return;S.auto=false;$('auto').checked=false;selectGauge(+b.dataset.i);};
 $('auto').onchange=e=>{S.auto=e.target.checked;if(S.auto&&S.gi!==pickGauge(S.sample.nom))selectGauge(pickGauge(S.sample.nom));else buildGset();};
 $('btnReroll').onclick=()=>{reroll();selectSample(S.si);toast('Hole sizes re-rolled.');};
