@@ -3,8 +3,11 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.20',
+  version: '1.3.21',
   changelog: [
+    { v: '1.3.21', date: '2026-10-21', title: 'Icons move when a card pops up', items: [
+      'When a message, warning, tour card or the changelog pops up, the icon on it moves once in the way that fits it, like the icons on buttons do.'
+    ] },
     { v: '1.3.20', date: '2026-10-20', title: 'How do I read this?', items: [
       'Every measurement now has a “How do I read this?” button just below it. It shows the value and how a machinist would say it out loud in a shop, like “two thirty-four and five tenths”.',
       'In practice mode the button sits by the answer box and says your typed reading, without giving the answer away.'
