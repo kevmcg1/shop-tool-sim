@@ -1,165 +1,18 @@
 // The version of Shop Tool Sim and what changed in each one. Every tool and the page around them read this one file,
 // so the version number and the changelog are always the same everywhere. To release: add an entry to the top of
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
-// Keep each version to three sentences at most.
+// Keep ONE entry per day, and each entry to ONE short, simple sentence: if today already has an entry, add to its sentence instead of a new entry.
 window.__SHOP = {
   version: '1.3.27',
   changelog: [
-    { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: [
-      'The How do I use it? card is now placed without a transform, no longer fades in on each step, and its lines sit on whole pixels, so its text is sharper.'
-    ] },
-    { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls settings', items: [
-      'A settings cog now sits to the left of the Rotate, Pan and Zoom controls on the calipers, micrometers and height gage.',
-      'It lets you choose which mouse button rotates, pans and zooms, and remembers your choice for every tool.'
-    ] },
-    { v: '1.3.25', date: '2026-10-21', title: 'Readings said in full, and a real-life note', items: [
-      'How do I read this? now says the thou as a whole number: 0.537 is “Five hundred thirty-seven thou”, and 1.2345 is “One inch, two hundred thirty-four thou and five tenths”. Metric readings follow the same pattern: millimeters, hundredths, then microns.',
-      'Every How do I use it? now ends by suggesting you also get a feel for the real tool, since the simulator gives you an idea but real use gives you the experience.'
-    ] },
-    { v: '1.3.24', date: '2026-10-21', title: 'Preview shows when the Part list opens', items: [
-      'With no part chosen, opening the Part list used to show no blue hologram until you pointed at a name. It now previews the first part right away.'
-    ] },
-    { v: '1.3.23', date: '2026-10-21', title: 'Tolerance line stands out', items: [
-      'In How do I use it?, the line “That’s why tolerances exist: a tolerance says how far off is still good enough” is now a bold, glowing callout.'
-    ] },
-    { v: '1.3.22', date: '2026-10-21', title: 'Pick a part always moves on', items: [
-      'In How do I use it?, picking a part now always moves straight on to the next step, even when you pick the part that was already chosen.',
-      'The zero check on the dial caliper has a Show me how button that turns the bezel until the needle is on 0.'
-    ] },
-    { v: '1.3.21', date: '2026-10-21', title: 'Icons move when a card pops up', items: [
-      'When a message, warning, tour card or the changelog pops up, the icon on it moves once in the way that fits it, like the icons on buttons do.'
-    ] },
-    { v: '1.3.20', date: '2026-10-20', title: 'How do I read this?', items: [
-      'Every measurement now has a “How do I read this?” button just below it. It shows the value and how a machinist would say it out loud in a shop, like “two thirty-four and five tenths”.',
-      'In practice mode the button sits by the answer box and says your typed reading, without giving the answer away.'
-    ] },
-    { v: '1.3.19', date: '2026-10-16', title: 'Practice carries over, and a tidier card', items: [
-      'When you send the gauge from the telescopic lab in practice mode, the micrometer or caliper stays in practice mode too, with the reading hidden and an answer box.',
-      'The “Where did the sidebar go?” card now finds a free spot and never covers a button, panel or message.'
-    ] },
-    { v: '1.3.18', date: '2026-10-15', title: 'Dirt where it really touches', items: [
-      'The slip of paper now finds what touches it and where, so the dirt stain lands only on the part of the paper the contact points actually touched.',
-      'As the paper is pulled out the stain smears along it and fades, and the clean steel block in the telescopic gauge lab leaves none.'
-    ] },
-    { v: '1.3.17', date: '2026-10-15', title: 'A seamless handoff', items: [
-      'The gauge that flies from the telescopic gauge lab into a tool now looks exactly like the tool’s own copy of it, so nothing changes when the tool takes over.',
-      'It is lit, toned, reflected, turned, and seen with the tool’s own lens and light, and the tool’s buttons stay over it.'
-    ] },
-    { v: '1.3.16', date: '2026-10-15', title: 'Try it yourself', items: [
-      'In Show me, the green step label that said Do it now says Try it yourself, on every tool.'
-    ] },
-    { v: '1.3.15', date: '2026-10-15', title: 'An organized auto-pick note', items: [
-      'The telescopic gauge’s auto-pick message now lists the hole size, the gauge it chose and that gauge’s range on separate lines, each underlined in its own color.',
-      'The Choose the size step in How do I use it? uses the same colors.'
-    ] },
-    { v: '1.3.14', date: '2026-10-15', title: 'The real procedure', items: [
-      'The telescopic gauge walkthrough now follows the shop procedure: compress and lock, insert at an angle, release the plungers, center and rock, then snug and lock.',
-      'The Compress and lock step now really closes the gauge and locks the knob before it goes into the hole.'
-    ] },
-    { v: '1.3.13', date: '2026-10-15', title: 'Rods in just before the hole', items: [
-      'On the telescopic gauge walkthrough, the Rods all the way in step now comes right before the gauge goes into the hole, instead of straight after cleaning.'
-    ] },
-    { v: '1.3.12', date: '2026-10-15', title: 'Pick a part, clearly', items: [
-      'In Show me, the part preview stays bright instead of being dimmed, and the card now sits to the right of it.',
-      'The arrow goes up and over the preview to the Part list, so it never crosses the preview.'
-    ] },
-    { v: '1.3.11', date: '2026-10-15', title: 'Test both pistons', items: [
-      'The telescopic gauge cleaning step now tells you to slowly push each piston in and let it spring back out, to check both are smooth and not sticky.'
-    ] },
-    { v: '1.3.10', date: '2026-10-15', title: 'Both ends cleaned', items: [
-      'On the telescopic gauge, the cleaning step now wipes both contact heads with the slip of paper, the right-hand one first and then the left-hand one.'
-    ] },
-    { v: '1.3.9', date: '2026-10-15', title: 'The knurl shows', items: [
-      'The lock knob and the grip below it on the telescopic gauge now always show their diamond knurl, instead of only with Shop graphics on.'
-    ] },
-    { v: '1.3.8', date: '2026-10-15', title: 'Paper that keeps its shape', items: [
-      'In the cleaning picture, the dirt now ends up on the outside of the paper instead of inside it.',
-      'In the 3D cleaning step the paper is always exactly 3 in by 3 in and stays flat, so it never grows or shrinks, and it can no longer go through the tool.'
-    ] },
-    { v: '1.3.7', date: '2026-10-15', title: 'A clearer How do I use it?', items: [
-      'Every walkthrough step was read again against the ones around it: the cleaning step now goes wipe, paper, then zero check, and repeated explanations and awkward sentences were reworded.',
-      'A few details were corrected, such as a chip in a bore making the hole read smaller, and the vernier caliper’s millimeter zero steps showing millimeters.'
-    ] },
-    { v: '1.3.6', date: '2026-10-15', title: 'Pushing the pistons in', items: [
-      'The telescopic gauge walkthrough now says that on a real gauge you push both ends in with two fingers on each side.'
-    ] },
-    { v: '1.3.5', date: '2026-10-15', title: 'A knob on every gauge', items: [
-      'Every telescopic gauge now ends in a small knurled lock knob on a short neck, like the real set, and you can see it wherever the gauge is drawn.',
-      'The first walkthrough step now tells you to clean both pistons, the two sliding rods and their contact heads.'
-    ] },
-    { v: '1.3.4', date: '2026-10-15', title: 'Picking a part stays put', items: [
-      'In Show me, choosing a part no longer jumps straight to “Clean the part too” and its paper picture; the card waits on “Pick a part” until you press Next.',
-      'Going back to the zero check now brings “Pick a part” back, since that clears the part.'
-    ] },
-    { v: '1.3.3', date: '2026-10-15', title: 'Clearer cleaning tip', items: [
-      'The depth micrometer and height gage cleaning tips now say plainly how a chip or speck of grit changes the reading, instead of the confusing “reads as depth that isn’t there”.'
-    ] },
-    { v: '1.3.2', date: '2026-10-15', title: 'Examine starts still', items: [
-      'Auto-rotate is now off to begin with in every tool, so Examine opens with the view held still until you turn it on.',
-      'On the telescopic gauge, dragging in Examine now turns the view around the gauge instead of rocking the gauge itself.'
-    ] },
-    { v: '1.3.1', date: '2026-10-15', title: 'Highlights match their lines', items: [
-      'A highlighted mark is now exactly as thick as the line it marks, in the 3D view and the flat view of every tool, so it no longer looks bolder than its neighbors.'
-    ] },
-    { v: '1.3.0', date: '2026-10-15', title: 'A livelier How do I use it?', items: [
-      'Every walkthrough has a new look: colored phases, a progress bar, action lines, tips, and a keycap whenever a key is mentioned.',
-      'The cleaning step now shows a slip of paper between the contact points: the tool closes on it, and it slides out with a slight stain. A few wording fixes make each step more accurate.'
-    ] },
-    { v: '1.2.9', date: '2026-10-15', title: 'The lock screw', items: [
-      'Every telescopic gauge now has its lock screw in the end of the knob, and its cross-bar is simpler: a plain tube and rod on each side of a small hub.',
-      'The walkthrough openings that poke fun at the creator always look back to years ago, and promise you’ll be just as good.',
-      'Dev mode reaches every control, including the ones that only appear in other modes, and the page tabs.'
-    ] },
-    { v: '1.2.8', date: '2026-10-14', title: 'Reset buttons and a tidier help section', items: [
-      'Every slider now has a Reset to default button beside it (double-clicking the slider does the same).',
-      'On the telescopic gauge, dragging the view turns it about the point under your pointer.',
-      'The help section at the bottom of each sidebar is reorganized into Reading it, Mouse and Keys.'
-    ] },
-    { v: '1.2.7', date: '2026-10-14', title: 'A fresh walkthrough', items: [
-      'How do I use it? now opens with a different friendly line every time, and its wording is warmer and more confident.',
-      'The telescopic gauge walkthrough follows real shop practice more closely, including checking the tool you measure with.',
-      'Examine labels pop in one at a time on every tool, and the BEST tag never overlaps anything.'
-    ] },
-    { v: '1.2.6', date: '2026-10-14', title: 'Smoother labels', items: [
-      'On the telescopic gauge, the BEST tag now eases in and glides from one size to the next.',
-      'Part labels and Examine labels pop in one at a time, like bubbles.'
-    ] },
-    { v: '1.2.5', date: '2026-10-14', title: 'Quick controls and better views', items: [
-      'The telescopic gauge has quick controls at the bottom left like the other tools, its Examine button works again, and its Hole and Top views now show the hole.',
-      'Sidebar categories have a new look, side-by-side buttons are the same height, and the gauge arrows are smaller and further apart.',
-      'Opening and closing the side panel on the telescopic gauge is smooth.'
-    ] },
-    { v: '1.2.4', date: '2026-10-14', title: 'A calmer table and tidier panels', items: [
-      'The measuring table is now an even dark gray with barely any marks, so it no longer flashes light and dark when you rotate the view.',
-      'The Sample and Part panels have cleaner feature cards, and the telescopic gauge uses the same tooltips as the other tools (never cut off by the window).',
-      'On the calipers, the gauge you send over is now drawn by the caliper itself, so the jaws and slider hide it where they should.'
-    ] },
-    { v: '1.2.3', date: '2026-10-14', title: 'Phone heads-up and gauge buttons', items: [
-      'Phones and tablets now get a pop-up saying the simulator is best on a laptop or desktop, with a Continue anyway button.',
-      'The telescopic gauge has the same top-left buttons as the other tools: the side panel, Examine and Practice.'
-    ] },
-    { v: '1.2.2', date: '2026-10-14', title: 'A slimmer gauge and a longer walkthrough', items: [
-      'The telescopic gauge has a slimmer, plainer look, and its top-left card is easier to read.',
-      'The gauge now lands on the micrometer or caliper at the same angle it flew in at, and How do I use it? carries on there to show the same number on both sides.',
-      'On the height gage, How do I use it? now pans down to the plate at zero, and every checkbox is now round and animated.'
-    ] },
-    { v: '1.2.1', date: '2026-10-13', title: 'Split-screen measuring and a truer gauge', items: [
-      'Measure, Auto measure and the How do I use it? walkthrough now open the micrometer or caliper beside the gauge, with the gauge on it at its exact locked length.',
-      'The telescopic gauge has a new look, and the micrometer and calipers use the very same model.',
-      'Dev mode now grades how smoothly each tool runs and tests every control.'
-    ] },
-    { v: '1.2.0', date: '2026-10-12', title: 'Shop graphics, a better gauge, faster loading', items: [
-      'A new Shop graphics button gives every tool a real machine-shop look, with a ground surface plate under it.',
-      'The telescopic gauge has a better look, and a Measure button carries it to the micrometer or caliper you choose.',
-      'Tools load faster, and every icon now moves when you point at it.'
-    ] },
-    { v: '1.1.0', date: '2026-10-12', title: 'Telescopic gauge', items: [
-      'A new Telescopic gauge tab has a six-gauge set (A to F) you can lock in a hole in 3D and then measure on the micrometer or caliper.',
-      'How do I use it? now starts by cleaning and zeroing the tool, and ends with a note on tolerances.',
-      'The written tutorials are gone, so How do I use it? is the one way in.'
-    ] },
-    { v: '1.0.0', date: '', title: 'First release', items: [
-      'Dial caliper, vernier caliper, outside micrometer, depth micrometer and height gage trainers, with How do I use it?, Practice and Examine.'
-    ] }
+    { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: ['The How do I use it? card text is now sharper.'] },
+    { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls and readings', items: ['A mouse-controls settings cog was added, and readings are now said in full.'] },
+    { v: '1.3.20', date: '2026-10-20', title: 'How do I read this?', items: ['Every measurement now has a How do I read this? button.'] },
+    { v: '1.3.19', date: '2026-10-16', title: 'Practice carries over', items: ['Practice mode now carries over when you send the gauge from the telescopic lab.'] },
+    { v: '1.3.18', date: '2026-10-15', title: 'A truer walkthrough', items: ['The telescopic gauge walkthrough and cleaning step now follow real shop practice.'] },
+    { v: '1.2.8', date: '2026-10-14', title: 'Resets and smoother labels', items: ['Every slider has a Reset button, and the telescopic gauge is tidier and smoother.'] },
+    { v: '1.2.1', date: '2026-10-13', title: 'Split-screen measuring', items: ['Measure now opens the micrometer or caliper beside the telescopic gauge.'] },
+    { v: '1.2.0', date: '2026-10-12', title: 'Shop graphics and a telescopic gauge', items: ['Shop graphics and a telescopic gauge were added, and tools load faster.'] },
+    { v: '1.0.0', date: '', title: 'First release', items: ['The dial and vernier calipers, outside and depth micrometers and height gage trainers.'] }
   ]
 };

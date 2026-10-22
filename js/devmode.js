@@ -600,9 +600,11 @@
         chip.click(); await sleep(500);
         const m = d.querySelector('.shop-cl');
         if (!m || m.hidden) c.fail('it did not open'); else { c.ok('it opens'); if (!m.textContent.includes((window.__SHOP || {}).version)) c.fail('it does not show the current version'); else c.ok('it shows v' + window.__SHOP.version); }
-        // every version says what changed in three sentences at most
-        const long = ((window.__SHOP || {}).changelog || []).filter(e => e.items.join(' ').replace(/How do I use it\?/g, 'How do I use it').split(/[.!?](?:\s|$)/).filter(s => s.trim()).length > 3).map(e => 'v' + e.v);
-        if (long.length) c.fail('longer than three sentences: ' + long.join(', ')); else c.ok('every version is three sentences or fewer');
+        // one entry per day, and each says what changed in one short sentence
+        const cl = ((window.__SHOP || {}).changelog || []), long = cl.filter(e => e.items.length !== 1 || e.items[0].replace(/How do I (use|read) (it|this)\?/g, 'How do I $1 $2').split(/[.!?](?:\s|$)/).filter(s => s.trim()).length > 1 || e.items[0].length > 120).map(e => 'v' + e.v);
+        const days = cl.map(e => e.date).filter(Boolean), twice = days.filter((x, i) => days.indexOf(x) !== i);
+        if (long.length) c.fail('not one short sentence: ' + long.join(', ')); else c.ok('every version is one short sentence');
+        if (twice.length) c.fail('more than one entry on a day: ' + [...new Set(twice)].join(', ')); else c.ok('one entry per day');
         d.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await sleep(500);
         if (m && !m.hidden) c.fail('Escape did not close it'); else c.ok('Escape closes it');
         chip.click(); await sleep(400); m.querySelector('.shop-cl-x').click(); await sleep(400);
