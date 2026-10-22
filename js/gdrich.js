@@ -72,11 +72,12 @@
 .gd-card .gd-head{display:flex;align-items:center;gap:8px;margin:0 28px 8px 0;flex-wrap:wrap}
 .gd-card .gd-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 3px;border-radius:999px;background:color-mix(in srgb,var(--ph) 16%,transparent);border:1px solid color-mix(in srgb,var(--ph) 55%,transparent);color:var(--ph);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap;transition:all .35s ease}
 .gd-card .gd-badge b{display:grid;place-items:center;min-width:19px;height:19px;padding:0 4px;border-radius:999px;background:var(--ph);color:#0b0c0e;font-size:11px;font-weight:800;letter-spacing:0;font-variant-numeric:tabular-nums}
-.gd-card h4{margin:0 26px 8px 0!important;font-size:16.5px!important;font-weight:700!important;line-height:1.25;letter-spacing:-.005em}
+.gd-card h4{margin:0 26px 8px 0!important;font-size:16.5px!important;font-weight:700!important;line-height:21px;letter-spacing:-.005em}
 .gd-card .gd-head+h4{margin-top:0}
 .gd-card p{margin:0;display:grid;gap:7px;color:var(--muted,#9aa0a8)}
 .gd-card p b{color:color-mix(in srgb,var(--ph) 40%,#fff)}
-.gd-l{display:block;line-height:1.5}
+.gd-card p,.gd-l{line-height:20px}   /* whole pixels, so no line of text lands between two pixel rows */
+.gd-l{display:block}
 .gd-l+.gd-l{margin-top:0!important}
 .gd-l.lead{color:var(--ink,#ececee);font-size:14.5px;font-weight:550}
 .gd-l.act{position:relative;padding:6px 10px 6px 30px;border-radius:9px;background:color-mix(in srgb,var(--ph) 11%,transparent);border:1px solid color-mix(in srgb,var(--ph) 30%,transparent);color:var(--ink,#ececee)}
