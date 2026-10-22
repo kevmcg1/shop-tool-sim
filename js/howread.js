@@ -85,16 +85,15 @@ body.practice .howread.hr-main{display:none}
     const neg = m[1] ? 'minus ' : '', whole = +(m[2] || 0), f = m[3] || '', d = f.length;
     const padded = (f + '0000').slice(0, 4), n3 = +padded.slice(0, 3), t = +padded[3], extra = f.slice(4);
     const wholeTxt = whole ? words(whole) + (whole === 1 ? ' inch' : ' inches') : '';
-    const tenths = t ? ' and ' + words(t) + (t === 1 ? ' tenth' : ' tenths') : '';
+    // said in full, the way it is read off the scales: inches, then the thou, then the tenths of a thou
+    // (0.537 is "five hundred thirty-seven thou", 1.2345 is "one inch, two hundred thirty-four thou and five tenths")
+    const tenthTxt = t ? words(t) + (t === 1 ? ' tenth' : ' tenths') : '';
     let shop;
     if (!whole && !n3 && !t) shop = 'zero';
     else if (!n3 && !t) shop = wholeTxt + ', even';
     else {
-      const th = n3 ? shopThou(n3) + (whole || t ? '' : ' thou') : '';
-      shop = (wholeTxt ? wholeTxt + ', ' : '') + (n3 ? th : 'zero thou') + tenths;
-      if (!n3 && t) shop = (wholeTxt ? wholeTxt + ', ' : '') + words(t) + (t === 1 ? ' tenth' : ' tenths');
-      if (whole && n3 && !t) shop += ' thou';
-      if (!whole && n3 && n3 < 100 && t) shop += ' thou';
+      const rest = n3 ? words(n3) + ' thou' + (t ? ' and ' + tenthTxt : '') : tenthTxt;
+      shop = (wholeTxt ? wholeTxt + ', ' : '') + rest;
     }
     let full = (wholeTxt ? wholeTxt + (n3 || t ? ' and ' : '') : '');
     if (n3 && t) full += words(n3) + ' and ' + words(t) + ' ' + (t === 1 ? 'tenth' : 'tenths') + ' of a thousandth of an inch';
@@ -105,28 +104,34 @@ body.practice .howread.hr-main{display:none}
     const v = parseFloat(str), fr = isFinite(v) ? fractionName(Math.abs(v), d) : null;
     const notes = [];
     if (d >= 4 || t) notes.push('<b>Thou</b> is a thousandth of an inch (0.001″). <b>A tenth</b> is a ten-thousandth, 0.0001″: a tenth of a thou. The mic’s thimble reads in tenths.');
-    else notes.push('<b>Thou</b> is a thousandth of an inch (0.001″). Shops drop the word “point” and the leading zero: .250 is “two fifty”.');
+    else notes.push('<b>Thou</b> is a thousandth of an inch (0.001″). Say the thou as a whole number: 0.250 is “two hundred fifty thou”.');
     if (extra) notes.push('Digits past the fourth decimal are too fine to say in the shop.');
     return { shop: neg + shop, full: neg + full, also: fr, notes };
   }
+  // Said in full, like the inch ones: millimeters, then hundredths, then microns (thousandths of a millimeter).
+  // 13.645 is "thirteen millimeters, sixty-four hundredths and five microns"; 0.37 is "thirty-seven hundredths of a millimeter";
+  // 0.005 is "five microns". A hundredths part that ends in a zero is said in tenths: 13.6 is "thirteen millimeters, six tenths".
   function sayMm(str) {
     const m = /^(-?)(\d*)\.?(\d*)$/.exec(str.trim()); if (!m) return null;
-    const neg = m[1] ? 'minus ' : '', whole = +(m[2] || 0), f = m[3] || '', d = f.length;
-    const wholeTxt = whole ? words(whole) : '';
-    const place = ['', 'tenths', 'hundredths', 'thousandths', 'ten-thousandths'][Math.min(d, 4)];
-    const fn = f ? +f.slice(0, 4) : 0;
-    const hund = (n, pl) => words(n) + ' ' + pl.replace(/s$/, n === 1 ? '' : 's');
-    let point;
-    if (!whole && f && fn) point = hund(fn, place) + ' of a millimeter';
-    else point = (wholeTxt || 'zero') + (f ? ' point ' + digitWords(f) : '') + (whole === 1 && !f ? ' millimeter' : ' millimeters');
-    let full;
-    if (!f || fn === 0) full = (wholeTxt || 'zero') + (whole === 1 ? ' millimeter' : ' millimeters') + ', even';
-    else full = (whole ? wholeTxt + (whole === 1 ? ' millimeter' : ' millimeters') + ' and ' : '') + hund(fn, place) + (whole ? '' : ' of a millimeter');
+    const neg = m[1] ? 'minus ' : '', whole = +(m[2] || 0), f = m[3] || '';
+    const padded = (f + '000').slice(0, 3), n2 = +padded.slice(0, 2), mic = +padded[2], extra = f.slice(3);
+    const mmTxt = whole ? words(whole) + (whole === 1 ? ' millimeter' : ' millimeters') : '';
+    const hundTxt = !n2 ? '' : n2 % 10 === 0 ? words(n2 / 10) + (n2 === 10 ? ' tenth' : ' tenths') : words(n2) + (n2 === 1 ? ' hundredth' : ' hundredths');
+    const micTxt = mic ? words(mic) + (mic === 1 ? ' micron' : ' microns') : '';
+    let shop, full;
+    if (!whole && !n2 && !mic){ shop = 'zero'; full = 'zero millimeters'; }
+    else if (!n2 && !mic){ shop = mmTxt + ', even'; full = shop; }
+    else {
+      const rest = hundTxt ? hundTxt + (micTxt ? ' and ' + micTxt : '') : micTxt;
+      shop = (mmTxt ? mmTxt + ', ' : '') + rest + (!whole && hundTxt && !micTxt ? ' of a millimeter' : '');
+      const fullRest = hundTxt ? hundTxt + (mic ? ' and ' + words(mic) + (mic === 1 ? ' thousandth' : ' thousandths') : '') : words(mic) + (mic === 1 ? ' thousandth' : ' thousandths');
+      full = (mmTxt ? mmTxt + ' and ' : '') + fullRest + (whole ? '' : ' of a millimeter');
+    }
     const notes = [];
-    if (d === 2) notes.push('<b>A hundredth</b> is 0.01 mm (10 microns). It is the smallest step on a metric caliper or mic.');
-    else if (d === 1) notes.push('<b>A tenth</b> of a millimeter is 0.1 mm (100 microns).');
-    else if (d >= 3) notes.push('<b>A micron</b> is 0.001 mm. Shops say “microns” for the last digits: .005 is “five microns”.');
-    return { shop: neg + point, full: neg + full, also: null, notes };
+    notes.push('<b>A hundredth</b> is 0.01 mm (10 microns): the smallest step on a metric caliper or the thimble of a metric mic. <b>A micron</b> is 0.001 mm.');
+    if (mic) notes.push('Say the last digit in microns: 0.005 mm is “five microns”.');
+    if (extra) notes.push('Digits past the third decimal are too fine to say in the shop.');
+    return { shop: neg + shop, full: neg + full, also: null, notes };
   }
 
   /* ---------- reading the page ---------- */
@@ -169,6 +174,7 @@ body.practice .howread.hr-main{display:none}
   document.body.appendChild(veil);
   const body = veil.querySelector('#hrxBody');
   let openSrc = null, lastFocus = null, watcher = null;
+  const cap1 = s => s.replace(/^(minus )?([a-z])/, (m, a, b) => (a || '') + b.toUpperCase());
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function render() {
     const rs = readingsFor(openSrc);
@@ -182,8 +188,8 @@ body.practice .howread.hr-main{display:none}
       const s = r.unit === 'mm' ? sayMm(r.str) : sayInch(r.str);
       if (!s) return '';
       return '<div class="hrx-r"><div class="hrx-v">' + esc(r.shown) + '<small>' + (r.unit === 'mm' ? 'mm' : 'in') + (r.typed ? ' · your reading' : '') + '</small></div>' +
-        '<div class="hrx-l">Say it like this</div><div class="hrx-say">' + esc(s.shop) + '</div>' +
-        '<div class="hrx-l">Word for word</div><div class="hrx-full">' + esc(s.full) + '</div>' +
+        '<div class="hrx-l">Say it like this</div><div class="hrx-say">' + esc(cap1(s.shop)) + '</div>' +
+        '<div class="hrx-l">Word for word</div><div class="hrx-full">' + esc(cap1(s.full)) + '</div>' +
         (s.also ? '<div class="hrx-l">Also called</div><div class="hrx-full">' + esc(s.also) + '</div>' : '') +
         s.notes.map(n => '<p class="hrx-note">' + n + '</p>').join('') + '</div>';
     }).join('');

@@ -90,7 +90,10 @@
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
   // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
   const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nThat’s why tolerances exist: a tolerance says how far off is still good enough.' };
-  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: 'Click <b>Practice</b>.\nThe answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nTime with a real tool is worth just as much, if not more.\nThis simulator is for practicing when you can’t get to one in person.\nYou can run <b>How do I use it?</b> again any time.' };
+  // the last word on every tool: the simulator is no substitute for the real thing
+  const REAL = { dial: 'a pair of dial calipers', vern: 'a pair of vernier calipers', mic: 'an outside micrometer', depth: 'a depth micrometer', height: 'a height gage' };
+  const NL_REAL = '\nEven though you can practice with this, I recommend you also get a feel for what it’s like to use ' + REAL[tool] + ' in real life.\nThis will give you an idea, but using the tools in real life will give you the experience.';
+  const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: () => 'Click <b>Practice</b>.\nThe answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.' + NL_REAL };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
   const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
