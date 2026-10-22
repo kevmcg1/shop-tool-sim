@@ -141,7 +141,13 @@ body.guiding .holo{z-index:940}
         if (!dd.classList.contains('open')) return hide();
         const list = dd.querySelector('.dd-list');
         const on = list && (list.querySelector('.dd-opt.on') || list.querySelector('.dd-opt[aria-selected="true"]'));
-        show(on ? [...list.children].indexOf(on) : sel.selectedIndex);
+        let i = on ? [...list.children].indexOf(on) : sel.selectedIndex;
+        // with "No part" chosen (as the walkthrough leaves it) there is nothing to preview, so the list opens on the first
+        // part instead of an empty space; the pointer resting on the "No part" row itself still shows nothing
+        if (sel.options[i] && sel.options[i].value === 'none' && !(list && list.querySelector('.dd-opt:hover'))){
+          const f = [...sel.options].findIndex(op => op.value !== 'none' && !op.disabled); if (f >= 0) i = f;
+        }
+        show(i);
       };
       new MutationObserver(sync).observe(dd, { attributes: true, childList: true, subtree: true, attributeFilter: ['class', 'aria-selected'] });
     }

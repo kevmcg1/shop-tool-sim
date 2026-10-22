@@ -3,8 +3,26 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.21',
+  version: '1.3.26',
   changelog: [
+    { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls settings', items: [
+      'A settings cog now sits to the left of the Rotate, Pan and Zoom controls on the calipers, micrometers and height gage.',
+      'It lets you choose which mouse button rotates, pans and zooms, and remembers your choice for every tool.'
+    ] },
+    { v: '1.3.25', date: '2026-10-21', title: 'Readings said in full, and a real-life note', items: [
+      'How do I read this? now says the thou as a whole number: 0.537 is “Five hundred thirty-seven thou”, and 1.2345 is “One inch, two hundred thirty-four thou and five tenths”. Metric readings follow the same pattern: millimeters, hundredths, then microns.',
+      'Every How do I use it? now ends by suggesting you also get a feel for the real tool, since the simulator gives you an idea but real use gives you the experience.'
+    ] },
+    { v: '1.3.24', date: '2026-10-21', title: 'Preview shows when the Part list opens', items: [
+      'With no part chosen, opening the Part list used to show no blue hologram until you pointed at a name. It now previews the first part right away.'
+    ] },
+    { v: '1.3.23', date: '2026-10-21', title: 'Tolerance line stands out', items: [
+      'In How do I use it?, the line “That’s why tolerances exist: a tolerance says how far off is still good enough” is now a bold, glowing callout.'
+    ] },
+    { v: '1.3.22', date: '2026-10-21', title: 'Pick a part always moves on', items: [
+      'In How do I use it?, picking a part now always moves straight on to the next step, even when you pick the part that was already chosen.',
+      'The zero check on the dial caliper has a Show me how button that turns the bezel until the needle is on 0.'
+    ] },
     { v: '1.3.21', date: '2026-10-21', title: 'Icons move when a card pops up', items: [
       'When a message, warning, tour card or the changelog pops up, the icon on it moves once in the way that fits it, like the icons on buttons do.'
     ] },
