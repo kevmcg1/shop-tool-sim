@@ -379,7 +379,7 @@
 .gd-hand svg,.gd-hand i{width:40px;height:40px}
 .gd-lbl{position:fixed;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform;font-size:13.5px;font-weight:700;letter-spacing:.02em;color:#0b0c0e;background:var(--accent);padding:5px 10px 5px 8px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.55);display:flex;gap:6px;align-items:center}
 .gd-track{position:absolute;pointer-events:none;visibility:hidden}
-.gd-card{position:fixed;left:0;top:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;width:min(330px,calc(100vw - 24px));pointer-events:auto;background:var(--panel,#16181b);color:var(--ink,#ececee);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.55);font-size:13.5px;line-height:1.5}
+.gd-card{position:fixed;left:0;top:0;width:min(330px,calc(100vw - 24px));pointer-events:auto;background:var(--panel,#16181b);color:var(--ink,#ececee);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.55);font-size:13.5px;line-height:20px}
 .gd-card h4{margin:0 26px 6px 0;font-size:15px;font-weight:600}
 .gd-card p{margin:0;color:var(--muted,#8a8f97)}
 .gd-card p b{color:var(--ink,#ececee)}
@@ -700,8 +700,6 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     stepI = i; navId++;
     const s = STEPS[i];
     if (clickOff) { clickOff(); clickOff = null; }
-    if (card.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches)
-      card.animate([{ opacity: 0.35 }, { opacity: 1 }], { duration: 240, easing: 'ease-out' });
     waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
@@ -865,7 +863,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     else { const dx = cx - shown.cx, dy = cy - shown.cy; shown.cx = Math.abs(dx) < 0.25 ? cx : shown.cx + dx * k; shown.cy = Math.abs(dy) < 0.25 ? cy : shown.cy + dy * k; }
     cx = shown.cx; cy = shown.cy;
     lastCard = { x: cx, y: cy };
-    { const dp = window.devicePixelRatio || 1, sn = v => (Math.round(v * dp) / dp) + 'px'; put(card, 'transform', `translate(${sn(cx)},${sn(cy)})`); }   // (whole device pixels, so the card's text is never blurred by a half-pixel position)
+    // (placed by left/top on whole device pixels, not by a transform: a transformed card is drawn on its own layer, whose text comes out softer)
+    { const dp = window.devicePixelRatio || 1, sn = v => (Math.round(v * dp) / dp) + 'px'; put(card, 'left', sn(cx)); put(card, 'top', sn(cy)); }
     // the arrow runs from the card's nearest edge to the window's nearest edge
     let d = '', pts = '';
     r = hr.w >= 4 && hr.h >= 4 ? hr : null;

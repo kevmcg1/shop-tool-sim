@@ -3,8 +3,11 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.26',
+  version: '1.3.27',
   changelog: [
+    { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: [
+      'The How do I use it? card is now placed without a transform, no longer fades in on each step, and its lines sit on whole pixels, so its text is sharper.'
+    ] },
     { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls settings', items: [
       'A settings cog now sits to the left of the Rotate, Pan and Zoom controls on the calipers, micrometers and height gage.',
       'It lets you choose which mouse button rotates, pans and zooms, and remembers your choice for every tool.'
