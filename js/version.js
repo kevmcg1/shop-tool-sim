@@ -3,8 +3,11 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.23',
+  version: '1.3.24',
   changelog: [
+    { v: '1.3.24', date: '2026-10-21', title: 'Preview shows when the Part list opens', items: [
+      'With no part chosen, opening the Part list used to show no blue hologram until you pointed at a name. It now previews the first part right away.'
+    ] },
     { v: '1.3.23', date: '2026-10-21', title: 'Tolerance line stands out', items: [
       'In How do I use it?, the line “That’s why tolerances exist: a tolerance says how far off is still good enough” is now a bold, glowing callout.'
     ] },
