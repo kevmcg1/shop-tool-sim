@@ -50,6 +50,7 @@
   const cap = k => '<kbd class="gd-k' + (/^[←→↑↓]$/.test(k) ? ' arr' : k.length > 1 ? ' wide' : '') + '">' + k + '</kbd>';
   const OKRE = /(^|\b)(nice|perfect|spot on|well done|you’re good|you’re ready|that’s a (tool|gage|micrometer|caliper|gauge) you can trust|agree)/i;
   const TIPRE = /^(tip|heads up|careful|remember|note|not on|slip up|that’s (a common|normal|the most common)|a little grit|chips,|if it read|common)/i;
+  const KEYRE = /^that’s why tolerances exist/i;   // the one line a walkthrough most wants remembered: lit up as a callout
   const ACTRE = /^(press|click|drag|turn|scroll|open|choose|pick|tap|use|close|slide|lock|unlock|rock|wipe|hold|touch|bring|swing|pan|zoom|point|try)\b/i;
   function lines(text){
     return String(text).split('\n').map((l, i) => {
@@ -59,7 +60,7 @@
         .replace(new RegExp('(^|[^\\w>\u0001])(' + KEYNAMES + ')(?![\\w<\u0002])', 'g'), '$1\u0001$2\u0002')
         .replace(/\u0001([^\u0002]+)\u0002/g, (m, k) => cap(k));
       const plain = h.replace(/<[^>]+>/g, '').trim();
-      const kind = i === 0 ? 'lead' : TIPRE.test(plain) ? 'tip' : OKRE.test(plain) ? 'ok' : ACTRE.test(plain) ? 'act' : '';
+      const kind = KEYRE.test(plain) ? 'key' : i === 0 ? 'lead' : TIPRE.test(plain) ? 'tip' : OKRE.test(plain) ? 'ok' : ACTRE.test(plain) ? 'act' : '';
       return '<span class="gd-l' + (kind ? ' ' + kind : '') + '">' + h + '</span>';
     }).join('');
   }
@@ -82,6 +83,8 @@
 .gd-l.act::before{content:"";position:absolute;left:11px;top:calc(50% - 5px);width:8px;height:8px;border-radius:50%;background:var(--ph);box-shadow:0 0 0 4px color-mix(in srgb,var(--ph) 25%,transparent)}
 .gd-l.tip{padding:6px 10px 6px 12px;border-radius:9px;border-left:3px solid #e8a547;background:rgba(232,165,71,.1);color:#e8d3a8}
 .gd-l.ok{padding:6px 10px 6px 12px;border-radius:9px;border-left:3px solid #5fcf8a;background:rgba(95,207,138,.1);color:#bfeed0}
+.gd-l.key{padding:10px 12px;border-radius:10px;border:1px solid var(--ph);background:color-mix(in srgb,var(--ph) 22%,transparent);box-shadow:0 0 18px -4px color-mix(in srgb,var(--ph) 70%,transparent);color:var(--ink,#fff);font-size:15px;font-weight:700;line-height:1.35}
+.gd-l.key b{color:inherit}
 .gd-l.ok b,.gd-l.tip b{color:inherit;font-weight:700}
 .gd-seg{display:flex;gap:3px;margin:12px 0 0}
 .gd-seg i{flex:1;height:4px;border-radius:3px;background:color-mix(in srgb,var(--sc) 28%,#23262a);transition:background-color .3s ease,transform .3s ease}
