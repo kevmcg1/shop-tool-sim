@@ -9,6 +9,7 @@
 // window.__orbitPivot(THREE, controls, camera, scene, element) sets it up for one tool.
 (function(){
   window.__orbitPivot = (T, controls, camera, scene, el) => {
+    if (window.__mouseSettings) window.__mouseSettings.attach(controls);   // the cog that picks the buttons (js/mouse-settings.js)
     const ray = new T.Raycaster(), ndc = new T.Vector2();
     const qPrev = new T.Quaternion(), qInv = new T.Quaternion(), qd = new T.Quaternion();
     const tPrev = new T.Vector3(), v = new T.Vector3(), w = new T.Vector3();
@@ -32,7 +33,7 @@
     // a plain left drag (or one finger) turns the view; with Shift, Ctrl or Cmd, or the right button, it slides
     el.addEventListener('pointerdown', e => {
       down.add(e.pointerId);
-      const turn = down.size === 1 && (e.pointerType !== 'mouse' || e.button === 0) && !e.shiftKey && !e.ctrlKey && !e.metaKey;
+      const turn = down.size === 1 && (e.pointerType !== 'mouse' || e.button === (window.__mouseMap ? window.__mouseMap.rotate : 0)) && !e.shiftKey && !e.ctrlKey && !e.metaKey;
       cand = turn ? pick(e) : null;
       pivot = null; gliding = false;
     }, true);

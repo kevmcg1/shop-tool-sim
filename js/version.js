@@ -3,8 +3,12 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep each version to three sentences at most.
 window.__SHOP = {
-  version: '1.3.25',
+  version: '1.3.26',
   changelog: [
+    { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls settings', items: [
+      'A settings cog now sits to the left of the Rotate, Pan and Zoom controls on the calipers, micrometers and height gage.',
+      'It lets you choose which mouse button rotates, pans and zooms, and remembers your choice for every tool.'
+    ] },
     { v: '1.3.25', date: '2026-10-21', title: 'Readings said in full, and a real-life note', items: [
       'How do I read this? now says the thou as a whole number: 0.537 is “Five hundred thirty-seven thou”, and 1.2345 is “One inch, two hundred thirty-four thou and five tenths”. Metric readings follow the same pattern: millimeters, hundredths, then microns.',
       'Every How do I use it? now ends by suggesting you also get a feel for the real tool, since the simulator gives you an idea but real use gives you the experience.'
