@@ -3,8 +3,9 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep ONE entry per day, and each entry to ONE short, simple sentence: if today already has an entry, add to its sentence instead of a new entry.
 window.__SHOP = {
-  version: '1.3.27',
+  version: '1.3.28',
   changelog: [
+    { v: '1.3.28', date: '2026-10-23', title: 'Gentler walkthrough openers', items: ['The How do I use it? openers are now lighter and more confident.'] },
     { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: ['The How do I use it? card text is now sharper.'] },
     { v: '1.3.26', date: '2026-10-21', title: 'Mouse controls and readings', items: ['A mouse-controls settings cog was added, and readings are now said in full.'] },
     { v: '1.3.20', date: '2026-10-20', title: 'How do I read this?', items: ['Every measurement now has a How do I read this? button.'] },
