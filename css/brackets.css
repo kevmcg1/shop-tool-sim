@@ -1,0 +1,19 @@
+/* Embeds drawn as brackets: a box outline with the middle of the top and the bottom cut away, so each one reads [ like this ].
+   Used by every callout in the walkthroughs, the "How do I read this?" words, and the practice feedback notes. The colour is --bc. */
+.gd-l.tip,.gd-l.ok,.gd-l.key,.gd-l.act,.gd-paper,.fx-note,.fx-miss,.hrx-t,.hrx-tips li{
+  border:0!important;border-radius:0!important;box-shadow:none!important;background-color:transparent!important;
+  background-image:linear-gradient(var(--bc),var(--bc)),linear-gradient(var(--bc),var(--bc)),linear-gradient(var(--bc),var(--bc)),
+                   linear-gradient(var(--bc),var(--bc)),linear-gradient(var(--bc),var(--bc)),linear-gradient(var(--bc),var(--bc))!important;
+  background-repeat:no-repeat!important;
+  background-position:left top,left top,left bottom,right top,right top,right bottom!important;
+  background-size:2px 100%,11px 2px,11px 2px,2px 100%,11px 2px,11px 2px!important;
+}
+.gd-l.tip{--bc:#e8a547;padding:6px 14px!important}
+.gd-l.ok{--bc:#5fcf8a;padding:6px 14px!important}
+.gd-l.key{--bc:var(--ph,#5b93ea);padding:9px 14px!important}
+.gd-l.act{--bc:var(--ph,#5b93ea);padding:6px 14px 6px 30px!important}
+.gd-paper{--bc:#6b737e;padding:10px 14px 8px!important}
+.fx-note{--bc:var(--accent,#5b93ea);padding:11px 16px!important}
+.fx-miss{--bc:var(--c,#e8c547);padding:12px 16px!important}
+.hrx-t{--bc:rgba(150,185,255,.75);padding:8px 14px!important}
+.hrx-tips li{--bc:rgba(150,185,255,.75);padding:3px 12px!important}

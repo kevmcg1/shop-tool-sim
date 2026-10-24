@@ -176,13 +176,15 @@ window.__TG = (function(){
     const lathe = (prof, seg) => new T.LatheGeometry(prof.map(p => new T.Vector2(Math.max(0, p[0]), p[1])), seg || 48);
     const tag = (m, part) => { m.userData.part = part; return m; };
     const parts = handle(Lmm, k, squeeze);
+    // the lock knob has its own copy of the metal, so it alone can turn red when the gauge is locked (see lockTint)
+    const kmats = Object.assign({}, mats, { steel: mats.steel.clone(), knurl: (mats.knurl || mats.steel).clone() });
     parts.forEach(p => {
-      const mat = mats[p.mat] || mats.steel, into = p.rot ? knob : grp, part = p.rot ? 'knob' : 'gauge';
+      const mm = p.rot ? kmats : mats, mat = mm[p.mat] || mm.steel, into = p.rot ? knob : grp, part = p.rot ? 'knob' : 'gauge';
       if (p.knurl){
         // the diamond knurl: a band of crossed cuts between the chamfered ends (turned on the lathe, in steel)
-        const band = knurlBand(T, p.r, p.y1 - p.y0 - 2*p.c, p.n, mats.knurl || mat); band.position.y = (p.y0 + p.y1)/2;
+        const band = knurlBand(T, p.r, p.y1 - p.y0 - 2*p.c, p.n, mm.knurl || mat); band.position.y = (p.y0 + p.y1)/2;
         into.add(tag(band, part));
-        into.add(tag(new T.Mesh(lathe(p.prof, 64), mats.steel), part));
+        into.add(tag(new T.Mesh(lathe(p.prof, 64), mm.steel), part));
       } else grp.add(tag(new T.Mesh(lathe(p.prof, 40), mat), 'gauge'));
     });
     // the lock screw in the very end of the knob: a round head with a slot, standing a little proud of the knurled end. It turns with the knob.
@@ -225,7 +227,9 @@ window.__TG = (function(){
     const gb = lathe(b.prof, 64); gb.rotateZ(-Math.PI/2); gb.translate(-b.len/2, 0, 0);
     grp.add(new T.Mesh(gb, mats.steel));
     const dir = o.handle || 'down', cross = new T.Group();   // the hub and the handle turn together
-    cross.add(hubGroup(T, Lmm, k, mats), handleGroup(T, Lmm, k, mats, o.squeeze || 1, dir === 'down').group);
+    const hd = handleGroup(T, Lmm, k, mats, o.squeeze || 1, dir === 'down');
+    lockTint(hd.knob, 1);   // (a gauge a tool draws is always locked at the size of the bore: its knob is red)
+    cross.add(hubGroup(T, Lmm, k, mats), hd.group);
     if (dir === 'down') cross.rotation.z = Math.PI;
     else if (dir === 'front') cross.rotation.x = Math.PI/2;
     grp.add(cross);
@@ -281,7 +285,28 @@ window.__TG = (function(){
       m.roughnessMap = null; if (!m.userData.knurl) m.bumpMap = null;
       m.metalness = real.metalness >= .5 ? .3 : real.metalness; m.roughness = real.metalness >= .5 ? .6 : Math.max(real.roughness, .55); m.envMapIntensity = .55;
     }
+    if (m.userData.lockT !== undefined){ m.userData.lockBase = m.color.clone(); paintLock(m); }   // (the knob's red survives a change of finish)
     m.needsUpdate = true;
+  }
+  // The lock knob goes red as the gauge is locked (t: 0 unlocked ... 1 locked), on every gauge in the set, in the lab and on every tool.
+  // Only the knob's own two metals take the tint, and a change of finish (Shop graphics) keeps it.
+  function paintLock(m){
+    const t = m.userData.lockT || 0, b = m.userData.lockBase; if (!b) return;
+    m.color.copy(b); if (m.emissive) m.emissive.setRGB(t ? .75 : 0, 0, 0);
+    if (t){ const r = new m.color.constructor(); r.setRGB(.86, .05, .06); m.color.lerp(r, .92*t); }
+    if (m.emissive) m.emissiveIntensity = .3*t;
+  }
+  function lockTint(knob, t){
+    t = Math.round(Math.max(0, Math.min(1, t))*50)/50;
+    knob.traverse(o => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]){
+        // (looked at every frame, material by material: while a gauge builds in, another effect swaps its own materials in for a moment and the metal comes back after)
+        if (!m || !m.isMeshStandardMaterial || !m.userData.tgLook || m.userData.lockT === t) continue;
+        if (m.userData.lockT === undefined){ const r = realOf(m); m.userData.lockBase = r.color.clone(); }   // (the metal as made, before any tint)
+        m.userData.lockT = t; paintLock(m);
+      }
+    });
   }
   const REAL = new WeakMap();
   function realOf(m){ let r = REAL.get(m); if (!r){ r = { map: m.map, roughnessMap: m.roughnessMap, bumpMap: m.bumpMap, bump: m.bumpScale, color: m.color.clone(), metalness: m.metalness, roughness: m.roughness, env: m.envMapIntensity }; REAL.set(m, r); } return r; }
@@ -322,5 +347,5 @@ window.__TG = (function(){
     };
   }
 
-  return { MM, GAUGES, force: i => { forced = i; }, materials, raw, env, envChunk, finishMat, dress, look, SHORTEST, LONGEST, pick, tubeProfile, crown, body, hub, hubProfile, handle, knurled, stemTex, handleGroup, hubGroup, group };
+  return { MM, GAUGES, force: i => { forced = i; }, materials, raw, env, envChunk, finishMat, lockTint, dress, look, SHORTEST, LONGEST, pick, tubeProfile, crown, body, hub, hubProfile, handle, knurled, stemTex, handleGroup, hubGroup, group };
 })();

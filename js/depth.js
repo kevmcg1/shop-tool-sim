@@ -2286,6 +2286,7 @@ function endCoach(restore){ if (!state.coach) return; state.coach = false; docum
 /* ---------- practice ---------- */
 const showAns = () => !state.practice || state.pRevealed;
 let lastPracticeKey = '';
+window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on){
   setTimeout(autoFrame, 400);   // the answer panel changes the size of the view
   if (on && !rhPracticeSet){

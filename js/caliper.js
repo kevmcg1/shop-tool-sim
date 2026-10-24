@@ -1686,10 +1686,16 @@ const numOf = s => parseFloat(String(s).replace(',', '.').replace(/[^0-9.\-]+/g,
 const inputInches = s => { const n = numOf(s), u = unitOf(s) || units; return u === 'mm' ? n/25.4 : n; };
 // the Go to hint says which unit a plain number is read as. The dial caliper's scales are inch only,
 // so it takes inches whatever the units buttons say, and says so
+// While someone is practising, the example number is never anywhere near the answer (the size of the part being measured): it is
+// one of a few examples, and the first that is well away from the answer is shown.
 function syncGoHint(){
   const st = document.getElementById('setTo'); if (!st) return;
+  const GO_EXAMPLES = [1.234, 2.468, 0.789];   // inches
   const inchOnly = !isVern();
-  st.placeholder = inchOnly ? 'Enter inches only here' : units === 'mm' ? 'Go to 31.34 mm' : 'Go to 1.234 in';
+  const ans = state.practice && sample && isFinite(sample.size) ? sample.size : null;
+  const ex = GO_EXAMPLES.find(v => ans === null || Math.abs(v - ans) > 0.1) || GO_EXAMPLES[0] + 3;
+  const hint = inchOnly ? 'Enter inches only here' : units === 'mm' ? `Go to ${(ex * 25.4).toFixed(2)} mm` : `Go to ${ex.toFixed(3)} in`;
+  if (st.placeholder !== hint) st.placeholder = hint;
   st.title = inchOnly ? 'The dial caliper reads in inches only' : 'Add in or mm to pick the unit';
 }
 
@@ -1813,6 +1819,7 @@ const knobAnim = { top: 0, bot: 0 };
 /* ================================================================== reading bar */
 let lastKey = '';
 function updateUI() {
+  syncGoHint();   // (the example in the Go to box keeps away from the answer while practising)
   const I = indicated(), n = Math.round(I * 1000), A = split(n), b = bezelOffset(), contact = inContact();
   const k = [state.inst, units, n, state.pos.toFixed(4), Math.round(b * 1e4), state.sliderLocked, state.bezelLocked, contact, state.practice, state.fine, sample.type, sample.size].join('|');
   if (k === lastKey) return; lastKey = k;
@@ -2756,6 +2763,7 @@ function changePart(type) {
 
 /* ================================================================== practice */
 let rhPracticeSet = false, lastPracticeKey = '';
+window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on, keepPart) {
   if (on && !rhPracticeSet) {
     const mh = document.querySelector('main').clientHeight;

@@ -960,6 +960,7 @@ const fmtIn = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(3);
 const fmtMM = v => (v < 0 ? '−' : '') + Math.abs(v).toFixed(2);
 let lastUI = '';
 function updateUI(){
+  syncGoHint();
   const R = readingMM(), I = splitIn(R), Mm = splitMM(R);
   const key = [I.total, Mm.total, state.sliderLocked, state.unitLocked, touching(), state.contact.feat, state.practice, state.pRevealed].join('|');
   if (key === lastUI) return; lastUI = key;
@@ -994,6 +995,7 @@ function renderFeats(){
 }
 
 /* ---------- practice ---------- */
+window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on){
   state.practice = on; state.pRevealed = false;
   document.body.classList.toggle('practice', on);
@@ -1644,7 +1646,17 @@ function setUnits(u){
   document.querySelectorAll('[data-units]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.units === u)));
   document.querySelectorAll('[data-move]').forEach((b, i) => { const [v, t] = MOVES[u][i]; b.dataset.move = String(v); b.textContent = t; });
   $('pUnit').value = u; $('guess').placeholder = u === 'in' ? '0.000' : '0.00';
-  $('setTo').placeholder = u === 'in' ? 'Go to 3.742 in' : 'Go to 95.06 mm';   // says which unit a plain number means
+  syncGoHint();   // says which unit a plain number means
+}
+// While someone is practising, the example number is never anywhere near the answer (the reading on the gage): it is one of a few
+// examples, and the first that is well away from the answer is shown.
+function syncGoHint(){
+  const st = $('setTo'); if (!st) return;
+  const GO_EXAMPLES = [3.742, 2.618, 5.183];   // inches
+  const ans = state.practice ? readingMM() / IN : null;
+  const ex = GO_EXAMPLES.find(v => ans === null || Math.abs(v - ans) > 0.2) || 1.5;
+  const hint = units === 'in' ? `Go to ${ex.toFixed(3)} in` : `Go to ${(ex * IN).toFixed(2)} mm`;
+  if (st.placeholder !== hint) st.placeholder = hint;
 }
 // "Go to": glide the slider until the gage reads the typed value, in the units showing
 // a unit typed with the number wins: in, inch, inches, ″ or " read as inches; mm, millimeter(s) as mm

@@ -50,7 +50,7 @@
   const cap = k => '<kbd class="gd-k' + (/^[←→↑↓]$/.test(k) ? ' arr' : k.length > 1 ? ' wide' : '') + '">' + k + '</kbd>';
   const OKRE = /(^|\b)(nice|perfect|spot on|well done|you’re good|you’re ready|that’s a (tool|gage|micrometer|caliper|gauge) you can trust|agree)/i;
   const TIPRE = /^(tip|heads up|careful|remember|note|not on|slip up|that’s (a common|normal|the most common)|a little grit|chips,|if it read|common)/i;
-  const KEYRE = /^that’s why tolerances exist/i;   // the one line a walkthrough most wants remembered: lit up as a callout
+  const KEYRE = /^good news: that’s exactly why tolerances exist/i;   // the one line a walkthrough most wants remembered: lit up as a callout
   const ACTRE = /^(press|click|drag|turn|scroll|open|choose|pick|tap|use|close|slide|lock|unlock|rock|wipe|hold|touch|bring|swing|pan|zoom|point|try)\b/i;
   function lines(text){
     return String(text).split('\n').map((l, i) => {
@@ -84,7 +84,7 @@
 .gd-l.act::before{content:"";position:absolute;left:11px;top:calc(50% - 5px);width:8px;height:8px;border-radius:50%;background:var(--ph);box-shadow:0 0 0 4px color-mix(in srgb,var(--ph) 25%,transparent)}
 .gd-l.tip{padding:6px 10px 6px 12px;border-radius:9px;border-left:3px solid #e8a547;background:rgba(232,165,71,.1);color:#e8d3a8}
 .gd-l.ok{padding:6px 10px 6px 12px;border-radius:9px;border-left:3px solid #5fcf8a;background:rgba(95,207,138,.1);color:#bfeed0}
-.gd-l.key{padding:10px 12px;border-radius:10px;border:1px solid var(--ph);background:color-mix(in srgb,var(--ph) 22%,transparent);box-shadow:0 0 18px -4px color-mix(in srgb,var(--ph) 70%,transparent);color:var(--ink,#fff);font-size:15px;font-weight:700;line-height:1.35}
+.gd-l.key{padding:9px 12px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ph) 28%,transparent);border-left:4px solid color-mix(in srgb,var(--ph) 75%,transparent);background:color-mix(in srgb,var(--ph) 11%,transparent);color:var(--ink,#fff);font-size:14px;font-weight:500;line-height:1.5}
 .gd-l.key b{color:inherit}
 .gd-l.ok b,.gd-l.tip b{color:inherit;font-weight:700}
 .gd-seg{display:flex;gap:3px;margin:12px 0 0}
@@ -133,9 +133,12 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
   }
   // the cleaning reminder, appended to every "clean the contact points" step
   const PAPER = '\nThen slide a clean slip of paper between the contact points, close them lightly on it, and pull it out.\nAny dirt on the paper came off the tool.\nA clean slip is fine too: checking is the proper procedure every time, whether or not anything comes off.';
+  // the height gage has no jaws to close: the paper goes under the scriber, which is lowered gently onto it against the plate
+  const PAPER_HEIGHT = '\nThen slide a clean slip of paper under the scriber, lower the scriber gently onto it against the plate, and pull the paper out.\nAny dirt on the paper came off the tool.\nA clean slip is fine too: checking is the proper procedure every time, whether or not anything comes off.';
+  const paperText = tool => tool === 'height' ? PAPER_HEIGHT : PAPER;
   // a small picture in the card: two contact faces, a slip of paper sliding in between, the dirt moving onto it, and the paper taken out with the dirt on it
   const SPECKS = [[22, 10, 2.4], [34, 18, 1.8], [47, 8, 2.1], [58, 20, 1.6], [70, 12, 2.6], [29, 24, 1.5], [52, 23, 2]];
-  function paper(card, on){
+  function paper(card, on, tool){
     let box = card.querySelector('.gd-paper');
     if (!on){ if (box) box.hidden = true; return; }
     if (!box){
@@ -144,9 +147,13 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
       // The paper rests at x = 70 when the faces close on it, so a speck is just under the spot on the face it came from.
       const dirt = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2}" cy="${k % 2 ? 62 : 34}" r="${r}"/>`).join('');
       const onpaper = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2 - 70}" cy="${k % 2 ? 57 + r*0.5 : 39 - r*0.5}" r="${r*0.9}"/>`).join('');
-      box.innerHTML = `<svg viewBox="0 0 340 96"><rect class="pf" x="8" y="4" width="244" height="28" rx="6"/><rect class="pf" x="8" y="64" width="244" height="28" rx="6"/>
+      // (the height gage: the scriber's blade, its slanted nose on the left and its flat underside over the paper, above the wide surface plate)
+      const faces = tool === 'height'
+        ? '<path class="pf" d="M8 32 L40 8 Q44 4 50 4 H252 V32 Z"/><rect class="pf" x="8" y="64" width="324" height="28" rx="6"/><text class="pl" x="150" y="23" text-anchor="middle">Scriber</text><text class="pl" x="170" y="83" text-anchor="middle">Surface plate</text>'
+        : '<rect class="pf" x="8" y="4" width="244" height="28" rx="6"/><rect class="pf" x="8" y="64" width="244" height="28" rx="6"/>';
+      box.innerHTML = `<svg viewBox="0 0 340 96">${faces}
         <g class="pd">${dirt}</g><g class="pp"><rect x="0" y="39" width="150" height="18" rx="2"/><g class="ps">${onpaper}</g></g></svg>
-        <span>The dirt comes off the tool and onto the paper.</span>`;
+        <span>${tool === 'height' ? 'The dirt comes off the scriber and plate and onto the paper.' : 'The dirt comes off the tool and onto the paper.'}</span>`;
       const anchor = card.querySelector('.gd-keys') || card.querySelector('.gd-seg') || card.querySelector('.gd-foot');
       anchor.parentNode.insertBefore(box, anchor);
     }
@@ -157,6 +164,7 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
 .gd-paper[hidden]{display:none}
 .gd-paper svg{display:block;width:100%;height:auto;overflow:hidden}
 .gd-paper .pf{fill:#3a4048;stroke:#59616b;stroke-width:1.2}
+.gd-paper .pl{fill:#aab2bd;font-size:11px;font-weight:600;letter-spacing:.04em}
 .gd-paper .pd circle{fill:#8c7a5a;animation:gd-dirt 7s ease-in-out infinite}
 .gd-paper .pp{animation:gd-slip 7s cubic-bezier(.45,.05,.3,1) infinite}
 .gd-paper .pp>rect{fill:#f4f1e8;stroke:#cfc9b8;stroke-width:1;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
@@ -166,5 +174,5 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
 @keyframes gd-dirt{0%,16%{opacity:1}34%,92%{opacity:.12}100%{opacity:1}}
 @keyframes gd-spk{0%,18%{opacity:0}36%,92%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion: reduce){.gd-paper .pd circle,.gd-paper .pp,.gd-paper .ps circle{animation:none}.gd-paper .pp{transform:translateX(262px)}.gd-paper .pd circle{opacity:.12}.gd-paper .ps circle{opacity:1}}`;
-  window.__gdRich = { lines, paint, shortcuts, paper, PAPER, phaseOf, PHASES, cap };
+  window.__gdRich = { lines, paint, shortcuts, paper, PAPER, paperText, phaseOf, PHASES, cap };
 })();

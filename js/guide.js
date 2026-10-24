@@ -16,6 +16,13 @@
   if (!tool) return;
   const val = id => { const e = $(id); return e ? e.textContent.trim() : ''; };
   const now = (id, pre) => val(id) ? `\n${pre || 'Here that’s'} <b>${val(id)}${/mm|″/.test(val(id)) ? '' : '″'}</b>.` : '';
+  // how many marks past the last number: 27 on a dial numbered every 10 is "7 marks past the 20", so 20 + 7 = 27 thou
+  const past = (id, every, what) => {
+    const v = parseFloat(val(id)); if (isNaN(v)) return '';
+    const m = Math.round(v * 1000), base = Math.floor(m / every) * every, n = m - base;
+    return n === 0 ? `\n${what} is right on the <b>${base}</b>, so that’s <b>${m} thou</b>.`
+      : `\n${what} is <b>${n} mark${n === 1 ? '' : 's'} past the ${base}</b>: ${base} + ${n} = <b>${m} thou</b>.`;
+  };
   // depth mic: the covered hundred thou and 25-thou lines, from the reading cards (null until there is a reading)
   const depA = () => { const v = parseFloat(val('vA')); return isNaN(v) ? null : Math.round(v * 10); };
   const depB = () => { const v = parseFloat(val('vB')); return isNaN(v) ? null : Math.round(v / 0.025); };
@@ -43,9 +50,9 @@
     enter: () => { const l = $('sampleSel') || $('partSel'); if (l && l.value !== 'none' && [...l.options].some(o => o.value === 'none')){ l.value = 'none'; l.dispatchEvent(new Event('change')); STEPS.forEach(x => { if (x.part) x.done = false; }); }   // (the part is gone, so "Pick a part" has to be shown again)
       // the paper between the contact faces (js/paper.js) where the tool can show it; then the tool closes right up for the zero check
       const nav = navId, alive = () => !!root && navId === nav;
-      Promise.resolve(window.__paperRun ? window.__paperRun(alive) : false).then(ok => { if (!alive()) return; if (!ok && card && window.__gdRich) window.__gdRich.paper(card, true); closeUp(); });
+      Promise.resolve(window.__paperRun ? window.__paperRun(alive) : false).then(ok => { if (!alive()) return; if (!ok && card && window.__gdRich) window.__gdRich.paper(card, true, tool); closeUp(); });
     },
-    paper: true, paper3d: !!window.__paperRun, text: () => { return wipe + (window.__gdRich ? window.__gdRich.PAPER : '') + '\n' + (typeof zero === 'function' ? zero() : zero); } }, extra);
+    paper: true, paper3d: !!window.__paperRun, text: () => { return wipe + (window.__gdRich ? window.__gdRich.paperText(tool) : '') + '\n' + (typeof zero === 'function' ? zero() : zero); } }, extra);
   // "Pick a part" waits for a part to be picked from the list while the step is showing (the walkthrough
   // clears the part first, where the tool has a "no part" choice), and once one is picked, Back passes over it
   const partList = $('sampleSel') || $('partSel');
@@ -70,7 +77,7 @@
     height: 'Same habit for the part: the face the scriber will land on, and the spot the base will sit on.\nA speck of grit under the base lifts the whole gage, and one under the scriber holds it up.\nEither way, the height comes out wrong.\nA clean cloth over both spots takes care of it.'
   };
   // the contact points are about to touch the part, so they get the paper check once more (the picture shows it again)
-  const PART_PAPER = '\nThen run the slip of paper between the contact points once more, since they’re about to touch the part.';
+  const PART_PAPER = tool === 'height' ? '\nThen slip the paper under the scriber once more, since it’s about to touch the part.' : '\nThen run the slip of paper between the contact points once more, since they’re about to touch the part.';
   const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? PART_PAPER : '') });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
@@ -89,7 +96,7 @@
   };
   const SHORT = k => ({ target: '#autoBtn, #view', title: k === 'cal' || k === 'height' ? 'A shortcut for next time' : 'Two shortcuts for next time', text: SHORTCUTS[k] });
   // the last word before practice: nobody hits the exact value every time, and that is what tolerances are for
-  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nThat’s why tolerances exist: a tolerance says how far off is still good enough.' };
+  const TOLERANCE = { title: 'Perfect isn’t the goal', text: 'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nGood news: that’s exactly why tolerances exist. A tolerance just tells you how far off is still good enough.' };
   // the last word on every tool: the simulator is no substitute for the real thing
   const REAL = { dial: 'a pair of dial calipers', vern: 'a pair of vernier calipers', mic: 'an outside micrometer', depth: 'a depth micrometer', height: 'a height gage' };
   const NL_REAL = '\nEven though you can practice with this, I recommend you also get a feel for what it’s like to use ' + REAL[tool] + ' in real life.\nThis will give you an idea, but using the tools in real life will give you the experience.';
@@ -133,11 +140,35 @@
     })();
   };
 
+  // "Turn the bezel to zero": with the jaws closed the needle must read exactly 0, so the person turns the bezel (its slider) until it does,
+  // or presses "Zero the bezel" and watches the face turn round by itself.
+  const bezelAtZero = () => { const r = $('bezelRange'); return !!r && +r.value === 0; };
+  const zeroBezel = () => {
+    const rng = $('bezelRange'); if (!rng) return;
+    if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click();   // (a locked bezel won't turn)
+    const job = ++howJob, nav = navId, alive = () => root && navId === nav && howJob === job;
+    const doEl = card.querySelector('.gd-do'), say = t => { doEl.hidden = false; doEl.querySelector('span').textContent = t; };
+    if (+rng.value === 0){ say('Already dead on 0.'); return; }
+    say('Turning the bezel until the needle is on 0…');
+    const from = +rng.value, t0 = performance.now(), ms = 1200;
+    const f = now => {
+      if (!alive()) return;
+      const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      rng.value = Math.round(from * (1 - e)); rng.dispatchEvent(new Event('input', { bubbles: true }));
+      if (k < 1) requestAnimationFrame(f);
+    };
+    requestAnimationFrame(f);
+  };
+  const BEZEL = { target: '#bezelRange', view: 'dial', title: 'Turn the bezel to zero',
+    text: () => 'The jaws are closed, so the needle has to read exactly 0.\n' + (bezelAtZero() ? 'It’s sitting on 0. That’s exactly what we want.' : 'Turn the <b>bezel</b> until it does: drag the <b>Bezel offset</b> slider and watch the dial face turn.\nOr press <b>Zero the bezel</b> and watch it done for you.') + now('vC'),
+    waitFor: () => bezelAtZero(), how: zeroBezel, howLabel: 'Zero the bezel' };
+
   const TOURS = {
     dial: [
       INTRO('dial caliper'),
       CLEAN('Start with a habit worth keeping: wipe the jaws’ contact points with a clean cloth.\nA little grit or oil there throws every reading off.',
         () => 'Now watch the jaws close all the way.\nAt the lowest value, the dial should read exactly 0.\nNot on 0? That’s a common one. Just turn the bezel until it is.' + zeroNote(), { how: showBezel }),
+      BEZEL,
       { spot: 'inch', view: 'scale', hl: 'inch', title: 'Zero on the beam', text: () => 'Jaws closed, so the slider edge sits right on the beam’s 0.\nNot a single inch number has been passed, so that’s zero whole inches.' + now('vA') },
       { spot: 'tenth', view: 'scale', hl: 'tenth', title: 'Zero on the hundred-thou lines', text: () => 'Not a single hundred-thou line has been passed either.\nZero lines means zero hundred thou.' + now('vB') },
       { spot: 'dial', view: 'dial', hl: 'dial', title: 'Zero on the dial', text: () => 'The needle points straight at 0.\nIf yours ever drifts, turn the bezel to bring it back.' + now('vC') },
@@ -149,7 +180,7 @@
       LOOK('caliper'),
       { spot: 'inch', view: 'scale', hl: 'inch', flat: 'the inch number', title: 'Read the inch number', text: () => 'The camera’s on the beam now.\nLook for the last whole-inch number the slider edge has passed.\nNot the next one: only a number it has already passed counts.\nIt’s outlined.' + now('vA') },
       { spot: 'tenth', view: 'scale', hl: 'tenth', flat: 'the last hundred-thou line', title: 'Count the hundred-thou lines', text: () => 'Next, the lines after that number.\nEach line is a hundred thou (0.100″).\nCount the ones the slider edge has passed. The last one is lit up.' + now('vB') },
-      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'Each mark on the dial is one thou (0.001″).\nThe mark under the needle is lit.' + now('vC') },
+      { spot: 'dial', view: 'dial', hl: 'dial', flat: 'the dial mark under the needle', title: 'Read the dial', text: () => 'Each mark on the dial is one thou (0.001″).\nThe mark under the needle is lit.' + past('vC', 10, 'The needle') + now('vC') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Inches + hundred thou + dial = the reading.\nThese cards do the adding, so you can check yourself.' + now('vT', 'This one reads') },
       SHORT('cal'),
       TOLERANCE,
@@ -204,7 +235,7 @@
       LOOK('micrometer'),
       { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera’s on the sleeve now.\nLook for the last number the thimble has uncovered.\nEach number is a hundred thou (0.100″).' + now('vA') },
       { spot: 'b', view: 'scale', hl: 'line', flat: 'the last sleeve line', title: 'Count the sleeve lines', text: () => 'Next, the small lines past that number.\nEach line adds 25 thou (0.025″).\nCount the ones the thimble has uncovered.' + now('vB') },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'Follow the index line, the long one along the sleeve, across onto the thimble.\nTake the mark that sits on it, or the nearest one below it.\nA mark above the line hasn’t reached it yet, so skip it.\nEach thimble mark adds one thou (0.001″).' + now('vC') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble mark on or just below the index line', title: 'Read the thimble', text: () => 'Follow the index line, the long one along the sleeve, across onto the thimble.\nTake the mark that sits on it, or the nearest one below it.\nA mark above the line hasn’t reached it yet, so skip it.\nEach thimble mark adds one thou (0.001″).' + past('vC', 5, 'The mark') + now('vC') },
       { spot: 'vernSpan', flatKey: 'd', view: 'vernier', frame: ['d'], refit: true, hl: 'vernier', flat: 'the vernier line that lines up with a thimble line', title: 'Find the vernier line',
         text: () => 'Almost there.\nLook for the one vernier line that lines up with a thimble line.\nThe two run on as one straight line.\nIts number is how many tenths to add, 0.0001″ each.' + now('vD') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Frame size + sleeve number + sleeve lines + thimble + vernier = the reading.' + now('vT', 'This one reads') },
@@ -236,7 +267,7 @@
         return 'The small lines you can still see sit between the thimble’s edge and that number.\nThree lines fit in that gap, 25 thou (0.025″) each.\nSo the thimble has covered 3 minus the ones you see.'
           + (b == null ? '' : `\nHere you see <b>${3 - b}</b>, so it has covered <b>${b}</b>: ${b * 25} thou.`);
       } },
-      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'Find the thimble line that sits on the center line.\nEach line is one thou (0.001″).' + now('vC') },
+      { spot: 'c', view: 'scale', hl: 'thimble', flat: 'the thimble line on the center line', title: 'Read the thimble', text: () => 'Find the thimble line that sits on the center line.\nEach line is one thou (0.001″).' + past('vC', 5, 'The line') + now('vC') },
       { target: '#reading .bd', title: 'Add them up', text: () => 'Rod size + hundred thou (first number you see − 1) + 25-thou lines (3 − lines you see) + thimble = the reading.' + now('vT', 'This one reads') },
       SHORT('depth'),
       TOLERANCE,
@@ -355,7 +386,7 @@
   const css = document.createElement('style');
   css.textContent = `
 .gd-pair{display:inline-flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
-#guideBtn{position:static;display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:250px;margin:2px auto 0;padding:12px 18px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 70%,#fff)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 80%,#fff),var(--accent))!important;color:#07111f!important;font:inherit;font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.2;cursor:pointer;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.4)!important;transition:transform .15s ease,box-shadow .2s ease,filter .2s ease}
+#guideBtn{position:static;display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:250px;margin:8px auto 18px;padding:12px 18px;border-radius:12px;border:1px solid color-mix(in srgb,var(--accent) 70%,#fff)!important;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 80%,#fff),var(--accent))!important;color:#07111f!important;font:inherit;font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.2;cursor:pointer;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.4)!important;transition:transform .15s ease,box-shadow .2s ease,filter .2s ease}
 #guideBtn:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 9px 24px color-mix(in srgb,var(--accent) 50%,transparent),inset 0 1px 0 rgba(255,255,255,.45)!important}
 #guideBtn:active{transform:none;filter:brightness(.97)}
 #guideBtn:focus-visible{outline:3px solid #fff;outline-offset:3px}
@@ -715,7 +746,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (s.flatStep) showFlat();
     card.querySelector('h4').textContent = s.title;
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
-    if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d); }   // the phase, its color, the progress bar, the cleaning picture
+    if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d, tool); }   // the phase, its color, the progress bar, the cleaning picture
     card.querySelector('.gd-back').disabled = i === 0;
     const next = card.querySelector('.gd-next');
     next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip' : 'Next');
@@ -725,7 +756,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     ch.innerHTML = s.choose ? s.choose.map(([u, label]) => `<button type="button" data-u="${u}">${label}</button>`).join('') : '';
     // on a flat-view step, a button to expand the flat view, or shrink it back once it is expanded
     syncMax(); syncHands();
-    card.querySelector('.gd-how').hidden = !s.how;   // "Show me how": a step that can act out its advice
+    card.querySelector('.gd-how').hidden = !s.how; card.querySelector('.gd-how').textContent = s.howLabel || 'Show me how';   // "Show me how": a step that can act out its advice
     const doEl = card.querySelector('.gd-do');
     doEl.hidden = !(s.waitClick || s.waitFor || s.drag);
     doEl.querySelector('span').textContent = s.drag === 'look' ? 'Follow the hand: press on empty space, hold, and drag.'

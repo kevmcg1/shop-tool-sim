@@ -253,7 +253,7 @@ function poseGauge(th,L,my){
  const xc=L/2-g.R,xb=L/2-g.hd,xa=g.tubeOut-1,len=Math.max(.01,xb-xa);
  GP.rods.forEach((m,k)=>{const s=k?1:-1;m.scale.x=len;m.position.x=s*(xa+len/2);});
  GP.tips[0].position.x=-xc;GP.tips[1].position.x=xc;
- GP.knobG.rotation.y=S.knob;
+ GP.knobG.rotation.y=S.knob;TG.lockTint(GP.knobG,S.knob/Math.PI);
  // contact dots (world, in the cut plane)
  const D=holeD(S.depth),r=g.hr,touch=S.insertT>.97&&Math.abs(2*r+(D-2*r)/Math.cos(th)-L)<.04&&S.inserted;
  GP.dL.visible=GP.dR.visible=touch;
@@ -1124,7 +1124,7 @@ async function runAuto(tool){
 
 /* ================= SHOW ME ================= */
 const G={on:false,i:0,done:false,t:0,saved:null,nav:0};
-const tolerance={title:'Perfect isn’t the goal',text:()=>'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nThat’s why tolerances exist: a tolerance says how far off is still good enough.\nIn the shop you measure a hole in a few spots and compare.\nIf the readings agree, you can trust the size.'};
+const tolerance={title:'Perfect isn’t the goal',text:()=>'One more thing worth knowing.\nYou won’t get exactly the same number every time you measure, and that’s normal.\nParts, tools and hands all vary a little, so slightly different readings don’t mean you did it wrong.\nGood news: that’s exactly why tolerances exist. A tolerance just tells you how far off is still good enough.\nIn the shop you measure a hole in a few spots and compare.\nIf the readings agree, you can trust the size.'};
 const gaugeBoxL=()=>{const b=gaugeBox();return{x:b.x-175,y:b.y,w:b.w+350,h:b.h+44};};   // ...with room each side, and below the hub, for its names
 const gaugeBox=()=>{const g=S.g,pts=[[-S.curL/2,0,0],[S.curL/2,0,0],[0,g.hl,0],[0,-g.rb,0]],b=cv.getBoundingClientRect();
  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;pts.forEach(p=>{_v.set(...p);pivot.localToWorld(_v);_v.project(camera);
@@ -1291,6 +1291,7 @@ function setExam(on){
  }
 }
 // Practice: the readings are hidden and a hole is picked for you. Lock the gauge in it, measure the gauge with a tool, and type the hole's size.
+window.__inPractice=()=>!!S.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on){
  if(on===!!S.practice)return;
  if(on){
@@ -1487,7 +1488,7 @@ resize();selectSample(0);camGo('overview',true);shopApply();
 if(window.__holo)window.__holo.attach({THREE,select:$('sampleSel'),
  caption:v=>{const s=SAMPLES[+v];return s?[s.name,s.tag]:['',''];},
  build:v=>{const s=SAMPLES[+v];if(!s)return null;const g=new THREE.Group();g.add(new THREE.Mesh(partShapeGeo(s).geo));return g;}});
-window.__lab={PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
+window.__lab={gp:()=>GP,PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
 requestAnimationFrame(tick);   // draws behind the loading screen
 // Like the other tools: nothing builds in until everything is ready. The shaders are compiled first, the dissolve's own
 // cut-away versions included (one short throwaway sweep, hidden behind the loading screen), so the build-in that follows

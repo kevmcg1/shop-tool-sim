@@ -336,6 +336,13 @@ lockDown(window);
     };
     tryIt();
   }
+  // "I see you!" (js/seeyou.js): the note for someone practising who reaches for the inspector while this page itself has the focus
+  // (a tool page shows it itself when it has the focus): it is shown in the tool that is practising, the one on show or the one beside the gauge
+  window.addEventListener('keydown', e => {
+    if (!window.__seeYouKey || !window.__seeYouKey(e)) return;
+    const fs = [frames[current], dock.tool && dock.frames ? dock.frames[dock.tool] : null];
+    for (const f of fs){ try { const w = f && f.contentWindow; if (w && w.__inPractice && w.__inPractice() && w.__seeYou) { w.__seeYou(); break; } } catch (err) {} }
+  }, true);
   window.addEventListener('message', e => {
     const m = e.data && e.data.tgauge;
     if (!m || !frames.telescopic || e.source !== frames.telescopic.contentWindow) return;   // only our own tab sends these
