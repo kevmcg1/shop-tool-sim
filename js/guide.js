@@ -41,6 +41,9 @@
   // Closes the tool all the way once the part is off (the jaws, the spindle, the depth rod; the height gage comes down
   // onto the plate and is zeroed there), so the zero can be shown on the 3D tool. The second try is for when the
   // part was still being let go of at the first.
+  // is the tool closed all the way (reading its lowest value)?
+  const isClosed = () => { const v = parseFloat(val('lcd')), b = $('vBase') ? parseFloat(val('vBase')) : 0; return isNaN(v) || Math.abs(v - b) < 1e-9; };
+  const ensureClosed = () => { if (!isClosed()) closeUp(); };
   const closeUp = () => {
     const at = (id, ms) => setTimeout(() => { const b = $(id); if (root && b && !b.disabled) b.click(); }, ms);
     if ($('closeBtn')){ at('closeBtn', 700); at('closeBtn', 3400); }
@@ -78,7 +81,31 @@
   };
   // the contact points are about to touch the part, so they get the paper check once more (the picture shows it again)
   const PART_PAPER = tool === 'height' ? '\nThen slip the paper under the scriber once more, since it’s about to touch the part.' : '\nThen run the slip of paper between the contact points once more, since they’re about to touch the part.';
-  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: WIPE_PART[tool] + (window.__gdRich ? PART_PAPER : '') });
+  // what the part is made of, read from the part on the tool (each tool keeps it its own way), so the cleaning advice suits it
+  const MAT_OF = { ground: 'steel', turned: 'steel', milled: 'steel', steelBar: 'steel', blue: 'steel', lapped: 'gage', turnedAlu: 'aluminum', milledAlu: 'aluminum', alu: 'aluminum', aluRed: 'aluminum', aluGreen: 'aluminum', brass: 'brass' };
+  const CAL_MAT = { pin: 'steel', hex: 'steel', block: 'gage', ball: 'steel', tube: 'aluminum', tgauge: 'steel', ring: 'steel', bearing: 'steel', slot: 'aluminum', coupling: 'brass', pocket: 'aluminum', hole: 'steel', shoulder: 'aluminum', channel: 'steel' };
+  const partMaterial = () => {
+    try {
+      const info = window.__partInfo && window.__partInfo(); if (!info) return null;
+      if (info.type) return CAL_MAT[info.type] || null;   // the calipers know the kind of part
+      const seen = {}; (info.mats || []).forEach(m => { const k = MAT_OF[m]; if (k) seen[k] = (seen[k] || 0) + 1; });
+      return seen.gage ? 'gage' : Object.keys(seen).sort((a, b) => seen[b] - seen[a])[0] || null;
+    } catch (e) { return null; }
+  };
+  window.__partMaterial = partMaterial;
+  // isopropyl alcohol (IPA) and/or a Scotch-Brite pad, depending on the metal, and then a wipe; and a search to double-check the material
+  const CLEAN_ADVICE = {
+    steel: ['steel', '\nFor steel: wipe it with isopropyl alcohol (IPA) on a lint-free cloth.\nFor oil, a burr or light rust, rub it first with a fine Scotch-Brite pad, then wipe it with IPA.'],
+    gage: ['gage blocks', '\nThis is a lapped gage block, so use IPA on a lint-free cloth only.\nNever use a Scotch-Brite pad on it: it scratches the lapped faces.'],
+    aluminum: ['aluminum', '\nFor aluminum: wipe it with IPA on a lint-free cloth. It’s soft, so that’s usually enough.\nFor stuck-on residue, go gently over it with a fine (white or gray) Scotch-Brite pad, then wipe with IPA. A coarse pad would scratch it.'],
+    brass: ['brass', '\nFor brass: wipe it with IPA on a lint-free cloth.\nA fine Scotch-Brite pad lifts tarnish and fingerprints; wipe it with IPA again afterward.']
+  };
+  const cleanAdvice = () => {
+    const k = partMaterial(), a = k && CLEAN_ADVICE[k];
+    if (!a) return '\nCleaning a different material? IPA on a lint-free cloth is the usual first step. Not sure what suits yours? Search the web for “how to clean your material before measuring” just in case.';
+    return a[1] + '\nThen wipe it dry with a clean lint-free cloth.\nNot sure about your ' + (k === 'gage' ? 'gage block’s' : a[0]) + ' type? Search the web for “how to clean ' + a[0] + ' before measuring” just in case.';
+  };
+  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: () => WIPE_PART[tool] + cleanAdvice() + (window.__gdRich ? PART_PAPER : '') });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
   const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 1, title: 'Look around', text: `Get your bearings on the ${what} before reading it.\nJust a tiny nudge: drag on an empty spot.\nScroll if you want to zoom.\nThe camera buttons up top reset the view any time.` });
@@ -141,27 +168,47 @@
   };
 
   // "Turn the bezel to zero": with the jaws closed the needle must read exactly 0, so the person turns the bezel (its slider) until it does,
-  // or presses "Zero the bezel" and watches the face turn round by itself.
-  const bezelAtZero = () => { const r = $('bezelRange'); return !!r && +r.value === 0; };
+  // or presses "Zero the bezel" and watches the face turn round by itself. If the bezel happens to be on 0 already, it is turned off a
+  // little first (the way a real one can drift), so there is something to put right.
+  const needleZero = () => { const v = parseFloat(val('vC')); return !isNaN(v) && Math.abs(v) < 1e-9; };
+  const turnBezel = (to, ms, alive) => new Promise(done => {
+    const rng = $('bezelRange'); if (!rng) return done(false);
+    const from = +rng.value, t0 = performance.now();
+    const f = now => {
+      if (!alive()) return done(false);
+      const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+      rng.value = Math.round(from + (to - from) * e); rng.dispatchEvent(new Event('input', { bubbles: true }));
+      k < 1 ? requestAnimationFrame(f) : done(true);
+    };
+    requestAnimationFrame(f);
+  });
+  const unlockBezel = () => { if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click(); };   // (a locked bezel won't turn)
   const zeroBezel = () => {
     const rng = $('bezelRange'); if (!rng) return;
-    if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click();   // (a locked bezel won't turn)
+    unlockBezel();
     const job = ++howJob, nav = navId, alive = () => root && navId === nav && howJob === job;
     const doEl = card.querySelector('.gd-do'), say = t => { doEl.hidden = false; doEl.querySelector('span').textContent = t; };
     if (+rng.value === 0){ say('Already dead on 0.'); return; }
     say('Turning the bezel until the needle is on 0…');
-    const from = +rng.value, t0 = performance.now(), ms = 1200;
-    const f = now => {
-      if (!alive()) return;
-      const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-      rng.value = Math.round(from * (1 - e)); rng.dispatchEvent(new Event('input', { bubbles: true }));
-      if (k < 1) requestAnimationFrame(f);
-    };
-    requestAnimationFrame(f);
+    turnBezel(0, 1200, alive).then(ok => { if (ok) say('There. Dead on 0, and good to go.'); });
   };
-  const BEZEL = { target: '#bezelRange', view: 'dial', title: 'Turn the bezel to zero',
-    text: () => 'The jaws are closed, so the needle has to read exactly 0.\n' + (bezelAtZero() ? 'It’s sitting on 0. That’s exactly what we want.' : 'Turn the <b>bezel</b> until it does: drag the <b>Bezel offset</b> slider and watch the dial face turn.\nOr press <b>Zero the bezel</b> and watch it done for you.') + now('vC'),
-    waitFor: () => bezelAtZero(), how: zeroBezel, howLabel: 'Zero the bezel' };
+  const BEZEL = { target: '#bezelRange', view: 'dial', title: 'Turn the bezel to zero', howLabel: 'Zero the bezel', how: zeroBezel,
+    enter: s => { s.stage = 0; s.nudged = false; s.asked = false; },
+    text: s => 'The jaws are closed, so the needle has to read exactly 0.\n'
+      + (s.stage ? (needleZero() && +($('bezelRange') || {}).value === 0
+          ? 'It’s sitting right on 0. That’s exactly what we want.'
+          : (s.nudged ? 'It has drifted a little, the way a real bezel can. ' : 'It isn’t quite on 0. ') + 'Turn the <b>bezel</b> until the needle is on 0: drag the <b>Bezel offset</b> slider and watch the dial face turn.\nOr press <b>Zero the bezel</b> and watch it done for you.')
+        : 'Watching the jaws close…') + (s.stage && !needleZero() ? now('vC') : ''),
+    waitFor: s => {
+      const r = $('bezelRange'); if (!r) return true;
+      if (!s.stage){
+        if (!isClosed()){ if (!s.asked){ s.asked = true; ensureClosed(); } return false; }
+        s.stage = 1;
+        if (+r.value === 0){ unlockBezel(); s.nudged = true; s.busy = true; const nav = navId; turnBezel(6, 900, () => root && navId === nav).then(() => { s.busy = false; }); }
+        return false;
+      }
+      return !s.busy && needleZero() && +r.value === 0;
+    } };
 
   const TOURS = {
     dial: [
@@ -298,11 +345,11 @@
         { spot: 'mmNum', side: 'left', box: [150, 110], flat: 'the centimeter number', frame: ['mmNum', 'mvernZero'], title: 'Find the centimeter mark', text: () => {
           const v = parseFloat(val('mMain'));
           return 'Look at the metric scale on the beam, on the right.\nThe big numbers are centimeters, 10 mm each.\nLook for the last one at or below the vernier’s 0'
-            + (isNaN(v) ? '.' : `: <b>${Math.floor(v/10)} cm</b>, which is ${Math.floor(v/10)*10} mm.`);
+            + (isNaN(v) ? '.' : `: <b>${Math.floor(v/10)} cm</b>, which is ${Math.floor(v/10)*10} mm.\nWhy ${Math.floor(v/10)} and not ${Math.floor(v/10) + 1}? The vernier’s 0 hasn’t reached the ${Math.floor(v/10) + 1} yet, so only ${Math.floor(v/10)} whole centimeters have been passed. The numbers above it are still ahead, so always take the one at or below.`);
         } },
         { spot: 'mmLine', side: 'left', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mmLine', 'mvernZero'], hl: 'mmain', title: 'Find the main-scale line', text: () => {
           const v = parseFloat(val('mMain'));
-          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is one millimeter.'
+          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is one millimeter.\nNot the next line up: the vernier’s 0 hasn’t reached it yet, so it isn’t counted.'
             + (isNaN(v) ? '' : `\nHere it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
         { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is 0.02 mm, and its big numbers count tenths of a millimeter.' + nowMM('mVern') },
@@ -311,11 +358,11 @@
         { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
           const v = parseFloat(val('iMain'));
           return 'Look at the inch scale on the beam, on the left.\nThe big numbers are whole inches.\nLook for the last one at or below the vernier’s 0'
-            + (isNaN(v) ? '.' : `: <b>${Math.floor(v)}″</b>.`);
+            + (isNaN(v) ? '.' : `: <b>${Math.floor(v)}″</b>.\nWhy ${Math.floor(v)}″ and not ${Math.floor(v) + 1}″? The vernier’s 0 hasn’t reached the ${Math.floor(v) + 1} yet, so only ${Math.floor(v)} whole inches have been passed. The numbers above it are still ahead, so always take the one at or below.`);
         } },
         { spot: 'mainLine', side: 'right', box: [150, 90], flat: 'the main-scale line at or below the vernier’s 0', frame: ['mainLine', 'vernZero'], hl: 'imain', title: 'Find the main-scale line', text: () => {
           const v = parseFloat(val('iMain')), n = parseInt(val('iMainH'), 10);
-          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is 50 thou (0.050″).'
+          return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is 50 thou (0.050″).\nNot the next line up: the vernier’s 0 hasn’t reached it yet, so it isn’t counted.'
             + (isNaN(v) || isNaN(n) ? '' : `\nHere it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
         { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is a single thou (0.001″), and its number is how many thou to add.' + now('iVern') },
@@ -734,6 +781,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (clickOff) { clickOff(); clickOff = null; }
     waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
+    if (/^Zero on /.test(s.title)) ensureClosed();   // (a person who skipped ahead early would otherwise find the tool still open, and every "zero" reading wrong)
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
     if (window.__guideHands) window.__guideHands(!!s.hands);     // the 3D hands that show how to hold the tool, where a step asks for them
     // only this step's highlight is lit, and the camera flies to where the step looks

@@ -1307,7 +1307,21 @@ let tgHeld = false;      // ...unless the lab's own gauge is being drawn over th
 let tgGhost = false;     // (this part is then only a stand-in: it measures and casts its shadow, and the lab's gauge is what is seen)
 let tgNat = false;       // the lab's gauge has landed: this view draws it itself now (same depth as the jaws, so they hide what they should)
 const GHOST_MAT = new T.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+// builds the gauge's shaders and uploads its textures now, while it is out of sight, so showing it later is instant (no hitch, no half-dressed frame)
+function prewarmGauge(obj){
+  try {
+    renderer.compile(scene, camera);
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]){
+        if (!m || !renderer.initTexture) continue;
+        for (const k of ['map', 'bumpMap', 'roughnessMap', 'envMap']) if (m[k]) renderer.initTexture(m[k]);
+      }
+    });
+  } catch (e) {}
+}
 function ghostPart(obj, on){
+  if (on) prewarmGauge(obj);
   obj.traverse(o => {
     if (!o.isMesh || o.userData.hull || o.userData.cap) return;
     if (on){ if (!o.userData.realMat) o.userData.realMat = o.material; o.material = GHOST_MAT; }
@@ -2392,7 +2406,16 @@ function flatArrow(g, W, H, tx, ty, dx, dy, col, lab, placed, region, avoid) {
       }
     if (best) box = best;
   }
-  if (placed) placed.push({ x: box.x, y: box.y, w, h });
+  // still on top of something? Then look over the whole region for the free spot nearest the first choice, so labels never overlap
+  if (hits(box)) {
+    let free = null, nearest = Infinity;
+    for (let yy = R.y; yy <= R.y + R.h - h; yy += 3) for (let xx = R.x; xx <= R.x + R.w - w; xx += 3) {
+      const b = { x: xx, y: yy }; if (hits(b)) continue;
+      const dd = Math.hypot(xx - box.x, yy - box.y); if (dd < nearest) { nearest = dd; free = b; }
+    }
+    if (free) box = free;
+  }
+  if (placed) { placed.push({ x: box.x, y: box.y, w, h }); window.__flatBoxes = placed; }   // (kept so the dev tools can check that no two labels overlap)
   // leader from the nearest point of the label to the mark
   const lx = clamp(tx, box.x, box.x + w), ly = clamp(ty, box.y, box.y + h), ang = Math.atan2(ty - ly, tx - lx);
   const ux = Math.cos(ang), uy = Math.sin(ang), long = Math.hypot(tx - lx, ty - ly) > 12;
@@ -2741,8 +2764,9 @@ window.__tgShow = () => { if (sample.type === 'tgauge' && sample.obj && tgGhost)
 // object would be (the lab's own canvas draws over everything). Says whether it could.
 window.__tgNative = () => {
   if (sample.type !== 'tgauge' || !sample.obj || !tgHeld || !(tgGhost || tgNat)) return false;
-  window.__tgShow(); tgNat = true; invalidate(120); return true;
+  window.__tgShow(); tgNat = true; tgAnnounce = true; invalidate(120); return true;
 };
+let tgAnnounce = false;   // the lab is waiting to hear that this view has drawn the gauge
 // Changing the part: the caliper lets go of the old one first, the way you would by hand: outside jaws open a
 // little, inside jaws close a little, and the depth rod goes all the way back in. Then the old part dissolves
 // away and the new one comes in. Asking again while it is letting go just changes which part comes next.
@@ -2763,6 +2787,8 @@ function changePart(type) {
 
 /* ================================================================== practice */
 let rhPracticeSet = false, lastPracticeKey = '';
+window.__partInfo = () => (sample && sample.type) ? { type: sample.type } : null;   // (the guide's cleaning advice depends on what the part is made of)
+window.__tgObj = () => (sample && sample.type === 'tgauge' ? sample.obj : null);   // (for the dev tools: the gauge this tool draws)
 window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on, keepPart) {
   if (on && !rhPracticeSet) {
@@ -3164,12 +3190,20 @@ function checkPracticeMM() {
   const title = ok ? pickOne(['Spot on!', 'Beautifully read!', 'Nailed it!', 'Perfect reading!'])
     : ex.decimal ? 'Your reading is right!'
     : wrong.length <= 1 ? pickOne(['So close — you’ve got this!', 'Almost perfect!', 'Just one small thing!'])
-    : pickOne(['Good effort — let’s fine-tune it', 'You’re on the right track']);
+    : wrong.length === 2 ? pickOne(['Two pieces to fix — you’re nearly there!', 'Good start — just two to look at'])
+    : wrong.length === 3 ? pickOne(['Good effort — let’s go through it together', 'A real start — let’s build on it'])
+    : pickOne(['Every great reading starts here — let’s take it step by step', 'Fresh start — we’ll build it up one piece at a time']);
   const sub = ok ? (sc.streak >= 3 ? `${sc.streak} in a row — you’re really getting the hang of this.` : `The ${esc(def.what)} is ${(ans / 100).toFixed(2)} mm.`)
     : ex.decimal ? 'Only the decimal point needs moving.'
-    : wrong.length ? `${wrong.length === 1 ? 'Only one step needs' : `${wrong.length} steps need`} a second look — you got ${keys.length - wrong.length} of ${keys.length} right.`
+    : wrong.length ? `You got ${keys.length - wrong.length} of ${keys.length} sections right${keys.length - wrong.length === 0 ? ' this time' : ''}, and ${wrong.length === 1 ? 'one section needs' : `${wrong.length} sections need`} a second look. ${wrong.length === 1 ? 'It is' : 'Each one is'} explained below.`
     : 'Every mark was read right — only the last step size needs a look.';
   const pct = sc.total ? Math.round(sc.right / sc.total * 100) : 0;
+  // keep a running count of the sections slipped on, across every try in this practice session
+  if (!ok && !ex.decimal){ const sl0 = state.pSlips || (state.pSlips = {}); wrong.forEach(k => { sl0[k] = (sl0[k] || 0) + 1; }); }
+  const sl = state.pSlips || {}, slipTotal = keys.reduce((t, k) => t + (sl[k] || 0), 0);
+  const tracker = ok || ex.decimal ? '' : `<div class="fx-track" role="group" aria-label="Sections right and wrong this try"><div class="fx-track-h"><b>${keys.length - wrong.length} of ${keys.length} sections right</b><span>${wrong.length ? `${wrong.length} to look at` : ''}</span></div>
+    <div class="fx-track-r">${keys.map(k => { const bad = wrong.includes(k); return `<span class="fx-tk ${bad ? 'bad' : 'good'}" style="--c:${STEP_MM[k].css}"><i class="fa-solid ${bad ? 'fa-xmark' : 'fa-check'}"></i>${STEP_MM[k].name}${sl[k] ? `<em title="Times missed so far in this practice">${sl[k]}</em>` : ''}</span>`; }).join('')}</div>
+    ${slipTotal > wrong.length ? '<div class="fx-track-n">The small number on a section is how many times it has needed a second look in this practice. Every slip here is just practice.</div>' : ''}</div>`;
   const hero = `<div class="fx-hero ${ok ? 'ok' : ''}"><div class="fx-badge"><i class="fa-solid ${ok ? 'fa-check' : 'fa-seedling'}"></i></div>
     <div class="fx-head"><h4>${title}</h4><p>${sub}</p></div>
     <div class="fx-score"><div class="fx-ring" style="--p:${pct}"><span>${pct}%</span></div><div><small>Score</small><b>${sc.right} / ${sc.total}</b><small>${sc.streak ? `${sc.streak} in a row` : 'keep going'}</small></div></div></div>`;
@@ -3196,7 +3230,7 @@ function checkPracticeMM() {
   const good = !ok && Y ? keys.filter(k => !wrong.includes(k)) : [];
   const goodRow = good.length ? `<div class="fx-sec">What you got right</div><div class="fx-good">${good.map(k => `<span><i class="fa-solid fa-circle-check"></i>${STEP_MM[k].name}</span>`).join('')}</div>` : '';
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok ? 'Press <b>Next</b> whenever you’d like another one.' : 'Check the arrows on the caliper, then press <b>Next</b> when you’re ready.'}</span></div>`;
-  fb.innerHTML = `<div class="fx">${hero}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
+  fb.innerHTML = `<div class="fx">${hero}${tracker}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
   (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 function checkPractice() {
@@ -3217,11 +3251,19 @@ function checkPractice() {
   const title = ok ? pickOne(['Spot on!', 'Beautifully read!', 'Nailed it!', 'Perfect reading!'])
     : ex.decimal ? 'Your reading is right!'
     : wrong.length <= 1 ? pickOne(['So close — you’ve got this!', 'Almost perfect!', 'Just one small thing!'])
-    : pickOne(['Good effort — let’s fine-tune it', 'You’re on the right track']);
+    : wrong.length === 2 ? pickOne(['Two pieces to fix — you’re nearly there!', 'Good start — just two to look at'])
+    : wrong.length === 3 ? pickOne(['Good effort — let’s go through it together', 'A real start — let’s build on it'])
+    : pickOne(['Every great reading starts here — let’s take it step by step', 'Fresh start — we’ll build it up one piece at a time']);
   const sub = ok ? (sc.streak >= 3 ? `${sc.streak} in a row — you’re really getting the hang of this.` : `The ${esc(def.what)} is ${(ans / 1000).toFixed(3)}″.`)
     : ex.decimal ? 'Only the decimal point needs moving.'
-    : `${wrong.length === 1 ? 'Only one step needs' : `${wrong.length} steps need`} a second look — you got ${stepKeys().length - wrong.length} of ${stepKeys().length} right.`;
+    : `You got ${stepKeys().length - wrong.length} of ${stepKeys().length} sections right${stepKeys().length - wrong.length === 0 ? ' this time' : ''}, and ${wrong.length === 1 ? 'one section needs' : `${wrong.length} sections need`} a second look. ${wrong.length === 1 ? 'It is' : 'Each one is'} explained below.`;
   const pct = sc.total ? Math.round(sc.right / sc.total * 100) : 0;
+  // keep a running count of the sections slipped on, across every try in this practice session
+  if (!ok && !ex.decimal){ const sl0 = state.pSlips || (state.pSlips = {}); wrong.forEach(k => { sl0[k] = (sl0[k] || 0) + 1; }); }
+  const sl = state.pSlips || {}, slipTotal = stepKeys().reduce((t, k) => t + (sl[k] || 0), 0);
+  const tracker = ok || ex.decimal ? '' : `<div class="fx-track" role="group" aria-label="Sections right and wrong this try"><div class="fx-track-h"><b>${stepKeys().length - wrong.length} of ${stepKeys().length} sections right</b><span>${wrong.length ? `${wrong.length} to look at` : ''}</span></div>
+    <div class="fx-track-r">${stepKeys().map(k => { const bad = wrong.includes(k); return `<span class="fx-tk ${bad ? 'bad' : 'good'}" style="--c:${STEP_DEF[k].css}"><i class="fa-solid ${bad ? 'fa-xmark' : 'fa-check'}"></i>${STEP_DEF[k].name}${sl[k] ? `<em title="Times missed so far in this practice">${sl[k]}</em>` : ''}</span>`; }).join('')}</div>
+    ${slipTotal > wrong.length ? '<div class="fx-track-n">The small number on a section is how many times it has needed a second look in this practice. Every slip here is just practice.</div>' : ''}</div>`;
   const hero = `<div class="fx-hero ${ok ? 'ok' : ''}"><div class="fx-badge"><i class="fa-solid ${ok ? 'fa-check' : 'fa-seedling'}"></i></div>
     <div class="fx-head"><h4>${title}</h4><p>${sub}</p></div>
     <div class="fx-score"><div class="fx-ring" style="--p:${pct}"><span>${pct}%</span></div><div><small>Score</small><b>${sc.right} / ${sc.total}</b><small>${sc.streak ? `${sc.streak} in a row` : 'keep going'}</small></div></div></div>`;
@@ -3250,7 +3292,7 @@ function checkPractice() {
   const good = !ok && Y ? stepKeys().filter(k => !wrong.includes(k)) : [];
   const goodRow = good.length ? `<div class="fx-sec">What you got right</div><div class="fx-good">${good.map(k => `<span><i class="fa-solid fa-circle-check"></i>${STEP_DEF[k].name}</span>`).join('')}</div>` : '';
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok ? 'Press <b>Next</b> whenever you’d like another one.' : 'Check the arrows on the caliper, then press <b>Next</b> when you’re ready.'}</span></div>`;
-  fb.innerHTML = `<div class="fx">${hero}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
+  fb.innerHTML = `<div class="fx">${hero}${tracker}${cmp}${notes}${eq}${steps}${goodRow}${foot}</div>`;
   (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
@@ -3500,6 +3542,7 @@ function loop(now) {
   lastDraw = now;
   shopFinish(scene);
   renderer.render(scene, camera);
+  if (tgAnnounce){ tgAnnounce = false; try { window.parent.__shell.nativeShown(); } catch (e) {} }   // (the gauge is on the screen: the lab can let go of its own now)
   updateOverlays();
   adaptResolution(now);
 }

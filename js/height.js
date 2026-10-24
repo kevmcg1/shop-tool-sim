@@ -995,6 +995,7 @@ function renderFeats(){
 }
 
 /* ---------- practice ---------- */
+window.__partInfo = () => state.part && PARTS[state.part.key] ? { mats: [PARTS[state.part.key].mat] } : null;   // (the guide's cleaning advice depends on what the part is made of)
 window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on){
   state.practice = on; state.pRevealed = false;
@@ -1175,22 +1176,30 @@ function checkPractice(){
   const KEYS = ['main', 'vern'];
   const wrong = ok ? [] : KEYS.filter(k => ex.why[k]);
   state.pRevealed = true; lastUI = '';
-  const nWrong = wrong.length;
+  const nWrong = wrong.length, nRight = 2 - nWrong;
+  // keep a running count of the sections slipped on, across every try in this practice session, so the tracker can show where the practice is needed
+  if (!ok && !ex.decimal && !ex.swap){ const sl = state.pSlips || (state.pSlips = {}); wrong.forEach(k => { sl[k] = (sl[k] || 0) + 1; }); }
   const title = ok ? pickOne(['Spot on!', 'Beautifully read!', 'Nailed it!', 'Perfect reading!'])
     : ex.swap ? 'Right reading, other scale!'
     : ex.decimal ? 'Your reading is right!'
     : miss ? 'Just one piece left out — so close!'
     : nWrong <= 1 ? pickOne(['So close — you’ve got this!', 'Almost perfect!', 'Just one small thing!'])
+    : nWrong === 2 ? pickOne(['Both pieces need a look — let’s take them one at a time', 'Every great reading starts here — let’s go step by step'])
     : pickOne(['Good effort — let’s fine-tune it', 'You’re on the right track']);
   const sub = ok ? (sc.streak >= 3 ? sc.streak + ' in a row — you’re really getting the hang of this.' : 'Main scale and vernier both read correctly. Keep it going!')
     : ex.swap ? 'Only the scale needs switching.'
     : ex.decimal ? 'Only the decimal point needs moving.'
     : miss ? 'The other step was exactly right.'
-    : (nWrong === 1 ? 'Only one step needs' : 'Both steps need') + ' a second look.';
+    : nWrong === 1 ? 'You got 1 of 2 sections right, and one section needs a second look. It is explained below.'
+    : 'You got 0 of 2 sections right this time, and both need a second look. Each one is explained below. That’s how it starts for everyone.';
   const pct = sc.total ? Math.round(sc.right/sc.total*100) : 0;
   const hero = '<div class="fx-hero ' + (ok ? 'ok' : '') + '"><div class="fx-badge"><i class="fa-solid ' + (ok ? 'fa-check' : miss ? 'fa-puzzle-piece' : 'fa-seedling') + '"></i></div>' +
     '<div class="fx-head"><h4>' + title + '</h4><p>' + sub + '</p></div>' +
     '<div class="fx-score"><div class="fx-ring" style="--p:' + pct + '"><span>' + pct + '%</span></div><div><small>Score</small><b>' + sc.right + ' / ' + sc.total + '</b><small>' + (sc.streak ? '🔥 ' + sc.streak + ' in a row' : 'keep going') + '</small></div></div></div>';
+  const sl = state.pSlips || {}, slipTotal = KEYS.reduce((t, k) => t + (sl[k] || 0), 0);
+  const tracker = ok || ex.swap || ex.decimal ? '' : '<div class="fx-track" role="group" aria-label="Sections right and wrong this try"><div class="fx-track-h"><b>' + nRight + ' of 2 sections right</b><span>' + (nWrong ? nWrong + ' to look at' : '') + '</span></div><div class="fx-track-r">' +
+    KEYS.map(k => { const bad = wrong.includes(k); return '<span class="fx-tk ' + (bad ? 'bad' : 'good') + '" style="--c:' + STEPS[k].css + '"><i class="fa-solid ' + (bad ? 'fa-xmark' : 'fa-check') + '"></i>' + STEPS[k].name + (sl[k] ? '<em title="Times missed so far in this practice">' + sl[k] + '</em>' : '') + '</span>'; }).join('') + '</div>' +
+    (slipTotal > nWrong ? '<div class="fx-track-n">The small number on a section is how many times it has needed a second look in this practice. Every slip here is just practice.</div>' : '') + '</div>';
   const d = you - aVal;
   const cmp = ok ? '<div class="fx-cmp solo"><div class="fx-num ans"><small>Your reading</small><b>' + fmtU(u, aVal) + U.sym + '</b></div></div>'
     : '<div class="fx-cmp"><div class="fx-num you"><small>You entered</small><b>' + esc(String(g)) + U.sym + '</b></div>' +
@@ -1219,7 +1228,7 @@ function checkPractice(){
   const foot = '<div class="fx-foot"><i class="fa-solid ' + (ok ? 'fa-star' : 'fa-heart') + '"></i><span>' + (ok ? 'Press <b>Next</b> whenever you’d like another one.'
     : 'Every expert has made this exact slip while learning. The colored lines on the gage show the right marks — press <b>Next</b> when you feel ready.') + '</span></div>';
   fb.className = '';
-  fb.innerHTML = '<div class="fx">' + hero + cmp + missBox + notes + eq + steps + goodRow + foot + '</div>';
+  fb.innerHTML = '<div class="fx">' + hero + tracker + cmp + missBox + notes + eq + steps + goodRow + foot + '</div>';
   (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
@@ -2027,14 +2036,21 @@ function drawFlatHG(){
   // note on a dark tag at the foot of each side says where, and "Show me" points at the note
   if (show){
     const iv = Math.floor(I.mainIdx/20), cm = Math.floor(Mm.mainIdx/10);
+    // two notes sit at the foot, the inch one on the left and the metric one on the right; when both are showing and would touch, the
+    // metric one steps up above the inch one so they never overlap
+    const tags = [], boxes = [];
     const tag = (t, right) => {
       g.save(); g.font = '700 10px Inter, Arial, sans-serif';
-      const w = g.measureText(t).width + 12, h = 16, x = right ? W - 3 - w : 3, y = H - 3 - h;
+      const w = g.measureText(t).width + 12, h = 16; let x = right ? W - 3 - w : 3, y = H - 3 - h;
+      if (right && boxes.length){ const o = boxes[0]; if (x < o[2] + 4 && o[0] < x + w + 4) y = o[1] + 2 - h - 6; }
       g.fillStyle = 'rgba(11,12,14,.9)'; g.fillRect(x, y, w, h);
       g.fillStyle = '#f2c94c'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, x + 6, y + h/2 + 0.5);
       g.restore();
-      return [x - 2, y - 2, x + w + 2, y + h + 2];
+      const b = [x - 2, y - 2, x + w + 2, y + h + 2]; boxes.push(b); tags.push({ x, y, w, h });
+      window.__flatBoxes = tags;   // (kept so the dev tools can check that no two labels overlap)
+      return b;
     };
+    window.__flatBoxes = [];
     if (Y(iv*20*IN_MAIN) > H - 6){ flatSpots.inchNum = tag(`↓ ${iv}″ is ${((R - iv*25.4)/25.4).toFixed(2)}″ below`); flatSpots.inchNumNote = true; }
     if (Y(cm*10) > H - 6){ flatSpots.mmNum = tag(`↓ ${cm} cm is ${(R - cm*10).toFixed(1)} mm below`, true); flatSpots.mmNumNote = true; }
   }

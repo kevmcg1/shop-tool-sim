@@ -2286,6 +2286,7 @@ function endCoach(restore){ if (!state.coach) return; state.coach = false; docum
 /* ---------- practice ---------- */
 const showAns = () => !state.practice || state.pRevealed;
 let lastPracticeKey = '';
+window.__partInfo = () => state.sample ? { mats: [state.sample.mat].concat((state.sample.prims || []).map(q => q.mat)) } : null;   // (the guide's cleaning advice depends on what the part is made of)
 window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on){
   setTimeout(autoFrame, 400);   // the answer panel changes the size of the view
@@ -2549,7 +2550,7 @@ function checkPractice(){
   const A = ex.A, Y = ex.decimal ? null : ex.Y;
   const miss = ok || ex.decimal ? null : findMissing(you, ans, A, ex.Y);
   // praise the rest only when nothing else was flagged wrong
-  const onlyMiss = !!miss && STEP_KEYS.every(k => miss.keys.includes(k) || !ex.why[k]);
+  const onlyMiss = !!miss && miss.keys.length === 1 && STEP_KEYS.every(k => miss.keys.includes(k) || !ex.why[k]);
   if (miss) miss.keys.forEach(k => {
     const src = miss.type === 'missing' ? A : ex.Y, v = (STEP_DEF[k].val(src)/1000).toFixed(3);
     const where = {
@@ -2574,24 +2575,35 @@ function checkPractice(){
   state.pRevealed = true;
   state.pErr = ok || ex.decimal ? [] : wrong;
   flatKey = ''; updateAll();
-  const nWrong = wrong.length;
+  const nWrong = wrong.length, nRight = 4 - nWrong;
+  // keep a running count of the sections slipped on, across every try in this practice session, so the tracker can show where the practice is needed
+  if (!ok && !ex.decimal){ const sl = state.pSlips || (state.pSlips = {}); wrong.forEach(k => { sl[k] = (sl[k] || 0) + 1; }); }
+  const num = ['no', 'one', 'two', 'three', 'four'];
   const title = ok
     ? pickOne(['Spot on!', 'Beautifully read!', 'Nailed it!', 'Perfect reading!'])
     : ex.decimal ? 'Your reading is right!'
-    : miss ? (miss.type === 'missing' ? 'Just one piece left out — so close!' : 'Just one extra piece — so close!')
+    : nWrong === 1 && miss ? (miss.type === 'missing' ? 'Just one piece left out — so close!' : 'Just one extra piece — so close!')
     : nWrong <= 1 ? pickOne(['So close — you’ve got this!', 'Almost perfect!', 'Just one small thing!'])
-    : pickOne(['Good effort — let’s fine-tune it', 'You’re on the right track', 'Great start — a couple of tweaks']);
+    : nWrong === 2 ? pickOne(['Two pieces to fix — you’re nearly there!', 'Good start — just two to look at'])
+    : nWrong === 3 ? pickOne(['Good effort — let’s go through it together', 'A real start — let’s build on it'])
+    : pickOne(['Every great reading starts here — let’s take it step by step', 'Fresh start — we’ll build it up one piece at a time']);
   const sub = ok
     ? (sc.streak >= 3 ? `${sc.streak} in a row — you’re really getting the hang of this.` : 'Every scale read correctly. Keep it going!')
     : ex.decimal ? 'Only the decimal point needs moving.'
-    : miss ? `Your other ${4 - miss.keys.length} steps were exactly right.`
-    : `${nWrong === 1 ? 'Only one step needs' : `${nWrong} steps need`} a second look — you got ${4 - nWrong} of 4 right.`;
+    : nWrong === 1 && miss ? 'Your other 3 steps were exactly right.'
+    : `You got ${nRight} of 4 sections right${nRight === 0 ? ' this time' : ''}, and ${nWrong === 1 ? 'one section needs' : `${num[nWrong]} sections need`} a second look. Each one is explained below.`;
   const pct = sc.total ? Math.round(sc.right/sc.total*100) : 0;
 
   const hero = `<div class="fx-hero ${ok ? 'ok' : ''}">
       <div class="fx-badge"><i class="fa-solid ${ok ? 'fa-check' : miss ? 'fa-puzzle-piece' : 'fa-seedling'}"></i></div>
       <div class="fx-head"><h4>${title}</h4><p>${sub}</p></div>
       <div class="fx-score"><div class="fx-ring" style="--p:${pct}"><span>${pct}%</span></div><div><small>Score</small><b>${sc.right} / ${sc.total}</b><small>${sc.streak ? `🔥 ${sc.streak} in a row` : 'keep going'}</small></div></div>
+    </div>`;
+  const sl = state.pSlips || {}, slipTotal = STEP_KEYS.reduce((t, k) => t + (sl[k] || 0), 0);
+  const tracker = ok ? '' : `<div class="fx-track" role="group" aria-label="Sections right and wrong this try">
+      <div class="fx-track-h"><b>${nRight} of 4 sections right</b><span>${nWrong ? `${nWrong} to look at` : ''}</span></div>
+      <div class="fx-track-r">${STEP_KEYS.map(k => { const bad = wrong.includes(k); return `<span class="fx-tk ${bad ? 'bad' : 'good'}" style="--c:${STEP_DEF[k].css}"><i class="fa-solid ${bad ? 'fa-xmark' : 'fa-check'}"></i>${STEP_DEF[k].name}${sl[k] ? `<em title="Times missed so far in this practice">${sl[k]}</em>` : ''}</span>`; }).join('')}</div>
+      ${slipTotal > nWrong ? '<div class="fx-track-n">The small number on a section is how many times it has needed a second look in this practice. Every slip here is just practice.</div>' : ''}
     </div>`;
   const cmp = ok
     ? `<div class="fx-cmp solo"><div class="fx-num ans"><small>Your reading</small><b>${fmt(ans/1000)}″</b></div></div>`
@@ -2604,7 +2616,7 @@ function checkPractice(){
     const parts = miss.keys.map(k => `${(STEP_DEF[k].val(miss.type === 'missing' ? A : ex.Y)/1000).toFixed(3)}″ ${STEP_DEF[k].word}`).join(' + ');
     missBox = `<div class="fx-miss" style="--c:${STEP_DEF[k0].css}">
       <div class="fx-miss-ic"><i class="fa-solid ${miss.type === 'missing' ? 'fa-puzzle-piece' : 'fa-scissors'}"></i></div>
-      <div><h5>${miss.type === 'missing' ? `The ${words} wasn’t added` : `An extra ${words} was added`}</h5>
+      <div><h5>${miss.type === 'missing' ? `The ${words} ${miss.keys.length > 1 ? 'weren’t' : 'wasn’t'} added` : `An extra ${words} ${miss.keys.length > 1 ? 'were' : 'was'} added`}</h5>
       <p>${!onlyMiss ? (miss.type === 'missing' ? 'Adding this value back in gives the exact answer:' : 'Taking this value out gives the exact answer:') : miss.type === 'missing' ? 'Everything else lines up perfectly — adding this one value back in gives the exact answer:' : 'Everything else lines up perfectly — taking this value out gives the exact answer:'}</p>
       <div class="fx-sum"><span>${esc(fmt(you/1000))}″</span><span class="op">${miss.type === 'missing' ? '+' : '−'}</span><span class="add">${parts}</span><span class="op">=</span><span class="res">${fmt(ans/1000)}″</span></div></div></div>`;
   }
@@ -2637,7 +2649,7 @@ function checkPractice(){
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok
     ? 'Press <b>Next</b> whenever you’d like another one.'
     : 'Every expert has made this exact slip while learning. Take a look at the arrows, then press <b>Next</b> when you feel ready — you’re improving with every try.'}</span></div>`;
-  fb.innerHTML = `<div class="fx">${hero}${cmp}${missBox}${notes}${eq}${steps}${goodRow}${foot}</div>`;
+  fb.innerHTML = `<div class="fx">${hero}${tracker}${cmp}${missBox}${notes}${eq}${steps}${goodRow}${foot}</div>`;
   (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
@@ -2735,7 +2747,16 @@ function flatArrow(g, W, H, tx, ty, dx, dy, col, lab, placed, region) {
       }
     if (best) box = best;
   }
-  if (placed) placed.push({ x: box.x, y: box.y, w, h });
+  // still on top of something? Then look over the whole region for the free spot nearest the first choice, so labels never overlap
+  if (hits(box)) {
+    let free = null, nearest = Infinity;
+    for (let yy = R.y; yy <= R.y + R.h - h; yy += 3) for (let xx = R.x; xx <= R.x + R.w - w; xx += 3) {
+      const b = { x: xx, y: yy }; if (hits(b)) continue;
+      const dd = Math.hypot(xx - box.x, yy - box.y); if (dd < nearest) { nearest = dd; free = b; }
+    }
+    if (free) box = free;
+  }
+  if (placed) { placed.push({ x: box.x, y: box.y, w, h }); window.__flatBoxes = placed; }   // (kept so the dev tools can check that no two labels overlap)
   // leader from the nearest point of the label to the mark
   const lx = clamp(tx, box.x, box.x + w), ly = clamp(ty, box.y, box.y + h), ang = Math.atan2(ty - ly, tx - lx);
   const ux = Math.cos(ang), uy = Math.sin(ang), long = Math.hypot(tx - lx, ty - ly) > 12;

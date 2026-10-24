@@ -1,3 +1,4 @@
+/* Embeds: the callouts, notes and trackers shared by every tool page. */
 /* Embeds drawn as brackets: a box outline with the middle of the top and the bottom cut away, so each one reads [ like this ].
    Used by every callout in the walkthroughs, the "How do I read this?" words, and the practice feedback notes. The colour is --bc. */
 .gd-l.tip,.gd-l.ok,.gd-l.key,.gd-l.act,.gd-paper,.fx-note,.fx-miss,.hrx-t,.hrx-tips li{
@@ -17,3 +18,18 @@
 .fx-miss{--bc:var(--c,#e8c547);padding:12px 16px!important}
 .hrx-t{--bc:rgba(150,185,255,.75);padding:8px 14px!important}
 .hrx-tips li{--bc:rgba(150,185,255,.75);padding:3px 12px!important}
+
+/* the practice tracker: one pill for every section of the reading, a tick or a cross, and how many times each has needed a second look so far */
+.fx-track{margin-top:10px;padding:10px 14px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.03)}
+.fx-track-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13px;color:#d6d9de}
+.fx-track-h b{font-weight:700}
+.fx-track-h span{font-size:12px;color:#9aa0a8}
+.fx-track-r{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.fx-tk{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.14);color:#c9ccd1;background:rgba(255,255,255,.04)}
+.fx-tk i{font-size:11px}
+.fx-tk.good{border-color:rgba(95,207,138,.5);color:#bfeed0;background:rgba(95,207,138,.09)}
+.fx-tk.good i{color:#5fcf8a}
+.fx-tk.bad{border-color:rgba(255,157,148,.45);color:#ffd3ce;background:rgba(255,157,148,.08)}
+.fx-tk.bad i{color:#ff9d94}
+.fx-tk em{font-style:normal;font-size:10.5px;font-weight:700;min-width:16px;padding:0 5px;border-radius:999px;text-align:center;background:rgba(255,255,255,.14);color:#fff}
+.fx-track-n{margin-top:8px;font-size:11.5px;line-height:1.45;color:#9aa0a8}

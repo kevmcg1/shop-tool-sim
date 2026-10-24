@@ -4,31 +4,34 @@ const CORE = (function(){
   const RHO = 0.128;                 // 0.256" measuring faces
   const C30 = Math.cos(Math.PI/6);
 
-  // Each frame size is its own design, not the 0–1″ scaled up: its own bulk, throat shape, web depth, paint, insulating pads,
-  // lightening slots and anvil. pw is the throat's squareness (2 is an ellipse; higher is boxier), ryx how much metal sits
-  // under the throat, web how deep the web is next to the rim, rimW the rim's width.
+  // Each frame size is its own design, not the 0–1″ scaled up: its own bulk (thickness), web depth, paint, insulating pads,
+  // lightening slots and anvil. Every one is a true round C (pw 2 is a circle; the code can draw boxier throats, but none uses them);
+  // web is how deep the web is next to the rim, rimW the rim's width.
   const STYLE = [
-    /* 0–1″ */ { pw: 2,    bulk: 1.00, ryx: 0.46, rimW: 0.065, web: 0.78, paint: 0x3a74cc, pads: 0, slots: 0, anvil: 'fixed' },
-    /* 1–2″ */ { pw: 2.15, bulk: 1.12, ryx: 0.64, rimW: 0.085, web: 0.70, paint: 0x4d6f93, pads: 1, slots: 0, anvil: 'fixed' },
-    /* 2–3″ */ { pw: 2.3,  bulk: 1.30, ryx: 0.86, rimW: 0.100, web: 0.62, paint: 0x6a6f76, pads: 2, slots: 2, anvil: 'fixed' },
-    /* 3–4″ */ { pw: 2.5,  bulk: 1.40, ryx: 1.06, rimW: 0.125, web: 0.54, paint: 0x474c52, pads: 2, slots: 4, anvil: 'fixed' },
-    /* 4–5″ */ { pw: 2.75, bulk: 1.56, ryx: 1.32, rimW: 0.150, web: 0.48, paint: 0x2f3439, pads: 2, slots: 4, anvil: 'adjustable' },
-    /* 5–6″ */ { pw: 3.0,  bulk: 1.72, ryx: 1.58, rimW: 0.175, web: 0.42, paint: 0x3b4a41, pads: 2, slots: 6, anvil: 'adjustable' }
+    /* 0–1″ */ { deep: 0.8, bulk: 1.00, rimW: 0.065, web: 0.78, paint: 0x3a74cc, pads: 0, slots: 0, anvil: 'fixed' },
+    /* 1–2″ */ { deep: 0.8, bulk: 1.10, rimW: 0.085, web: 0.70, paint: 0x3f6489, pads: 1, slots: 0, anvil: 'fixed', metal: 0.3, env: 0.9 },
+    /* 2–3″ */ { deep: 0.8, bulk: 1.22, rimW: 0.100, web: 0.62, paint: 0x4a4f56, pads: 2, slots: 2, anvil: 'fixed', metal: 0.14, env: 0.6 },
+    /* 3–4″ */ { deep: 1.3, bulk: 1.32, rimW: 0.125, web: 0.54, paint: 0x30353b, pads: 2, slots: 4, anvil: 'fixed', metal: 0.12, env: 0.55 },
+    /* 4–5″ */ { deep: 1.8, bulk: 1.38, rimW: 0.150, web: 0.48, paint: 0x23272b, pads: 2, slots: 4, anvil: 'adjustable', metal: 0.12, env: 0.55 },
+    /* 5–6″ */ { deep: 2.3, bulk: 1.42, rimW: 0.175, web: 0.42, paint: 0x2a4234, pads: 2, slots: 6, anvil: 'adjustable', metal: 0.12, env: 0.55 }
   ];
   function dims(B){
     const st = STYLE[B] || STYLE[0];
     const g = 0.05*B, armL = -0.7 - g, armR = -0.12, hx = B + 1.12, hubR = B + 1.7 + g;
-    const cx = (armR + hx)/2, rxi = (hx - armR)/2, rxo = (hubR - armL)/2, cy = -0.5 - 0.35*B;
-    const ryi = rxi*0.95, ryo = ryi + st.ryx, zs = st.bulk, ar = (armR - armL)/2;
+    const cx = (armR + hx)/2, r = (hx - armR)/2, armT = armR - armL, zs = st.bulk, ar = armT/2;
+    // A true round C: the throat is ONE circle that passes through the two faces' arms (at the measuring axis, y = 0) and reaches
+    // `st.deep` below the half-way depth, so the parts have room to sit in it; the outside is a concentric circle, so the metal round
+    // it is the same thickness all the way. (yc, below the axis, is where the circle's middle is.)
+    const Dn = r + st.deep, yc = -(Dn*Dn - r*r)/(2*Dn), R = Dn + yc, Ro = Math.sqrt((r + armT)*(r + armT) + yc*yc);
     const rd = 0.36*zs, cd = rd*st.web;   // the rim's and the web's thickness
-    return { g, armL, armR, hx, hubR, cx, cy, rxi, rxo, ryi, ryo, zs, ar, st, pw: st.pw, rd, cd, rimW: st.rimW,
-      bottom: cy - ryo, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
+    return { g, armL, armR, hx, hubR, cx, cy: yc, rxi: R, ryi: R, rxo: Ro, ryo: Ro, zs, ar, st, pw: 2, rd, cd, rimW: st.rimW, r, armT,
+      bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
   }
   // a (super)ellipse's half-height at fraction t of its radius
   const se = (t, p) => p === 2 ? Math.sqrt(1 - t*t) : Math.pow(Math.max(0, 1 - Math.pow(Math.abs(t), p)), 1/p);
-  // open throat: allowed x-range at height y
-  function xl(D, y){ if (y > D.armTop) return -Infinity; if (y >= D.cy) return D.armR; const t = (y - D.cy)/D.ryi; if (t <= -1) return Infinity; return D.cx - D.rxi*se(t, D.pw); }
-  function xr(D, y){ if (y > D.hubTop) return Infinity; if (y >= D.cy) return D.hx; const t = (y - D.cy)/D.ryi; if (t <= -1) return -Infinity; return D.cx + D.rxi*se(t, D.pw); }
+  // open throat: allowed x-range at height y (the faces' arms above the axis, the throat's circle below it)
+  function xl(D, y){ if (y > D.armTop) return -Infinity; if (y >= 0) return D.armR; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return Infinity; return D.cx - Math.sqrt(D.rxi*D.rxi - t*t); }
+  function xr(D, y){ if (y > D.hubTop) return Infinity; if (y >= 0) return D.hx; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return -Infinity; return D.cx + Math.sqrt(D.rxi*D.rxi - t*t); }
 
   // local -> setup frame: optional flip (180° about x), optional ry (local z becomes x), then offset
   function xf(p, s){
@@ -861,18 +864,46 @@ function arcSE(p, cx, cy, rx, ry, a0, a1, cw, pw){
   return p;
 }
 function cPath(p, d, D){
-  p.moveTo(D.armL + d, 0.08);
-  p.lineTo(D.armL + d, D.cy);
-  arcSE(p, D.cx, D.cy, D.rxo - d, D.ryo - d, Math.PI, TAU, false, D.pw);
+  // outer circle from the left arm round the bottom to the hub, the hub's shoulders, then the throat's circle back round to the arm
+  const Ro = D.rxo - d, Ri = D.rxi + d, cx = D.cx, yc = D.cy, yA = 0.08, yH = 0.14;
+  const xoL = cx - Math.sqrt(Ro*Ro - (yA - yc)*(yA - yc)), xoR = cx + Math.sqrt(Ro*Ro - (yH - yc)*(yH - yc));
+  const xiR = cx + Math.sqrt(Ri*Ri - (yH - yc)*(yH - yc)), xiL = cx - Math.sqrt(Ri*Ri - (yA - yc)*(yA - yc));
+  const circ = (rr, a0, a1) => { const n = 160; for (let k = 0; k <= n; k++){ const a = a0 + (a1 - a0)*k/n; p.lineTo(cx + rr*Math.cos(a), yc + rr*Math.sin(a)); } };
+  p.moveTo(xoL, yA);
+  circ(Ro, Math.atan2(yA - yc, xoL - cx), TAU + Math.atan2(yH - yc, xoR - cx));
   p.lineTo(D.hubR - d, 0.14);
   p.absarc(D.hubR - 0.2, 0.14, 0.2 - d, 0, Math.PI/2, false);
   p.lineTo(D.hx + 0.2, 0.34 - d);
   p.absarc(D.hx + 0.2, 0.14, 0.2 - d, Math.PI/2, Math.PI, false);
-  p.lineTo(D.hx + d, D.cy);
-  arcSE(p, D.cx, D.cy, D.rxi + d, D.ryi + d, 0, Math.PI, true, D.pw);
+  p.lineTo(xiR, yH);
+  circ(Ri, Math.atan2(yH - yc, xiR - cx), Math.atan2(yA - yc, xiL - cx) - TAU);
   p.lineTo(D.armR - d, 0.08);
   p.absarc(D.armL + D.ar, 0.08, D.ar - d, 0, Math.PI, false);
   return p;
+}
+
+// the per-size frame finishes, made once each from the hammered blue one
+const FRAME_MATS = [], FRAME_MATS_D = [];
+function frameMat(st, B){ if (!FRAME_MATS[B]){ const m = M.frame.clone(); m.color.setHex(st.paint); if (st.metal != null) m.metalness = st.metal; if (st.env != null) m.envMapIntensity = (m.envMapIntensity == null ? 1 : m.envMapIntensity)*st.env; FRAME_MATS[B] = m; } return FRAME_MATS[B]; }
+function frameMatD(st, B){ if (!FRAME_MATS_D[B]){ const m = frameMat(st, B).clone(); m.side = T.DoubleSide; FRAME_MATS_D[B] = m; } return FRAME_MATS_D[B]; }
+const PAD_MAT = new T.MeshStandardMaterial({ color: 0x131416, metalness: 0, roughness: 0.82 });
+// where the lightening slots go along the bottom of the arch (the angle round the throat, 1.5π being the very bottom where the nameplate is)
+function slotAngles(n){
+  const L = { 0: [], 2: [1.2, 1.8], 4: [1.12, 1.28, 1.72, 1.88], 6: [1.08, 1.2, 1.32, 1.68, 1.8, 1.92] }[n] || [];
+  return L.map(v => v*Math.PI);
+}
+// one slot: a stadium shape lying along the band of metal under the throat, kept clear of the rim and of its neighbours
+function slotHole(D, B, a){
+  const e = 2/D.pw, sg = Math.sign, pw = Math.pow, ab = Math.abs;
+  const pt = (rx, ry, ang) => { const c = Math.cos(ang), s = Math.sin(ang); return [D.cx + rx*sg(c)*pw(ab(c), e), D.cy + ry*sg(s)*pw(ab(s), e)]; };
+  const mid = ang => { const i = pt(D.rxi, D.ryi, ang), o = pt(D.rxo, D.ryo, ang); return [(i[0] + o[0])/2, (i[1] + o[1])/2, Math.hypot(o[0] - i[0], o[1] - i[1])]; };
+  const m = mid(a), m1 = mid(a - 0.02), m2 = mid(a + 0.02), tx = m2[0] - m1[0], ty = m2[1] - m1[1], tl = Math.hypot(tx, ty) || 1, ux = tx/tl, uy = ty/tl;
+  const wid = Math.min(m[2]*0.42, m[2] - 2*(D.rimW + 0.09));
+  if (wid < 0.1) return null;
+  const hl = 0.2 + 0.05*B, r = wid/2, pts = [];
+  for (let k = 0; k <= 14; k++){ const t = -Math.PI/2 + Math.PI*k/14; pts.push([(hl - r) + r*Math.cos(t), r*Math.sin(t)]); }
+  for (let k = 0; k <= 14; k++){ const t = Math.PI/2 + Math.PI*k/14; pts.push([-(hl - r) + r*Math.cos(t), r*Math.sin(t)]); }
+  return new T.Path(pts.map(([u, v]) => new T.Vector2(m[0] + ux*u - uy*v, m[1] + uy*u + ux*v)));
 }
 
 function build(){
@@ -883,14 +914,41 @@ function build(){
   const D = dims();
   S0 = D.hubR + 0.20;
 
-  const coreG = new T.ExtrudeGeometry(cPath(new T.Shape(), 0, D), { depth: 0.28*D.zs, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.012, bevelSegments: 2, curveSegments: 64 });
-  coreG.translate(0, 0, -0.14*D.zs);
-  root.add(pickable(new T.Mesh(coreG, M.frame), 'none'));
+  // Each size has its own paint and its own build (see STYLE in the core): the web inside the rim is cut with lightening slots on the big ones,
+  // black insulating pads sit on the arm and hub, and the biggest two have an adjustable anvil with its lock nut out the back.
+  const FM = frameMat(D.st, B), FMD = frameMatD(D.st, B), st = D.st;
+  const coreShape = cPath(new T.Shape(), 0, D);
+  for (const a of slotAngles(st.slots)){ const h = slotHole(D, B, a); if (h) coreShape.holes.push(h); }
+  const coreG = new T.ExtrudeGeometry(coreShape, { depth: D.cd, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.012, bevelSegments: 2, curveSegments: 64 });
+  coreG.translate(0, 0, -D.cd/2);
+  root.add(pickable(new T.Mesh(coreG, FM), 'none'));
   const rim = cPath(new T.Shape(), 0, D);
-  rim.holes.push(cPath(new T.Path(), 0.065 + 0.01*B, D));
-  const rimG = new T.ExtrudeGeometry(rim, { depth: 0.36*D.zs, bevelEnabled: true, bevelThickness: 0.022, bevelSize: 0.014, bevelSegments: 3, curveSegments: 64 });
-  rimG.translate(0, 0, -0.18*D.zs);
-  root.add(pickable(new T.Mesh(rimG, M.frame), 'none'));
+  rim.holes.push(cPath(new T.Path(), D.rimW, D));
+  const rimG = new T.ExtrudeGeometry(rim, { depth: D.rd, bevelEnabled: true, bevelThickness: 0.022, bevelSize: 0.014, bevelSegments: 3, curveSegments: 64 });
+  rimG.translate(0, 0, -D.rd/2);
+  root.add(pickable(new T.Mesh(rimG, FM), 'none'));
+  // insulating pads: one on the arm side of the C from the 1–2″ up, and a second on the hub side from the 2–3″ up, on both faces of the web
+  const padSpecs = [];
+  { const rm = (D.rxi + D.rxo)/2, band = D.rxo - D.rxi, mk = a => ({ x: D.cx + rm*Math.cos(a), y: D.cy + rm*Math.sin(a), a, w: Math.min(band*0.56, 0.7), h: Math.min(1.1, rm*0.55) });
+    if (st.pads >= 1) padSpecs.push(mk(0.93*Math.PI));
+    if (st.pads >= 2) padSpecs.push(mk(0.07*Math.PI)); }
+  padSpecs.forEach(sp => {
+    const r = Math.min(sp.w, sp.h)*0.28, sh = new T.Shape(), x0 = -sp.w/2, x1 = sp.w/2, y0 = -sp.h/2, y1 = sp.h/2;
+    sh.moveTo(x0 + r, y0); sh.lineTo(x1 - r, y0); sh.quadraticCurveTo(x1, y0, x1, y0 + r); sh.lineTo(x1, y1 - r); sh.quadraticCurveTo(x1, y1, x1 - r, y1);
+    sh.lineTo(x0 + r, y1); sh.quadraticCurveTo(x0, y1, x0, y1 - r); sh.lineTo(x0, y0 + r); sh.quadraticCurveTo(x0, y0, x0 + r, y0);
+    const pg = new T.ExtrudeGeometry(sh, { depth: 0.03, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.008, bevelSegments: 2 });
+    for (const side of [1, -1]){
+      const g = new T.Group(); g.position.set(sp.x, sp.y, 0); g.rotation.z = sp.a; if (side < 0) g.rotation.y = Math.PI;
+      const m = new T.Mesh(pg, PAD_MAT); m.position.z = D.coreFront - 0.006; g.add(pickable(m, 'none')); root.add(g);
+    }
+  });
+  // the bigger sizes have a separate adjustable anvil: a hex lock nut and a knurled adjusting cap sticking out the back of the arm
+  if (st.anvil === 'adjustable'){
+    const big = B >= 5;
+    root.add(pickable(cylX(big ? 0.23 : 0.19, D.armL - (big ? 0.22 : 0.17), D.armL + 0.02, M.satin, 6), 'none'));
+    root.add(pickable(cylX(big ? 0.17 : 0.14, D.armL - (big ? 0.44 : 0.34), D.armL - (big ? 0.2 : 0.15), M.chrome, 48), 'none'));
+    root.add(pickable(cylX(big ? 0.12 : 0.1, D.armL - (big ? 0.5 : 0.4), D.armL - (big ? 0.42 : 0.32), M.satin, 32), 'none'));
+  }
 
   const ny = D.cy - (D.ryi + D.ryo)/2;
   const plate = label(`${B}–${B + 1} in      .0001 in`, 0.07 + 0.012*B, '#dfe2e6', '#0f1012');
@@ -901,7 +959,7 @@ function build(){
 
   root.add(pickable(cylX(SP_R, -0.32, -0.03, M.ground, 48), 'none'));
   root.add(pickable(latheX([[SP_R, -0.03], [SP_R, -0.007], [SP_R - 0.007, 0], [0, 0]], M.carbideD, 48), 'none'));
-  root.add(pickable(latheX([[SP_R, -0.075], [0.14, -0.088], [0.145, -0.1], [0.145, -0.3], [SP_R, -0.3]], M.frameD, 48), 'none'));
+  root.add(pickable(latheX([[SP_R, -0.075], [0.14, -0.088], [0.145, -0.1], [0.145, -0.3], [SP_R, -0.3]], FMD, 48), 'none'));
   root.add(pickable(cylX(0.145, B + 1.03, D.hx + 0.01, M.chrome), 'none'));
   root.add(pickable(latheX([[SLV_R, D.hubR - 0.01], [0.325, D.hubR], [0.328, D.hubR + 0.02], [0.328, D.hubR + 0.07], [0.31, D.hubR + 0.09], [SLV_R, D.hubR + 0.09]], M.chrome, 96), 'none'));
 
@@ -1067,7 +1125,21 @@ function wholeMesh(prims){
 }
 // the gauge as the lab draws it (js/tgauge.js): cross-bar along the measuring axis (z), handle standing up, full length, same metal
 // a stand-in draws nothing (and writes no depth) but still measures, picks and casts its shadow
+// builds the gauge's shaders and uploads its textures now, while it is out of sight, so showing it later is instant (no hitch, no half-dressed frame)
+function prewarmGauge(obj){
+  try {
+    renderer.compile(scene, camera);
+    obj.traverse(o => {
+      if (!o.isMesh) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]){
+        if (!m || !renderer.initTexture) continue;
+        for (const k of ['map', 'bumpMap', 'roughnessMap', 'envMap']) if (m[k]) renderer.initTexture(m[k]);
+      }
+    });
+  } catch (e) {}
+}
 function ghostGauge(obj, on){
+  if (on) prewarmGauge(obj);
   obj.traverse(o => {
     if (!o.isMesh) return;
     if (on){ if (!o.userData.realMat) o.userData.realMat = o.material; o.material = PM_GHOST; }
@@ -1857,6 +1929,8 @@ function bindSplit(){
 const showAns = () => !state.practice || state.pRevealed;
 let lastPracticeKey = '';
 let rhPracticeSet = false;
+window.__partInfo = () => state.sample ? { mats: (state.sample.prims || []).map(q => q.mat) } : null;   // (the guide's cleaning advice depends on what the part is made of)
+window.__tgObj = () => (typeof tgVis !== 'undefined' ? tgVis : null);   // (for the dev tools: the gauge this tool draws)
 window.__inPractice = () => !!state.practice;   // (js/seeyou.js: the "I see you!" note is for practice only)
 function setPractice(on, keepPart){
   if (on && !rhPracticeSet){
@@ -2242,7 +2316,7 @@ function checkPractice(){
   const foot = `<div class="fx-foot"><i class="fa-solid ${ok ? 'fa-star' : 'fa-heart'}"></i><span>${ok
     ? 'Press <b>Next</b> whenever you’d like another one.'
     : 'Every expert has made this exact slip while learning. Take a look at the arrows, then press <b>Next</b> when you feel ready — you’re improving with every try.'}</span></div>`;
-  fb.innerHTML = `<div class="fx">${hero}${cmp}${missBox}${notes}${eq}${steps}${goodRow}${foot}</div>`;
+  fb.innerHTML = `<div class="fx">${hero}${tracker}${cmp}${missBox}${notes}${eq}${steps}${goodRow}${foot}</div>`;
   (fb.closest('.reading') || fb).scrollTop = 0;   // the whole panel scrolls, so its top comes back into view
 }
 
@@ -2342,7 +2416,16 @@ function flatArrow(g, W, H, tx, ty, dx, dy, col, lab, placed, region) {
       }
     if (best) box = best;
   }
-  if (placed) placed.push({ x: box.x, y: box.y, w, h });
+  // still on top of something? Then look over the whole region for the free spot nearest the first choice, so labels never overlap
+  if (hits(box)) {
+    let free = null, nearest = Infinity;
+    for (let yy = R.y; yy <= R.y + R.h - h; yy += 3) for (let xx = R.x; xx <= R.x + R.w - w; xx += 3) {
+      const b = { x: xx, y: yy }; if (hits(b)) continue;
+      const dd = Math.hypot(xx - box.x, yy - box.y); if (dd < nearest) { nearest = dd; free = b; }
+    }
+    if (free) box = free;
+  }
+  if (placed) { placed.push({ x: box.x, y: box.y, w, h }); window.__flatBoxes = placed; }   // (kept so the dev tools can check that no two labels overlap)
   // leader from the nearest point of the label to the mark
   const lx = clamp(tx, box.x, box.x + w), ly = clamp(ty, box.y, box.y + h), ang = Math.atan2(ty - ly, tx - lx);
   const ux = Math.cos(ang), uy = Math.sin(ang), long = Math.hypot(tx - lx, ty - ly) > 12;
@@ -3077,6 +3160,7 @@ function tick(now){
   dimQuad.visible = coaching;
   shopFinish(scene);
   renderer.render(scene, camera);
+  if (tgAnnounce){ tgAnnounce = false; try { window.parent.__shell.nativeShown(); } catch (e) {} }   // (the gauge is on the screen: the lab can let go of its own now)
   if (coaching){
     renderer.autoClear = false;
     renderer.shadowMap.needsUpdate = false;
@@ -3509,7 +3593,8 @@ window.__tgReveal = () => { const go = tgPend; tgPend = null; if (go) go(); };
 window.__tgShow = () => { if (tgVis && tgGhost){ ghostGauge(tgVis, false); tgGhost = false; invalidate(); } };
 // the lab's gauge has landed: this view draws it itself from now on (same camera, light, depth and shadows as the micrometer, so it sits
 // between the faces as a real object would). Says whether it could.
-window.__tgNative = () => { if (!tgVis || !tgLab) return false; window.__tgShow(); tgNat = true; invalidate(); return true; };
+let tgAnnounce = false;   // the lab is waiting to hear that this view has drawn the gauge
+window.__tgNative = () => { if (!tgVis || !tgLab) return false; window.__tgShow(); tgNat = true; tgAnnounce = true; invalidate(); return true; };
 // "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
 // reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
 window.__guideSpot = name => {

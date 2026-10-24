@@ -1030,14 +1030,24 @@ function pending(){return FLY.waiting||AW.dir>0||FLY.attached;}
 function arrived(){FLY.attached=true;FLY.swapping=false;FLY.lost=0;try{window.parent.__shell.reveal();}catch(e){}handOff();}
 // once it has landed, the tool shows its own copy of the gauge, in its own scene (same camera and light, hidden behind its frame and
 // spindle where it should be, touching its faces), and this view's flight canvas fades out over it. A tool that cannot says so, and keeps the flight canvas.
+// The flight canvas stays up until the tool says it has drawn its own gauge (the first time it draws it, a tool can take a moment to compile and
+// upload its metal), so there is never a moment with the gauge missing or half dressed; it goes anyway after a second if the tool never says.
 function handOff(){
  let ok=false;try{ok=!!window.parent.__shell.native();}catch(e){}
  if(!ok)return;
- FLY.native=true;FLY.fadeEnd=performance.now()+220;
+ FLY.native=true;FLY.fadeEnd=performance.now()+1500;
+ if(FLY.fadeWait)clearTimeout(FLY.fadeWait);
+ FLY.fadeWait=setTimeout(fadeFly,1200);
+}
+function fadeFly(){
+ if(FLY.fadeWait){clearTimeout(FLY.fadeWait);FLY.fadeWait=0;}
+ if(!FLY.native)return;
+ FLY.fadeEnd=performance.now()+220;
  FLY.cv.style.transition='opacity .16s ease .04s';FLY.cv.style.opacity='0';
 }
 // the tool no longer has a gauge to draw this over: this one goes, and the tool shows its own (if it has one)
 function detach(){
+ if(FLY.fadeWait){clearTimeout(FLY.fadeWait);FLY.fadeWait=0;}
  FLY.attached=false;FLY.native=false;FLY.slide=null;FLY.fadeEnd=performance.now()+220;
  FLY.cv.style.transition='opacity .16s ease .04s';FLY.cv.style.opacity='0';
  try{window.parent.__shell.unghost();}catch(e){}
@@ -1488,7 +1498,7 @@ resize();selectSample(0);camGo('overview',true);shopApply();
 if(window.__holo)window.__holo.attach({THREE,select:$('sampleSel'),
  caption:v=>{const s=SAMPLES[+v];return s?[s.name,s.tag]:['',''];},
  build:v=>{const s=SAMPLES[+v];if(!s)return null;const g=new THREE.Group();g.add(new THREE.Mesh(partShapeGeo(s).geo));return g;}});
-window.__lab={gp:()=>GP,PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
+window.__lab={nativeShown:()=>{if(FLY.fadeWait)fadeFly();},gp:()=>GP,PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
 requestAnimationFrame(tick);   // draws behind the loading screen
 // Like the other tools: nothing builds in until everything is ready. The shaders are compiled first, the dissolve's own
 // cut-away versions included (one short throwaway sweep, hidden behind the loading screen), so the build-in that follows
