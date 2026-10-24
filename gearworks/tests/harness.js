@@ -5,5 +5,6 @@ globalThis.THREE = (() => { try { return require(path.join(__dirname, '..', 'ven
 const root = path.join(__dirname, '..', 'js');
 module.exports = function load(files){
   files.forEach(f => vm.runInThisContext(fs.readFileSync(path.join(root, f), 'utf8'), { filename: f }));
+  globalThis.GW.Anim = null;           // tests want gears at full size immediately, not popping in
   return globalThis.GW;
 };

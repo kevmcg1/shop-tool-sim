@@ -20,6 +20,10 @@ python3 -m http.server 8080      # then open http://localhost:8080
 
 Gears can also be keyed to the same shaft (compound gears), and 15 ready-made assemblies are included: gear train, compound reduction, rack and pinion, helical / herringbone pairs, planetary set, bevel pairs, crown gear, worm drive, chain and belt drives, clock train, elliptical pair, spline coupling.
 
+## The interface
+
+Modelled on the Shop Tool Sim: **left sidebar** with a *How do I use it?* guided tour, 16 loadable **samples**, the list of gears, playback and view; the **3D stage** in the middle; **every property of the selected gear on the right**, all live (coarse draft meshes while you drag, full quality on release); and a **feedback strip along the bottom** that says whether the selected gear meshes, exactly what it needs, and its speed, ratio, centre distance and contact ratio.
+
 ## Every setting is editable
 
 Click a gear in the 3D view (or the Gears tab). The Edit tab lists every setting for that type, each with a slider and an exact number box:
@@ -50,7 +54,8 @@ STEP files are true boundary representations: flat regions (caps, straight tooth
 
 ```
 npm install
-npm test
+npm test            # geometry, compatibility, presets, exports
+node tests/fuzz.js  # thousands of random settings, every gear type
 ```
 
 Checks that every gear type (and many setting combinations) builds a closed mesh, the compatibility rules, that every preset meshes without overlapping while turning, and the export formats.

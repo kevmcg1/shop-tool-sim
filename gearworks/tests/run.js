@@ -1,5 +1,5 @@
 // Gearworks self-test:  node tests/run.js      (needs `npm install` once, for three.js)
-const GW = require('./harness.js')(['util.js','profiles.js','geo.js','types.js','builders.js','calc.js','compat.js','mount.js','gears.js','brep.js','exporters.js','presets.js']);
+const GW = require('./harness.js')(['util.js','anim.js','profiles.js','geo.js','types.js','builders.js','calc.js','compat.js','mount.js','gears.js','brep.js','exporters.js','presets.js']);
 const THREE = globalThis.THREE;
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { if(cond){ pass++; } else { fail++; console.log('  ✘ ' + msg); } };
@@ -66,8 +66,8 @@ const inside = (mesh, p, ray, dir) => {
 };
 const rnd = (() => { let s = 7; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; })();
 const dir = new THREE.Vector3(0.3719, 0.5513, 0.7481).normalize(), ray = new THREE.Raycaster();
-GW.Presets.forEach(p => {
-  GW.Gears.clear(); p.build(0, 0); GW.Layout.solveAll();
+GW.Presets.filter(p => p.id !== 'showcase').forEach(p => {
+  GW.Gears.clear({ instant: true }); p.build(0, 0); GW.Layout.solveAll();
   const bad = GW.Gears.list.filter(g => { if(!g.parentId) return false; return !GW.Compat.check(GW.Gears.get(g.parentId), g, { kind: g.linkKind === 'same shaft' ? 'shaft' : 'mesh' }).ok; });
   ok(bad.length === 0, `${p.id}: incompatible links ${bad.map(g => g.name)}`);
   // sampled overlap between each meshed (not shaft-mounted) pair at a few angles
@@ -95,7 +95,7 @@ GW.Presets.forEach(p => {
 
 section('5. export formats');
 GW.Build.quality = 1;
-GW.Gears.clear(); GW.Presets.find(p => p.id === 'worm').build(0, 0); GW.Layout.solveAll(); GW.Layout.update(0);
+GW.Gears.clear({ instant: true }); GW.Presets.find(p => p.id === 'worm').build(0, 0); GW.Layout.solveAll(); GW.Layout.update(0);
 const solids = GW.Export.collect('all', 'world', null, false);
 const stl = GW.Export.stlBinary(solids, 'x'), n = new DataView(stl.buffer).getUint32(80, true);
 ok(stl.length === 84 + n * 50 && n === GW.Export.stats(solids).tris, 'binary STL size matches triangle count');

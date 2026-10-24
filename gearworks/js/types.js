@@ -50,7 +50,7 @@ const PARAMS = {
   type:       ['Gear type', 'type', 'Identity'],
 
   m:          ['Module', 'num', 'Teeth', 0.2, 12, 0.05, 'mm', 'Tooth size. Gears only mesh if their modules match.'],
-  z:          ['Teeth', 'int', 'Teeth', 3, 300, 1, '', 'Number of teeth (rack: teeth in the bar).'],
+  z:          ['Teeth', 'int', 'Teeth', 6, 300, 1, '', 'Number of teeth (rack: teeth in the bar).'],
   pa:         ['Pressure angle', 'num', 'Profile', 5, 35, 0.5, '°', 'Common: 14.5°, 20°, 25°. Must match to mesh.'],
   ha:         ['Addendum', 'num', 'Profile', 0.3, 2, 0.05, '× m', 'Tooth height above the pitch circle, in modules.'],
   hf:         ['Dedendum', 'num', 'Profile', 0.5, 2.5, 0.05, '× m', 'Tooth depth below the pitch circle, in modules.'],
@@ -203,6 +203,12 @@ GW.Types = {
     if(nt === 'rack' && !oldT.keys.includes('barH')) out.barH = d.barH;
     if(g.type === 'worm' && nt !== 'worm') out.z = d.z;
     return out;
+  },
+  /* slider range of a setting for a given type (a rack, for one, can have just a couple of teeth) */
+  range(type, key){
+    const d = PARAMS[key] || LINK_PARAMS[key];
+    if(key === 'z' && type === 'rack') return [2, 80];
+    return [d[3], d[4]];
   },
   has(type, key){ const t = TYPES[type]; return !!t && (t.keys.indexOf(key) >= 0 || ALWAYS.indexOf(key) >= 0); },
   /* a fresh settings object for a type */

@@ -16,12 +16,15 @@ const Q = {
 
 const B = GW.Build = {
   quality: 1,
-  q(arr){ return arr[B.quality]; },
+  draft: false,                       // true while a slider is being dragged: coarse meshes, instant feedback
+  q(arr){ return arr[B.draft ? 0 : B.quality]; },
 
   build(g){
     const fn = B['b_' + g.type];
     if(!fn) throw new Error('no builder for ' + g.type);
+    B._notes = []; B._fit = null;
     const r = fn(g);
+    r.info.notes = Array.from(new Set((r.info.notes || []).concat(B._notes)));
     const parts = Array.isArray(r.geo) ? r.geo : [r.geo];
     const merged = Geo.merge(parts);
     const geo = Geo.creaseNormals(merged, 38);
@@ -40,6 +43,30 @@ const B = GW.Build = {
   hubRadius(g){
     if(g.hubDia > 0) return Math.max(g.hubDia / 2, g.bore / 2 + 0.6);
     return g.bore / 2 + Math.max(3, g.bore * 0.45);
+  },
+
+  /* Clamp every feature to what the gear can physically hold, so any combination of slider
+     positions still gives a valid solid. Returns an adjusted copy; each change is noted in
+     `notes` so the feedback strip can tell the user. minR = smallest solid radius at the teeth. */
+  fit(g, minR, T, notes, opt){
+    opt = opt || {};
+    const e = Object.assign({}, g), f = v => U.fmt(v, 1);
+    const note = (what, v, why) => notes.push(`${what} limited to ${f(v)} mm — ${why}`);
+    const boreMax = Math.max(0, 2 * (minR - (opt.wall == null ? 3 : opt.wall)));
+    if(e.bore > 0.2 && e.bore > boreMax){ e.bore = boreMax < 1 ? 0 : boreMax; note('Bore', e.bore, 'the gear is too small for a bigger hole'); }
+    if(e.bore <= 0.2){ e.bore = 0; e.keyW = 0; e.dFlat = 0; }
+    if(e.keyW > e.bore * 0.6) e.keyW = e.bore * 0.6;
+    // the notch's outer corners must stay inside the teeth roots, not just its middle
+    const half = e.keyW / 2, reach = minR - 1.2;
+    const keyMax = reach > half ? Math.max(Math.min(e.bore * 0.5, Math.sqrt(reach * reach - half * half) - e.bore / 2), 0) : 0;
+    if(e.keyD > keyMax) e.keyD = keyMax;
+    if(e.keyW < 0.3 || e.keyD < 0.2){ e.keyW = 0; }
+    if(e.dFlat > e.bore * 0.3) e.dFlat = e.bore * 0.3;
+    if(e.hubDia > 0 && e.hubDia < e.bore + 1.2) e.hubDia = e.bore + 1.2;
+    const chMax = Math.max(Math.min(T / 2.2, 0.2 * minR), 0);
+    if(e.chamfer > chMax){ if(e.chamfer > chMax + 0.05) note('Chamfer', chMax, 'the gear is too thin or small'); e.chamfer = chMax; }
+    if(e.webT > T) e.webT = T;
+    return e;
   },
 
   /* Circle-hole layout inside an annulus [rIn, rOut]. Returns {pts[][], reach} */
@@ -72,6 +99,7 @@ const B = GW.Build = {
      --------------------------------------------------------------------- */
   wheel(g, o){
     const T = o.z1 - o.z0, parts = [];
+    g = B.fit(g, o.minR, T, B._notes, { wall: o.wall }); B._fit = g;
     const borePts = B.borePts(g);
     const bExt = B.boreExtent(g);
     const hubR = B.hubRadius(g);
@@ -79,19 +107,21 @@ const B = GW.Build = {
     let style = o.styled === false ? 'solid' : g.bodyStyle;
     let ri = Math.max(o.minR - g.rimW, hubR + 2);
     if(ri > o.minR - 0.8) style = 'solid';
-    const xOpt = { z0: o.z0, steps: o.steps || 1, chamfer: g.chamfer };
     // the toothed rim: a plain extrusion, or a loft when it twists / tapers
-    const rimOf = (holes) => o.xf
-      ? Geo.loft([{ pts: o.pts, xf: o.xf }].concat(holes.map(h => ({ pts: h, chamfer: false }))), o.z0, o.z1, o.steps || 1, g.chamfer)
-      : Geo.extrude(o.pts, holes, T, xOpt);
+    // the chamfer shrinks the outline a little at each face, so it must not reach the holes inside
+    let Rmax = 0; o.pts.forEach(p => { Rmax = Math.max(Rmax, Math.hypot(p.x, p.y)); });
+    const rimOf = (holes, reach) => {
+      const room = Math.max((o.minR - reach - 0.4) * Rmax / Math.max(o.minR, 1e-6), 0);
+      return Geo.loft([{ pts: o.pts, xf: o.xf }].concat(holes.map(h => ({ pts: h, chamfer: false }))), o.z0, o.z1, o.steps || 1, Math.min(g.chamfer, room));
+    };
 
     if(style === 'solid'){
       const inner = wantHub ? Math.max(hubR, bExt) : bExt;
       const L = B.lighten(g, inner, o.minR);
       const holes = (borePts ? [borePts] : []).concat(L.holes);
-      parts.push(rimOf(holes));
+      parts.push(rimOf(holes, Math.max(bExt, L.reach)));
     } else {
-      parts.push(rimOf([Prof.circle(ri, B.q(Q.bore))]));
+      parts.push(rimOf([Prof.circle(ri, B.q(Q.bore))], ri));
       // web or spokes sit between the hub and the rim
       const wT = Math.min(g.webT, T);
       const zc = U.clamp((o.z0 + o.z1) / 2 - wT / 2 + g.webOff, o.z0, o.z1 - wT);
@@ -116,8 +146,9 @@ const B = GW.Build = {
     if(style !== 'solid'){
       parts.push(mkHub(o.z0 - g.hubDown, o.z1 + g.hubUp));
     } else {
-      if(g.hubUp > 0) parts.push(mkHub(Math.max(o.z1 - 0.6, o.z0), o.z1 + g.hubUp));
-      if(g.hubDown > 0) parts.push(mkHub(o.z0 - g.hubDown, Math.min(o.z0 + 0.6, o.z1)));
+      const ov = Math.min(0.6, T * 0.3);
+      if(g.hubUp > 0) parts.push(mkHub(o.z1 - ov, o.z1 + g.hubUp));
+      if(g.hubDown > 0) parts.push(mkHub(o.z0 - g.hubDown, o.z0 + ov));
     }
     return parts;
   },
@@ -130,7 +161,7 @@ const B = GW.Build = {
 
   /* ------------------------------ builders ------------------------------ */
   toothArgs(g){
-    return { m: g.m, z: g.z, pa: g.pa, ha: g.ha, hf: g.hf, x: g.x, backlash: g.backlash, fillet: g.fillet, N: B.q(Q.flank) };
+    return { m: g.m, z: g.z, pa: g.pa, ha: g.ha, hf: g.hf, x: g.x, backlash: Math.min(g.backlash, 0.5 * Math.PI * g.m / 2), fillet: g.fillet, N: B.q(Q.flank) };
   },
 
   b_spur(g){
@@ -168,7 +199,7 @@ const B = GW.Build = {
       const dn = B.wheel(gp, Object.assign({ pts: pr.pts, z0: -T / 2, z1: -gap / 2 }, base));
       const core = B.wheel(gp, { pts: Prof.circle(pr.info.rf * 0.995, 96), minR: pr.info.rf * 0.99, z0: -gap / 2 - 0.2, z1: gap / 2 + 0.2, styled: false });
       parts = up.concat(dn, core);
-      const bp = B.borePts(g), hr = B.hubRadius(g), prof = Prof.circle(hr, B.q(Q.bore));
+      const gf = B._fit || g, bp = B.borePts(gf), hr = B.hubRadius(gf), prof = Prof.circle(hr, B.q(Q.bore));
       const hub = (za, zb) => Geo.extrude(prof, bp ? [bp] : [], zb - za, { z0: za });
       if(g.hubUp > 0) parts.push(hub(T / 2 - 0.6, T / 2 + g.hubUp));
       if(g.hubDown > 0) parts.push(hub(-T / 2 - g.hubDown, -T / 2 + 0.6));
@@ -243,7 +274,7 @@ const B = GW.Build = {
     // flanges
     if(g.flange !== 'none'){
       const fr = (g.flangeD > 0 ? g.flangeD / 2 : ra + 1.5 + g.grooveDepth * 0.6);
-      const ft = g.flangeT, bp = B.borePts(g);
+      const ft = g.flangeT, bp = B.borePts(B._fit || g);
       const disc = (z0) => Geo.extrude(Prof.circle(fr, B.q(Q.bore) * 2), bp ? [bp] : [], ft, { z0 });
       if(g.flange === 'both' || g.flange === 'front') parts.push(disc(T / 2 - 0.01));
       if(g.flange === 'both' || g.flange === 'back') parts.push(disc(-T / 2 - ft + 0.01));
@@ -276,9 +307,10 @@ const B = GW.Build = {
     const pr = Prof.involute(virt);
     const T = g.thick, r = pr.info.r;
     const Ro = pr.info.ra + g.rimW;
+    const chamfer = Math.min(g.chamfer, T / 2.2, g.rimW * 0.45, 0.04 * Ro);
     const k = helixOn ? Math.tan(U.rad(g.helix)) / r : 0;
     const xf = Math.abs(k) > 1e-9 ? (x, y, z) => { const a = k * z, c = Math.cos(a), s = Math.sin(a); return [x * c - y * s, x * s + y * c]; } : null;
-    const geo = Geo.loft([{ pts: Prof.circle(Ro, 96) }, { pts: pr.pts, xf, grow: true }], -T / 2, T / 2, xf ? B.twistSteps(k * T) : 1, g.chamfer);
+    const geo = Geo.loft([{ pts: Prof.circle(Ro, 96) }, { pts: pr.pts, xf, grow: true }], -T / 2, T / 2, xf ? B.twistSteps(k * T) : 1, chamfer);
     const info = {
       pitchR: r, tipR: r - g.m * (g.ha - g.x), rootR: pr.info.ra, baseR: pr.info.rb, outerR: Ro, z0: -T / 2, z1: T / 2,
       pointed: pr.info.pointed, ring: true
@@ -315,7 +347,7 @@ const B = GW.Build = {
     }
     const T = g.thick, tk = Math.tan(U.rad(g.helix));
     const steps = Math.abs(tk) > 1e-9 ? 6 : 1;
-    const geo = Geo.extrude(poly, holes, T, { z0: -T / 2, steps, chamfer: g.chamfer });
+    const geo = Geo.extrude(poly, holes, T, { z0: -T / 2, steps, chamfer: Math.min(g.chamfer, tipHalf * 0.8, T / 2.2) });
     if(steps > 1) Geo.map(geo, v => { v.x += tk * v.z; });
     return { geo, info: { pitch: p, length: L, pitchR: Infinity, outerR: Math.hypot(L / 2, H), z0: -T / 2, z1: T / 2, rack: true, add, ded, height: H } };
   },
@@ -343,6 +375,7 @@ const B = GW.Build = {
     const same = (p, q) => p[0] === q[0] && p[1] === q[1] && p[2] === q[2];
     const tri = (a, b, c) => { if(!same(a, b) && !same(b, c) && !same(a, c)) P.push(a, b, c); };
     const quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+    g = B.fit(g, Rin, g.thick, B._notes, { wall: 1.5 });
     const bore = B.borePts(g);
     const cap = (ring, holes, zz, up) => B.capTris(ring, holes, zz, up, tri);
     for(let k = 0; k < n; k++){
@@ -389,8 +422,9 @@ const B = GW.Build = {
   b_worm(g){
     const m = g.m, N = Math.max(1, Math.round(g.starts)), a0 = U.rad(g.pa);
     const px = Math.PI * m, lead = N * px, s = g.hand === 'left' ? -1 : 1;
-    const rp = g.wormDia / 2;
+    const rp = Math.max(g.wormDia / 2, g.hf * m + 1.2);
     const ra = rp + g.ha * m;
+    g = B.fit(g, rp - g.hf * m, g.thick, B._notes, { wall: 1.2 });
     const rf = Math.max(rp - g.hf * m, g.bore / 2 + (g.keyW > 0 ? g.keyD : 0) + 0.8, 0.3 * m);
     const L = g.thick;
     const half = Math.max(px / 4 - g.backlash / 4, 0.04 * px);
@@ -438,8 +472,9 @@ const B = GW.Build = {
     return { geo, info: { pitchR: rp, tipR: ra, outerR: ra, rootR: rf, baseR: rp, z0: -L / 2, z1: L / 2, worm: true, lead, leadAngle: lead_ang, axialPitch: px, hand: s } };
   },
 
-  wheelInfo(g, pi, z0, z1){
+  wheelInfo(g, pi, z0, z1, notes){
     return {
+      notes: notes || [],
       pitchR: pi.r, tipR: pi.ra, outerR: pi.ra, rootR: pi.rf, baseR: pi.rb, z0, z1,
       pointed: !!pi.pointed, undercut: !!pi.undercut
     };

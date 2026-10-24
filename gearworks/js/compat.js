@@ -52,7 +52,7 @@ const Compat = GW.Compat = {
     const out = { supported: false, kind: null, ok: false, issues: [], info: [], allowed: PARTNERS[A.type] || [] };
     const issues = out.issues;
     const add = (level, id, text, optB, optA) => issues.push({ level, id, text, optB: optB || null, optA: optA || null });
-    const need = (v, u) => `<span class="need">${v}${u || ''}</span>`;
+    const need = (v, u) => `<span class="val">${v}${u || ''}</span>`;
     const info = (k, v) => out.info.push([k, v]);
 
     if(link.kind === 'shaft'){

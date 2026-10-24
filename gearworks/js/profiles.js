@@ -23,7 +23,7 @@ GW.Prof = {
     const step = 2 * Math.PI / z;
 
     // tooth thickness at the pitch circle -> half-angle there
-    const sP = Math.max(Math.PI * m / 2 + 2 * x * m * Math.tan(a0) - bl / 2, 0.05 * m);
+    const sP = Math.max(Math.PI * m / 2 + 2 * x * m * Math.tan(a0) - bl / 2, 0.3 * Math.PI * m / 2);
     const half = sP / (2 * r);
     const invA = U.inv(a0);
     const fa = R => {
@@ -35,7 +35,8 @@ GW.Prof = {
     let pointed = false;
     if(fa(ra) < minTip){
       pointed = true;
-      let lo = Math.max(r, rb + 1e-6), hi = ra;
+      // search from the base circle upward for where the tooth is still minTip wide
+      let lo = rb + 1e-6, hi = ra;
       if(fa(lo) < minTip) hi = lo;
       else for(let i = 0; i < 40; i++){ const mid = (lo + hi) / 2; if(fa(mid) > minTip) lo = mid; else hi = mid; }
       ra = lo;
@@ -54,10 +55,19 @@ GW.Prof = {
     const f = U.clamp(o.fillet == null ? 0.3 : o.fillet, 0, 1);
     const N = o.N || 8;
     const { r, rb, ra, rf } = info;
-    const sP = Math.max(Math.PI * m / 2 + 2 * x * m * Math.tan(a0) - bl / 2, 0.05 * m);
+    const sP = Math.max(Math.PI * m / 2 + 2 * x * m * Math.tan(a0) - bl / 2, 0.3 * Math.PI * m / 2);
     const half = sP / (2 * r), invA = U.inv(a0);
     const fa = R => half + invA - U.inv(Math.acos(U.clamp(rb / Math.max(R, rb + 1e-9), -1, 1)));
-    const Rs = Math.max(rf, rb);
+    let Rs = Math.max(rf, rb);
+    // with few teeth and a steep pressure angle neighbouring teeth would overlap at the base circle:
+    // start the flank higher up, where each tooth is at most 92% of a pitch wide
+    const maxHalf = 0.46 * step;
+    if(fa(Rs) > maxHalf){
+      let lo = Rs, hi = ra;
+      if(fa(hi) > maxHalf) lo = hi = ra * 0.999;
+      else for(let i = 0; i < 40; i++){ const mid = (lo + hi) / 2; if(fa(mid) > maxHalf) lo = mid; else hi = mid; }
+      Rs = hi;
+    }
     const gapHalf = step / 2 - fa(Rs);
     const out = [];
     const bez = (P0, K, P2, n, arr) => {
@@ -78,7 +88,7 @@ GW.Prof = {
         bez(pol(rf, floorEnd), pol(rf, c - fa(Rs)), pol(R1, c - fa(R1)), 4, out);
         out.push(pol(R1, c - fa(R1)));
       } else {
-        if(rf < rb - 1e-9) out.push(pol(rf, c - fa(rb)));
+        if(Rs > rf + 1e-9) out.push(pol(rf, c - fa(Rs)));
         out.push(pol(Rs, c - fa(Rs)));
       }
       for(let k = 1; k <= N; k++){ const R = R1 + (ra - R1) * k / N; out.push(pol(R, c - fa(R))); }
@@ -89,8 +99,8 @@ GW.Prof = {
         bez(pol(R1, c + fa(R1)), pol(rf, c + fa(Rs)), pol(rf, floorEndR), 4, tmp);
         tmp.forEach(p => out.push(p));
         out.push(pol(rf, floorEndR));
-      } else if(rf < rb - 1e-9){
-        out.push(pol(rf, c + fa(rb)));
+      } else if(Rs > rf + 1e-9){
+        out.push(pol(rf, c + fa(Rs)));
       }
     }
     // de-duplicate coincident neighbours (flat floors share endpoints)
@@ -113,7 +123,7 @@ GW.Prof = {
     let ra = Math.min(R + o.ha * m, R + 2 * rr * 0.98);
     let rf = Math.max(R - o.hf * m, R - 2 * rr * 0.98, m * 0.3);
     const bl = o.backlash || 0;
-    const sP = Math.max(Math.PI * m / 2 - bl / 2, 0.05 * m);
+    const sP = Math.max(Math.PI * m / 2 - bl / 2, 0.3 * Math.PI * m / 2);
     const delta = sP / (2 * R);
     const N = o.N || 8;
     const epi = t => {
@@ -143,9 +153,11 @@ GW.Prof = {
     for(let k = N; k >= 1; k--){ const p = hypo(tH * k / N); flank.push({ r: rad(p), a: delta + ang(p) }); }
     flank.push({ r: R, a: delta });
     for(let k = 1; k <= N; k++){ const p = epi(-tE * k / N); flank.push({ r: rad(p), a: delta + ang(p) }); }
-    // never let the tip cross the centre line
-    const tipA = Math.max(flank[flank.length - 1].a, 0.02 * step);
-    flank[flank.length - 1].a = tipA;
+    // a flank may never cross the tooth's centre line, or the tooth folds over itself
+    const minA = 0.03 * step;
+    flank.forEach(p => { if(p.a < minA) p.a = minA; });
+    // and the root end must leave room for the gap
+    flank.forEach(p => { if(p.a > step * 0.49) p.a = step * 0.49; });
     const pts = [];
     for(let i = 0; i < z; i++){
       const c = i * step;
@@ -163,7 +175,7 @@ GW.Prof = {
      Roller-chain sprocket
      ------------------------------------------------------------ */
   sprocket(o){
-    const z = Math.max(6, Math.round(o.z)), p = o.chainPitch, dr = o.rollerDia;
+    const z = Math.max(6, Math.round(o.z)), p = o.chainPitch, dr = Math.min(o.rollerDia, 0.62 * o.chainPitch);
     const R = p / (2 * Math.sin(Math.PI / z));
     const rs = 0.505 * dr + 0.05;          // roller seat radius
     const step = 2 * Math.PI / z;

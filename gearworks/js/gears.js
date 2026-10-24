@@ -27,7 +27,9 @@ const Gears = GW.Gears = {
   rootOf(g){ let c = g, n = 0; while(c.parentId && n++ < 200) c = Gears.get(c.parentId) || c; return c; },
 
   /* ------------------------------------------------------------ create */
-  add(type, over){
+  add(type, over, opts){
+    opts = opts || {};
+    if(opts.delay == null && Gears._stagger) opts.delay = Gears._stagger.n++ * Gears._stagger.step;
     const g = Object.assign(Types.defaults(type), over || {});
     g.id = Gears.nextId++;
     if(!g.name) g.name = Types.TYPES[type].short + ' ' + g.id;
@@ -40,6 +42,11 @@ const Gears = GW.Gears = {
     if(!over || over.px == null) Gears.park(g);
     Gears.restyle(g);
     Gears.dirty = true;
+    // pop in: grows from nothing with a little overshoot
+    if(GW.Anim && !opts.instant){
+      g.scale = 0.001;
+      GW.Anim.tween(420, (p, e) => { g.scale = Math.max(0.001, e); }, { ease: 'back', delay: opts.delay || 0, done: () => { g.scale = 1; } });
+    } else g.scale = 1;
     Gears.emit('add', g);
     return g;
   },
@@ -71,7 +78,7 @@ const Gears = GW.Gears = {
       val = +val;
       if(!isFinite(val)) return notes;
       if(def[1] === 'int') val = Math.round(val);
-      if(def[3] != null && key !== 'rpm' && !/^p[xyz]$/.test(key)) val = U.clamp(val, def[3], def[4]);
+      if(def[3] != null && key !== 'rpm' && !/^p[xyz]$/.test(key)){ const rg = Types.range(g.type, key); val = U.clamp(val, rg[0], rg[1]); }
     }
     if(key === 'type'){
       if(val === g.type) return notes;
@@ -84,6 +91,7 @@ const Gears = GW.Gears = {
       Gears.emit('edit', g);
       return notes;
     }
+    const before = g[key];
     g[key] = val;
     if(key === 'finish'){
       const f = Types.FINISH[val];
@@ -96,7 +104,14 @@ const Gears = GW.Gears = {
     if(key === 'starts' && g.type === 'worm') g.z = 1;
 
     if(STYLE.has(key)) Gears.restyle(g);
-    if(!SOFT.has(key)) Gears.rebuild(g);
+    if(!SOFT.has(key)){
+      try { Gears.rebuild(g); }
+      catch(e){                                    // never let a value the geometry cannot take break the app
+        console.warn('rebuild failed for', key, val, e);
+        g[key] = before; Gears.rebuild(g);
+        notes.push('That value cannot be built, so it was put back.');
+      }
+    }
     Gears.dirty = true;
     Gears.emit(SOFT.has(key) ? 'soft' : 'edit', g);
     return notes;
@@ -190,8 +205,7 @@ const Gears = GW.Gears = {
   unlink(id, silent){
     const g = Gears.get(id);
     if(!g || !g.parentId) return;
-    Layout.solveAll();
-    // freeze where it is
+    // freeze where it is: its last solved pose (re-solving here could fail for a link that has just become impossible)
     const p = g.rt.pos, e = new T.Euler().setFromQuaternion(g.rt.quat, 'XYZ');
     g.px = +p.x.toFixed(3); g.py = +p.y.toFixed(3); g.pz = +p.z.toFixed(3);
     g.rx = +U.deg(e.x).toFixed(3); g.ry = +U.deg(e.y).toFixed(3); g.rz = +U.deg(e.z).toFixed(3);
@@ -200,18 +214,24 @@ const Gears = GW.Gears = {
     if(!silent) Gears.emit('link', g);
   },
 
-  remove(id){
+  remove(id, opts){
+    opts = opts || {};
     const g = Gears.get(id);
     if(!g) return;
     Gears.children(id).forEach(c => Gears.unlink(c.id, true));
-    if(Gears.root) Gears.root.remove(g.mesh);
-    g.mesh.geometry.dispose(); g.mesh.material.dispose();
     Gears.list = Gears.list.filter(x => x.id !== id);
+    const finish = () => { if(Gears.root) Gears.root.remove(g.mesh); g.mesh.geometry.dispose(); g.mesh.material.dispose(); };
+    if(GW.Anim && !opts.instant && g.mesh.parent){
+      const s0 = g.scale == null ? 1 : g.scale;
+      g.scale = null;                                                  // out of the layout now; the tween owns the mesh
+      GW.Anim.tween(260, (p, e) => { g.mesh.scale.setScalar(Math.max(0.001, s0 * (1 - e))); }, { ease: 'in', delay: opts.delay || 0, done: finish });
+    } else finish();
     Gears.dirty = true; Gears.emit('remove', g);
   },
 
-  clear(){
-    Gears.list.slice().forEach(g => Gears.remove(g.id));
+  clear(opts){
+    opts = opts || {};
+    Gears.list.slice().forEach((g, i) => Gears.remove(g.id, { instant: opts.instant, delay: opts.stagger ? i * opts.stagger : 0 }));
     Gears.nextId = 1;
   },
 
@@ -340,6 +360,7 @@ const Layout = GW.Layout = {
   apply(g){
     const m = g.mesh;
     m.position.copy(g.rt.pos);
+    if(g.scale != null) m.scale.setScalar(g.scale);
     if(g.type === 'rack'){
       const p = Math.PI * g.m, s = U.mod(g.rt.q, p);
       m.position.add(new T.Vector3(1, 0, 0).applyQuaternion(g.rt.quat).multiplyScalar(s));
