@@ -931,9 +931,9 @@ function build(){
   root.add(pickable(new T.Mesh(rimG, FM), 'none'));
   // insulating pads: one on the arm side of the C from the 1–2″ up, and a second on the hub side from the 2–3″ up, on both faces of the web
   const padSpecs = [];
-  { const rm = (D.rxi + D.rxo)/2, band = D.rxo - D.rxi, mk = a => ({ x: D.cx + rm*Math.cos(a), y: D.cy + rm*Math.sin(a), a, w: Math.min(band*0.56, 0.7), h: Math.min(1.1, rm*0.55) });
-    if (st.pads >= 1) padSpecs.push(mk(0.93*Math.PI));
-    if (st.pads >= 2) padSpecs.push(mk(0.07*Math.PI)); }
+  { const rm = (D.rxi + D.rxo)/2, band = D.rxo - D.rxi, mk = a => ({ x: D.cx + rm*Math.cos(a), y: D.cy/2 + 0.05, a, w: Math.min(band*0.56, 0.7), h: Math.min(1.1, rm*0.55, -D.cy*0.8) });   // flat on the middle of the straight wall (the arm's at a = π, the hub's at 0)
+    if (st.pads >= 1) padSpecs.push(mk(Math.PI));
+    if (st.pads >= 2) padSpecs.push(mk(0)); }
   padSpecs.forEach(sp => {
     const r = Math.min(sp.w, sp.h)*0.28, sh = new T.Shape(), x0 = -sp.w/2, x1 = sp.w/2, y0 = -sp.h/2, y1 = sp.h/2;
     sh.moveTo(x0 + r, y0); sh.lineTo(x1 - r, y0); sh.quadraticCurveTo(x1, y0, x1, y0 + r); sh.lineTo(x1, y1 - r); sh.quadraticCurveTo(x1, y1, x1 - r, y1);
