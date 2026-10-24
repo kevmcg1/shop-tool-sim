@@ -5,7 +5,7 @@ const CORE = (function(){
   const C30 = Math.cos(Math.PI/6);
 
   // Each frame size is its own design, not the 0–1″ scaled up: its own bulk (thickness), web depth, paint, insulating pads,
-  // lightening slots and anvil. Every one is a true round C (pw 2 is a circle; the code can draw boxier throats, but none uses them);
+  // lightening slots and anvil. Every one is a U: straight walls, then a half circle round the bottom (the throat is that shape, with the deep value giving the straight part);
   // web is how deep the web is next to the rim, rimW the rim's width.
   const STYLE = [
     /* 0–1″ */ { deep: 0.8, bulk: 1.00, rimW: 0.065, web: 0.78, paint: 0x3a74cc, pads: 0, slots: 0, anvil: 'fixed' },
@@ -22,7 +22,7 @@ const CORE = (function(){
     // A true round C: the throat is ONE circle that passes through the two faces' arms (at the measuring axis, y = 0) and reaches
     // `st.deep` below the half-way depth, so the parts have room to sit in it; the outside is a concentric circle, so the metal round
     // it is the same thickness all the way. (yc, below the axis, is where the circle's middle is.)
-    const Dn = r + st.deep, yc = -(Dn*Dn - r*r)/(2*Dn), R = Dn + yc, Ro = Math.sqrt((r + armT)*(r + armT) + yc*yc);
+    const yc = -st.deep, R = r, Ro = r + armT;   // a U: straight walls down to yc, then a half circle (radius r, centred at yc) round the bottom
     const rd = 0.36*zs, cd = rd*st.web;   // the rim's and the web's thickness
     return { g, armL, armR, hx, hubR, cx, cy: yc, rxi: R, ryi: R, rxo: Ro, ryo: Ro, zs, ar, st, pw: 2, rd, cd, rimW: st.rimW, r, armT,
       bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
@@ -30,8 +30,8 @@ const CORE = (function(){
   // a (super)ellipse's half-height at fraction t of its radius
   const se = (t, p) => p === 2 ? Math.sqrt(1 - t*t) : Math.pow(Math.max(0, 1 - Math.pow(Math.abs(t), p)), 1/p);
   // open throat: allowed x-range at height y (the faces' arms above the axis, the throat's circle below it)
-  function xl(D, y){ if (y > D.armTop) return -Infinity; if (y >= 0) return D.armR; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return Infinity; return D.cx - Math.sqrt(D.rxi*D.rxi - t*t); }
-  function xr(D, y){ if (y > D.hubTop) return Infinity; if (y >= 0) return D.hx; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return -Infinity; return D.cx + Math.sqrt(D.rxi*D.rxi - t*t); }
+  function xl(D, y){ if (y > D.armTop) return -Infinity; if (y >= 0 || y >= D.cy) return D.armR; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return Infinity; return D.cx - Math.sqrt(D.rxi*D.rxi - t*t); }
+  function xr(D, y){ if (y > D.hubTop) return Infinity; if (y >= 0 || y >= D.cy) return D.hx; const t = y - D.cy; if (Math.abs(t) >= D.rxi) return -Infinity; return D.cx + Math.sqrt(D.rxi*D.rxi - t*t); }
 
   // local -> setup frame: optional flip (180° about x), optional ry (local z becomes x), then offset
   function xf(p, s){
@@ -866,17 +866,19 @@ function arcSE(p, cx, cy, rx, ry, a0, a1, cw, pw){
 function cPath(p, d, D){
   // outer circle from the left arm round the bottom to the hub, the hub's shoulders, then the throat's circle back round to the arm
   const Ro = D.rxo - d, Ri = D.rxi + d, cx = D.cx, yc = D.cy, yA = 0.08, yH = 0.14;
-  const xoL = cx - Math.sqrt(Ro*Ro - (yA - yc)*(yA - yc)), xoR = cx + Math.sqrt(Ro*Ro - (yH - yc)*(yH - yc));
-  const xiR = cx + Math.sqrt(Ri*Ri - (yH - yc)*(yH - yc)), xiL = cx - Math.sqrt(Ri*Ri - (yA - yc)*(yA - yc));
-  const circ = (rr, a0, a1) => { const n = 160; for (let k = 0; k <= n; k++){ const a = a0 + (a1 - a0)*k/n; p.lineTo(cx + rr*Math.cos(a), yc + rr*Math.sin(a)); } };
-  p.moveTo(xoL, yA);
-  circ(Ro, Math.atan2(yA - yc, xoL - cx), TAU + Math.atan2(yH - yc, xoR - cx));
+  const arc = (rr, a0, a1) => { const n = 160; for (let k = 0; k <= n; k++){ const a = a0 + (a1 - a0)*k/n; p.lineTo(cx + rr*Math.cos(a), yc + rr*Math.sin(a)); } };
+  p.moveTo(cx - Ro, yA);
+  p.lineTo(cx - Ro, yc);
+  arc(Ro, Math.PI, 2*Math.PI);          // round the bottom, left wall to right wall
+  p.lineTo(cx + Ro, yH);
   p.lineTo(D.hubR - d, 0.14);
   p.absarc(D.hubR - 0.2, 0.14, 0.2 - d, 0, Math.PI/2, false);
   p.lineTo(D.hx + 0.2, 0.34 - d);
   p.absarc(D.hx + 0.2, 0.14, 0.2 - d, Math.PI/2, Math.PI, false);
-  p.lineTo(xiR, yH);
-  circ(Ri, Math.atan2(yH - yc, xiR - cx), Math.atan2(yA - yc, xiL - cx) - TAU);
+  p.lineTo(cx + Ri, yH);
+  p.lineTo(cx + Ri, yc);
+  arc(Ri, 0, -Math.PI);                 // the throat's half circle, back round to the arm
+  p.lineTo(cx - Ri, yA);
   p.lineTo(D.armR - d, 0.08);
   p.absarc(D.armL + D.ar, 0.08, D.ar - d, 0, Math.PI, false);
   return p;

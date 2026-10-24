@@ -804,12 +804,12 @@
     const w = c.w; let seen = false; await walkGuide(c, async t => { if (/Find the (inch|centimeter) mark/.test(t)){ seen = true; await sleep(400); const tx = gdText(w); if (!/Why \d+/.test(tx) || !/at or below/.test(tx)) c.fail('“' + t + '” does not explain why the lower number'); else c.ok('“' + t + '” explains why the lower number'); } });
     if (!seen) c.fail('never saw the Find the inch mark step');
   } });
-  FLOWS.micrometer.push({ name: 'Every frame size is its own round C, and every part measures at every size', win: 'tool', async run(c){
+  FLOWS.micrometer.push({ name: 'Every frame size is its own U, and every part measures at every size', win: 'tool', async run(c){
     const w = c.w, C = w.eval('typeof CORE === "undefined" ? null : CORE'); if (!C){ c.fail('the micrometer physics could not be reached'); return; }   // (CORE is a top-level const in the tool's page, so it is not on window)
     const paints = new Set(); let bad = 0, n = 0;
     for (let B = 0; B < 6; B++){
       const D = C.dims(B); paints.add(C.STYLE[B].paint);
-      if (Math.abs(D.rxi - D.ryi) > 1e-9 || Math.abs(D.rxo - D.ryo) > 1e-9) c.fail('size ' + B + '–' + (B + 1) + ' is not a perfect round C');
+      if (Math.abs(D.rxi - D.ryi) > 1e-9 || Math.abs(D.rxo - D.ryo) > 1e-9) c.fail('size ' + B + '–' + (B + 1) + ' is not a perfect U');
       for (const key of C.available(B)){
         for (let t = 0; t < 25; t++){
           const S = C.makeSample(key, B, Math.random);
