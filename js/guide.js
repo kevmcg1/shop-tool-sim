@@ -106,7 +106,8 @@
     if (!a) return '\nCleaning a different material? IPA on a lint-free cloth is the usual first step. Not sure what suits yours? Search the web for “how to clean your material before measuring” just in case.';
     return a[1] + '\nThen wipe it dry with a clean lint-free cloth.\nNot sure about your ' + (k === 'gage' ? 'gage block’s' : a[0]) + ' type? Search the web for “how to clean ' + a[0] + ' before measuring” just in case.';
   };
-  const CLEAN_PART = () => ({ target: '#view', view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, text: () => WIPE_PART[tool] + cleanAdvice() + (window.__gdRich ? PART_PAPER : '') });
+  // (the height gage points at the top of the part, the face the scriber will land on, and its picture shows the scriber over the part)
+  const CLEAN_PART = () => Object.assign({ view: 'iso', next: 'Next', title: 'Clean the part too', paper: true, partClean: true, text: () => WIPE_PART[tool] + cleanAdvice() + (window.__gdRich ? PART_PAPER : '') }, tool === 'height' ? { spot: 'Top of the part', box: [260, 150] } : { target: '#view' });
   // "Look around" moves on by itself once the view has been dragged round a little (or Next is pressed)
   let looked = 0;
   const LOOK = what => ({ target: '#view', drag: 'look', next: 'Next', enter: () => { looked = 0; }, waitFor: () => looked >= 1, title: 'Look around', text: `Get your bearings on the ${what} before reading it.\nJust a tiny nudge: drag on an empty spot.\nScroll if you want to zoom.\nThe camera buttons up top reset the view any time.` });
@@ -365,7 +366,7 @@
           return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is one millimeter.\nNot the next line up: the vernier’s 0 hasn’t reached it yet, so it isn’t counted.'
             + (isNaN(v) ? '' : `\nHere it’s ${Math.round(v) % 10} line${Math.round(v) % 10 === 1 ? '' : 's'} past the ${Math.floor(v/10)}: <b>${Math.round(v)} mm</b>.`);
         } },
-        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', frame: ['mvernZero', 'mvernEnd', 'mvernLine'], hl: 'mvern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is 0.02 mm, and its big numbers count tenths of a millimeter.' + nowMM('mVern') },
+        { spot: 'mvernLine', side: 'left', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeMm', zoom: true, frame: ['mvernLine', 'mmLine'], hl: 'mvern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is 0.02 mm, and its big numbers count tenths of a millimeter.' + nowMM('mVern') },
         { target: '#reading .rgroup ~ .rgroup', title: 'Add them up', text: () => 'Centimeters + millimeter lines + vernier (0.02 mm per line) = the reading in millimeters.' + nowMM('mTot', 'This one reads') }
       ] : [
         { spot: 'inchNum', side: 'right', box: [150, 110], flat: 'the inch number', frame: ['inchNum', 'vernZero'], title: 'Find the inch mark', text: () => {
@@ -378,7 +379,7 @@
           return 'Now go up from that number.\nLook for the last main-scale line at or below the vernier’s 0.\nEach line is 50 thou (0.050″).\nNot the next line up: the vernier’s 0 hasn’t reached it yet, so it isn’t counted.'
             + (isNaN(v) || isNaN(n) ? '' : `\nHere it’s ${n % 20} line${n % 20 === 1 ? '' : 's'} past the ${Math.floor(v)}: <b>${v.toFixed(3)}″</b>.`);
         } },
-        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', frame: ['vernZero', 'vernEnd', 'vernLine'], hl: 'ivern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is a single thou (0.001″), and its number is how many thou to add.' + now('iVern') },
+        { spot: 'vernLine', side: 'right', box: [180, 90], flat: 'the vernier line that lines up', loupe: 'loupeIn', zoom: true, frame: ['vernLine', 'mainLine'], hl: 'ivern', title: 'Find the line that lines up', text: () => 'Now the vernier scale.\nLook for the one vernier line that meets a main-scale line exactly.\nEach vernier line is a single thou (0.001″), and its number is how many thou to add.' + now('iVern') },
         { target: '#reading .rgroup', title: 'Add them up', text: () => 'Inch + main-scale lines + vernier = the reading in inches.' + now('iTot', 'This one reads') }
       ]),
       SHORT('height'),
@@ -545,7 +546,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const host = cv.offsetParent; if (!host) return null;
     if (!tracker){ tracker = document.createElement('div'); tracker.className = 'gd-track'; tracker.setAttribute('aria-hidden', 'true'); }
     if (tracker.parentNode !== host) host.appendChild(tracker);
-    if (raw.note) flatEdge = 'note';
+    if (raw.note){ flatEdge = 'note'; window.__flatNoteTop = true; }
     const W = raw.w, H = raw.h, m = 2, band = 26;
     let [x0, y0, x1, y1] = raw.box;
     if (y0 >= H - 6){ flatEdge = 'bottom'; y0 = H - band; y1 = H - m; } else if (y1 <= 6){ flatEdge = 'top'; y0 = m; y1 = band; }
@@ -753,6 +754,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (flatOpened && fl && !fl.classList.contains('closed') && $('flatBtn')) $('flatBtn').click();
     flatOpened = false;
     if (tracker){ tracker.remove(); tracker = null; }
+    window.__flatNoteTop = false;
     // and the camera goes back to the plain iso view
     const iso = document.querySelector('#view [data-view="iso"]');
     if (iso) iso.click();
@@ -801,14 +803,15 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     // only this step's highlight is lit, and the camera flies to where the step looks
     if (saved) saved.forEach(([c]) => setHl(c.dataset.hl, c.dataset.hl === s.hl));
     const vb = s.view && document.querySelector(`#view [data-view="${s.view}"]`);
-    if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame)) && vb) vb.click();
+    if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame, !!s.zoom)) && vb) vb.click();
+    window.__flatNoteTop = false;   // (a flat-view step sets it again, in flatBox, while it shows)
     const t = targetOf(s);
     if (!s.spot) reveal(t);
     // a flat-view step brings the flat view out (opened, grown or scrolled to), and it goes back when the walkthrough ends
     if (s.flatStep) showFlat();
     card.querySelector('h4').textContent = friendly(s.title); card.querySelector('h4').dataset.step = s.title;
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
-    if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d, tool); }   // the phase, its color, the progress bar, the cleaning picture
+    if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d, tool, !!s.partClean); }   // the phase, its color, the progress bar, the cleaning picture
     card.querySelector('.gd-back').disabled = i === 0;
     const next = card.querySelector('.gd-next');
     next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip for now' : 'Next');

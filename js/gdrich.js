@@ -139,22 +139,26 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
   const paperText = tool => tool === 'height' ? PAPER_HEIGHT : PAPER;
   // a small picture in the card: two contact faces, a slip of paper sliding in between, the dirt moving onto it, and the paper taken out with the dirt on it
   const SPECKS = [[22, 10, 2.4], [34, 18, 1.8], [47, 8, 2.1], [58, 20, 1.6], [70, 12, 2.6], [29, 24, 1.5], [52, 23, 2]];
-  function paper(card, on, tool){
+  function paper(card, on, tool, part){
     let box = card.querySelector('.gd-paper');
     if (!on){ if (box) box.hidden = true; return; }
+    const kind = tool === 'height' && part ? 'part' : 'gage';
+    if (box && box.dataset.kind !== kind){ box.remove(); box = null; }   // (the part step draws the scriber over the part, not over the plate)
     if (!box){
-      box = document.createElement('div'); box.className = 'gd-paper'; box.setAttribute('aria-hidden', 'true');
+      box = document.createElement('div'); box.className = 'gd-paper'; box.setAttribute('aria-hidden', 'true'); box.dataset.kind = kind;
       // the dirt sits on the faces; once it has come off, each speck lies on the outside of the paper, on the side it came from (never inside it).
       // The paper rests at x = 70 when the faces close on it, so a speck is just under the spot on the face it came from.
       const dirt = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2}" cy="${k % 2 ? 62 : 34}" r="${r}"/>`).join('');
       const onpaper = SPECKS.map(([x, y, r], k) => `<circle cx="${60 + x*2 - 70}" cy="${k % 2 ? 57 + r*0.5 : 39 - r*0.5}" r="${r*0.9}"/>`).join('');
       // (the height gage: the scriber's blade, its slanted nose on the left and its flat underside over the paper, above the wide surface plate)
-      const faces = tool === 'height'
+      const faces = kind === 'part'
+        ? '<path class="pf" d="M8 32 L40 8 Q44 4 50 4 H252 V32 Z"/><rect class="pf" x="8" y="86" width="324" height="26" rx="6"/><rect class="pf" x="50" y="64" width="210" height="22" rx="3"/><text class="pl" x="150" y="23" text-anchor="middle">Scriber</text><text class="pl" x="155" y="79" text-anchor="middle">Top of the part</text><text class="pl" x="170" y="104" text-anchor="middle">Surface plate</text>'
+        : tool === 'height'
         ? '<path class="pf" d="M8 32 L40 8 Q44 4 50 4 H252 V32 Z"/><rect class="pf" x="8" y="64" width="324" height="28" rx="6"/><text class="pl" x="150" y="23" text-anchor="middle">Scriber</text><text class="pl" x="170" y="83" text-anchor="middle">Surface plate</text>'
         : '<rect class="pf" x="8" y="4" width="244" height="28" rx="6"/><rect class="pf" x="8" y="64" width="244" height="28" rx="6"/>';
-      box.innerHTML = `<svg viewBox="0 0 340 96">${faces}
+      box.innerHTML = `<svg viewBox="0 0 340 ${kind === 'part' ? 116 : 96}">${faces}
         <g class="pd">${dirt}</g><g class="pp"><rect x="0" y="39" width="150" height="18" rx="2"/><g class="ps">${onpaper}</g></g></svg>
-        <span>${tool === 'height' ? 'The dirt comes off the scriber and plate and onto the paper.' : 'The dirt comes off the tool and onto the paper.'}</span>`;
+        <span>${kind === 'part' ? 'The dirt comes off the scriber and the top of the part and onto the paper.' : tool === 'height' ? 'The dirt comes off the scriber and plate and onto the paper.' : 'The dirt comes off the tool and onto the paper.'}</span>`;
       const anchor = card.querySelector('.gd-keys') || card.querySelector('.gd-seg') || card.querySelector('.gd-foot');
       anchor.parentNode.insertBefore(box, anchor);
     }

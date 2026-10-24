@@ -2007,7 +2007,8 @@ function cornerText(g, s, x, y, o){
 function drawFlatHG(){
   if (!flatOpen) return;
   const R = readingMM(), I = splitIn(R), Mm = splitMM(R), show = !state.practice || state.pRevealed, hl = state.hl;
-  const key = [R.toFixed(4), show, hl.imain, hl.ivern, hl.mmain, hl.mvern].join('|');
+  const noteTop = !!window.__flatNoteTop;   // ("Show me" is on a flat-view step: the "below" notes move to the top-left, clear of the lit window and its label)
+  const key = [R.toFixed(4), show, hl.imain, hl.ivern, hl.mmain, hl.mvern, noteTop].join('|');
   if (key === flatKey) return; flatKey = key;
   const cv = $('flatCv'), g = cv.getContext('2d'), W = 260, H = 280, dpr = Math.min(4, (window.devicePixelRatio || 1)*Math.max(1, ($('flatCv').clientWidth || 260)/260));
   if (cv.width !== Math.round(W*dpr)){ cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr); }
@@ -2062,7 +2063,8 @@ function drawFlatHG(){
     const tag = (t, right) => {
       g.save(); g.font = '700 10px Inter, Arial, sans-serif';
       const w = g.measureText(t).width + 12, h = 16; let x = right ? W - 3 - w : 3, y = H - 3 - h;
-      if (right && boxes.length){ const o = boxes[0]; if (x < o[2] + 4 && o[0] < x + w + 4) y = o[1] + 2 - h - 6; }
+      if (noteTop){ x = 3; y = 20 + boxes.length*(h + 4); }   // (just under the Inch corner label, the second note under the first)
+      else if (right && boxes.length){ const o = boxes[0]; if (x < o[2] + 4 && o[0] < x + w + 4) y = o[1] + 2 - h - 6; }
       g.fillStyle = 'rgba(11,12,14,.9)'; g.fillRect(x, y, w, h);
       g.fillStyle = '#f2c94c'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(t, x + 6, y + h/2 + 0.5);
       g.restore();
@@ -2260,6 +2262,11 @@ window.__guidePlacePart = () => {
 // "Show me" reads the inch scale the way a machinist does: the inch number, the main-scale line at or below
 // the vernier's 0, then the vernier line that lines up. These are where those marks sit right now.
 function guideWorld(name){
+  if (name === 'Top of the part'){   // ("Show me": the face of the part the scriber will land on)
+    if (!partG || !partG.visible) return null;
+    const b = new T.Box3().setFromObject(partG); if (b.isEmpty()) return null;
+    return new T.Vector3((b.min.x + b.max.x)/2, b.max.y, (b.min.z + b.max.z)/2);
+  }
   const I = splitIn(readingMM());
   if (name === 'inchNum' || name === 'mainLine'){
     const j = name === 'inchNum' ? Math.floor(I.mainIdx/20)*20 : I.mainIdx;
@@ -2282,13 +2289,14 @@ function guideWorld(name){
   return null;
 }
 // fly the camera in, square to the scales, so the named marks fill the view with a little scale round them
-window.__guideFrame = names => {
+// tight: the "line that lines up" step, which zooms right in (slowly enough to watch) on the vernier line and the main-scale line it meets
+window.__guideFrame = (names, tight) => {
   const box = new T.Box3();
   for (const n of names){ const p = guideWorld(n); if (p) box.expandByPoint(p); }
   if (box.isEmpty()) return false;
-  box.expandByScalar(9);
+  box.expandByScalar(tight ? 2.5 : 9);
   const fb = fitIso(new T.Vector3(0.08, 0.05, 1).normalize(), box.getCenter(new T.Vector3()), CAM_BACK, box);
-  flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 900 };
+  flight = { p0: camera.position.clone(), t0: controls.target.clone(), z0: camera.zoom, p1: fb.pos, t1: fb.target, z1: fb.zoom, start: performance.now(), ms: matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : (tight ? 1700 : 900) };
   return true;
 };
 // while the scriber is being brought down by hand, the view keeps the slider and the part in frame: it fits
