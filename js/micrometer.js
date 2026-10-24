@@ -488,10 +488,10 @@ function canvasTex(w, h, draw, repeat){
 const rand = (a, b) => a + Math.random()*(b - a);
 function hammerDraw(light){
   return (g, s) => {
-    g.fillStyle = light ? '#ececec' : '#808080'; g.fillRect(0, 0, s, s);
+    g.fillStyle = light ? '#f6f6f6' : '#808080'; g.fillRect(0, 0, s, s);
     for (let i = 0; i < 2600; i++){
       const x = Math.random()*s, y = Math.random()*s, r = 2 + Math.random()*11;
-      const up = Math.random() < 0.5, v = light ? (up ? 255 : 196) : (up ? 200 : 60);
+      const up = Math.random() < 0.5, v = light ? (up ? 255 : 232) : (up ? 150 : 106);
       const gr = g.createRadialGradient(x, y, 0, x, y, r);
       gr.addColorStop(0, `rgba(${v},${v},${v},${light ? 0.35 : 0.5})`);
       gr.addColorStop(1, `rgba(${v},${v},${v},0)`);
@@ -551,7 +551,7 @@ const pebble = canvasTex(128, 128, (g, s) => { g.fillStyle = '#808080'; g.fillRe
 /* ---------- materials ---------- */
 const std = o => new T.MeshStandardMaterial(o);
 const M = {
-  frame: std({ color: 0x3a74cc, map: hammerMap, bumpMap: hammerBump, bumpScale: 0.016, metalness: 0.35, roughness: 0.42, envMapIntensity: 0.9 }),
+  frame: std({ color: 0x3a74cc, map: hammerMap, bumpMap: hammerBump, bumpScale: 0.004, metalness: 0.35, roughness: 0.42, envMapIntensity: 0.9 }),
   chrome: std({ color: 0xf2f4f6, metalness: 1, roughness: 0.1 }),
   satin: std({ color: 0xdfe2e5, metalness: 1, roughness: 0.55, roughnessMap: brushed, bumpMap: brushed, bumpScale: 0.006, side: T.DoubleSide }),
   knurl: std({ color: 0xd6d9dc, metalness: 1, roughness: 0.5, roughnessMap: knurlBump, bumpMap: knurlBump, bumpScale: 0.04 }),
