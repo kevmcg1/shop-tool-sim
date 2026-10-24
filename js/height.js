@@ -1917,6 +1917,7 @@ function placeFlat(){
   if (z.h >= 96) apply(z);
 }
 let flatKey = '', flatSpots = {};
+window.__flatRedraw = () => { flatKey = ''; drawFlatHG(); };   // ("Show me" moves the flat view's notes, and asks for them to be drawn again)
 // maximize: the flat view stretches to the full height of the 3D view (keeping its shape), and the
 // buttons in the top right move over so none of them sit on it
 let flatMax = false;

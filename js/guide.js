@@ -539,6 +539,8 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   // between the two), the tracker goes with it, and its box on screen is exactly where the mark is. A mark
   // past an edge (the flat view only draws so much round the reading) gets a strip along that edge instead.
   let tracker = null;
+  // the height gage's "below" notes sit at the top-left of the minimap while a flat-view step is lit, so the step's label never covers them
+  function setNoteTop(on){ if (!!window.__flatNoteTop === on) return; window.__flatNoteTop = on; if (window.__flatRedraw) window.__flatRedraw(); }
   function flatBox(name){
     flatEdge = '';
     const raw = window.__guideFlatRaw && window.__guideFlatRaw(name), cv = raw && $(raw.cv);
@@ -546,11 +548,12 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const host = cv.offsetParent; if (!host) return null;
     if (!tracker){ tracker = document.createElement('div'); tracker.className = 'gd-track'; tracker.setAttribute('aria-hidden', 'true'); }
     if (tracker.parentNode !== host) host.appendChild(tracker);
-    if (raw.note){ flatEdge = 'note'; window.__flatNoteTop = true; }
+    if (raw.note) flatEdge = 'note';
     const W = raw.w, H = raw.h, m = 2, band = 26;
     let [x0, y0, x1, y1] = raw.box;
     if (y0 >= H - 6){ flatEdge = 'bottom'; y0 = H - band; y1 = H - m; } else if (y1 <= 6){ flatEdge = 'top'; y0 = m; y1 = band; }
     if (x0 >= W - 6){ flatEdge = 'right'; x0 = W - band; x1 = W - m; } else if (x1 <= 6){ flatEdge = 'left'; x0 = m; x1 = band; }
+    setNoteTop(flatEdge === 'note' || flatEdge === 'bottom' || y1 > H - 26);   // (what is lit reaches the foot, where the "below" notes usually sit)
     x0 = Math.max(m, x0); y0 = Math.max(m, y0); x1 = Math.min(W - m, x1); y1 = Math.min(H - m, y1);
     if (x1 - x0 < 14){ const c = (x0 + x1)/2; x0 = Math.max(m, c - 7); x1 = Math.min(W - m, c + 7); }
     if (y1 - y0 < 14){ const c = (y0 + y1)/2; y0 = Math.max(m, c - 7); y1 = Math.min(H - m, c + 7); }
@@ -754,7 +757,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (flatOpened && fl && !fl.classList.contains('closed') && $('flatBtn')) $('flatBtn').click();
     flatOpened = false;
     if (tracker){ tracker.remove(); tracker = null; }
-    window.__flatNoteTop = false;
+    setNoteTop(false);
     // and the camera goes back to the plain iso view
     const iso = document.querySelector('#view [data-view="iso"]');
     if (iso) iso.click();
@@ -804,7 +807,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (saved) saved.forEach(([c]) => setHl(c.dataset.hl, c.dataset.hl === s.hl));
     const vb = s.view && document.querySelector(`#view [data-view="${s.view}"]`);
     if (!(s.frame && window.__guideFrame && window.__guideFrame(s.frame, !!s.zoom)) && vb) vb.click();
-    window.__flatNoteTop = false;   // (a flat-view step sets it again, in flatBox, while it shows)
+    setNoteTop(false);   // (a flat-view step sets it again, in flatBox, while it shows)
     const t = targetOf(s);
     if (!s.spot) reveal(t);
     // a flat-view step brings the flat view out (opened, grown or scrolled to), and it goes back when the walkthrough ends
