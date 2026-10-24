@@ -538,6 +538,10 @@ cv.addEventListener('pointerdown',e=>{
   const free=AW.t>0;   // away on the measuring panel the gauge can't be rocked
   const mode=pan?'pan':(!EX.on&&h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';   // (in Examine a drag always turns the camera, never rocks the gauge)
   drag={mode,part:h,x:e.clientX,y:e.clientY,moved:0,vy:0,vOn:false,acc:0,dep:null};
+  if(h==='knob'&&GP&&GP.knobG){   // the lock knob reads a turn as a turn: clockwise locks it, counterclockwise unlocks it (the screen angle round the knob)
+   const kc=new THREE.Box3().setFromObject(GP.knobG).getCenter(new THREE.Vector3()).project(camera),kb=cv.getBoundingClientRect();
+   drag.kx=kb.left+(kc.x+1)/2*kb.width;drag.ky=kb.top+(1-kc.y)/2*kb.height;drag.ka=Math.atan2(e.clientY-drag.ky,e.clientX-drag.kx);drag.kt=0;drag.turned=false;
+  }
   if(pan)cv.style.cursor='move';
   if(mode==='orbit'){cam.orb=true;if(EX.on)PV.p=null;else pvPick(e);}else PV.p=null;   // (Examine turns about the gauge itself, not the point under the pointer, so the tool never swings)
   if(h&&AM.on)autoCancel();   // taking hold of the gauge by hand ends Auto measure
@@ -555,6 +559,14 @@ cv.addEventListener('pointermove',e=>{
  if(drag.mode==='pan')panBy(dx,dy);
  else if(drag.mode==='rock'){
   if(drag.part==='knob'&&drag.moved<=6)return;
+  if(drag.part==='knob'&&drag.kx!==undefined&&Math.hypot(e.clientX-drag.kx,e.clientY-drag.ky)<110){
+   if(Math.hypot(e.clientX-drag.kx,e.clientY-drag.ky)>=12){
+    const a=Math.atan2(e.clientY-drag.ky,e.clientX-drag.kx);let d=a-drag.ka;drag.ka=a;d=Math.atan2(Math.sin(d),Math.cos(d));drag.kt+=d;
+    if(drag.kt>.5&&S.unlocked){autoCancel();toggleLock();drag.kt=0;drag.turned=true;}
+    else if(drag.kt<-.5&&!S.unlocked){autoCancel();toggleLock();drag.kt=0;drag.turned=true;}
+   }
+   return;
+  }
   drag.part='gauge';cv.style.cursor='grabbing';
   if(S.dragR&&dx)setTiltCmd(S.tiltCmd-dx*.35*D2R*(S.fine?.1:1));
   if(S.dragY&&dy)dragVert(dy);
@@ -1221,7 +1233,7 @@ function guideGo(i){
  if(s.enter)s.enter();
  if(s.view)camGo(s.view);
  if(s.paper){const my=i;labPaper(my).then(ok=>{if(window.__gdRich&&G.on&&G.i===my)window.__gdRich.paper(gdCard,!ok);});}
- gdTitle.textContent=s.title;
+ gdTitle.textContent=({'Pick a part':'Pick a part whenever you like','Compress and lock':'Gently compress and lock','Insert at an angle':'Slip it in at an angle','Release the plungers':'Let the plungers go','Center and rock the gauge':'Center it and give it a gentle rock','Snug and lock':'Snug it up and lock','Take it out':'Carefully take it out','First, clean and check the gauge':'First, a little clean and a gauge check','Off it goes':'Off it goes, nice and easy'})[s.title]||s.title;gdTitle.dataset.step=s.title;
  gdChoose.hidden=!s.choose;gdNext.hidden=!!s.choose;
  gdBack.disabled=i===0;
  gdNext.textContent=i===GSTEPS.length-1?'Done':(s.done?'Skip':'Next');

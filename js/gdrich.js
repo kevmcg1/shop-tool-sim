@@ -12,10 +12,10 @@
 //   window.__gdRich.paint(root, card, steps, i, tool)   the badge, the bar, the colors and the shortcut row
 (function(){
   const PHASES = [
-    { id: 'prep',  name: 'Get ready', c: '#5b93ea' },
-    { id: 'do',    name: 'Try it yourself', c: '#5fcf8a' },
-    { id: 'read',  name: 'Read it',   c: '#e8c547' },
-    { id: 'check', name: 'Check it',  c: '#a78bfa' }
+    { id: 'prep',  name: 'Getting ready', c: '#5b93ea' },
+    { id: 'do',    name: 'Your turn, nice and easy', c: '#5fcf8a' },
+    { id: 'read',  name: 'Reading it together',   c: '#e8c547' },
+    { id: 'check', name: 'A gentle look back',  c: '#a78bfa' }
   ];
   // The phase of every step, in order: a walkthrough only ever moves forward through Get ready, Try it yourself, Read it and Check it. A step can say its
   // own (step.phase); otherwise a word in its title moves it on to the next phase it belongs to, and it stays there until a later one does.
@@ -90,6 +90,7 @@
 .gd-seg{display:flex;gap:3px;margin:12px 0 0}
 .gd-seg i{flex:1;height:4px;border-radius:3px;background:color-mix(in srgb,var(--sc) 28%,#23262a);transition:background-color .3s ease,transform .3s ease}
 .gd-seg i.done{background:color-mix(in srgb,var(--sc) 75%,#23262a)}
+.gd-seg i.skip{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--sc) 85%,transparent)}
 .gd-seg i.now{background:var(--sc);transform:scaleY(1.9);box-shadow:0 0 8px color-mix(in srgb,var(--sc) 70%,transparent)}
 .gd-keys{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:11px;padding-top:10px;border-top:1px solid var(--line,#26292e)}
 .gd-keys[hidden]{display:none}
@@ -118,7 +119,7 @@ kbd.gd-k.arr{font-size:13px;color:var(--ph)}
       bar.dataset.sig = sig; bar.innerHTML = '';
       all.forEach(q => { const e = document.createElement('i'); e.style.setProperty('--sc', q.c); bar.appendChild(e); });
     }
-    [...bar.children].forEach((e, k) => { e.classList.toggle('done', k < i); e.classList.toggle('now', k === i); });
+    [...bar.children].forEach((e, k) => { e.classList.toggle('done', k < i); e.classList.toggle('now', k === i); const sk = !!(steps[k] && steps[k].skipped); e.classList.toggle('skip', sk); if (sk) e.title = 'Skipped'; else e.removeAttribute('title'); });
     return ph;
   }
   // the shortcut row for a step: the keys the tool has that its text is about (text can be a function's result)

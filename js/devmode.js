@@ -713,7 +713,7 @@
   const num = t => { const m = /(\d+\.\d+)/.exec(String(t || '')); return m ? parseFloat(m[1]) : NaN; };
   const hasNote = w => !!w.document.querySelector('.cheat-veil');
   const gdText = w => { const k = w.document.querySelector('.gd-card'); return k ? k.innerText.replace(/\s+/g, ' ') : ''; };
-  const gdTitle = w => { const h = w.document.querySelector('.gd-card h4'); return h ? h.textContent : ''; };
+  const gdTitle = w => { const h = w.document.querySelector('.gd-card h4'); return h ? (h.dataset.step || h.textContent) : ''; };
   const gdNext = w => { const n = w.document.querySelector('.gd-next'); if (!n || n.hidden) return false; const last = /Finish/.test(n.textContent); n.click(); return !last; };
   const pickPart = async w => { const l = w.document.getElementById('sampleSel') || w.document.getElementById('partSel'); if (!l) return; const o = [...l.options].find(x => x.value !== 'none'); if (o){ l.value = o.value; l.dispatchEvent(new w.Event('change')); await sleep(1800); } };
   // walks the whole walkthrough, calling `look` on every step

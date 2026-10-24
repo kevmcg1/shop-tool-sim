@@ -1553,6 +1553,15 @@ function measureFace(pl){
   state.lift = null; state.partGoal = null;
   state.seq = { stage: 'raise', clear: tallest() + CLEAR, x: TIP_X0 + 3.5 - t[0], z: 5.5 - t[1] };
 }
+function knobTurn(o, e){
+  const c = new T.Box3().setFromObject(o).getCenter(new T.Vector3()).project(camera), r = el.getBoundingClientRect(), cx = r.left + (c.x + 1)/2*r.width, cy = r.top + (1 - c.y)/2*r.height;
+  return { cx, cy, a: Math.atan2(e.clientY - cy, e.clientX - cx) };
+}
+// how far the pointer has gone round the knob since the last move (radians, clockwise positive), or null when it is too near the middle to tell
+function turnOf(d, e){
+  if (Math.hypot(e.clientX - d.cx, e.clientY - d.cy) < 12) return null;
+  const a = Math.atan2(e.clientY - d.cy, e.clientX - d.cx); let t = a - d.a; t = Math.atan2(Math.sin(t), Math.cos(t)); d.a = a; return t;
+}
 el.addEventListener('pointerdown', e => {
   $('hint').hidden = true;
   if (e.button !== 0 || state.exam) return;   // Examine: a drag turns the camera instead of moving the tool
@@ -1569,9 +1578,10 @@ el.addEventListener('pointerdown', e => {
     el.style.cursor = 'grabbing';
     return;
   }
-  if (kind === 'clampSlider'){ setLock('sliderLocked', !state.sliderLocked); drag = { kind: 'click' }; return; }
-  if (kind === 'clampUnit'){ setLock('unitLocked', !state.unitLocked); drag = { kind: 'click' }; return; }
-  if (kind === 'nut' || kind === 'zeroKnob'){ drag = { kind, x: e.clientX }; el.style.cursor = 'grabbing'; return; }
+  // the knobs read a turn as a turn: the angle of the pointer round the knob's middle on screen, clockwise or counterclockwise, however it goes
+  // round (a press that never travels still clicks a clamp)
+  if (kind === 'clampSlider' || kind === 'clampUnit'){ drag = Object.assign({ kind: 'clamp', which: kind === 'clampSlider' ? 'sliderLocked' : 'unitLocked', acc: 0, moved: false }, knobTurn(h.object, e)); return; }
+  if (kind === 'nut' || kind === 'zeroKnob'){ drag = Object.assign({ kind, x: e.clientX }, knobTurn(h.object, e)); el.style.cursor = 'grabbing'; return; }
   // slider, scriber or unit: drag straight up and down
   const n = new T.Vector3(); camera.getWorldDirection(n); n.y = 0;
   if (n.lengthSq() < 1e-6) n.set(0, 0, -1);
@@ -1582,7 +1592,16 @@ el.addEventListener('pointerdown', e => {
 el.addEventListener('pointermove', e => {
   if (!drag){ hover(e); return; }
   if (drag.kind === 'click') return;
-  if (drag.kind === 'nut'){ const dx = e.clientX - drag.x; drag.x = e.clientX; fineTurn(-dx*0.004*(e.shiftKey ? 0.25 : 1)*(fineOn ? FINE_K : 1)); return; }
+  if (drag.kind === 'clamp'){
+    const t = turnOf(drag, e); if (t === null) return;
+    drag.acc += t; if (Math.abs(drag.acc) > 0.12) drag.moved = true;
+    if (drag.acc > 0.5 && !state[drag.which]){ setLock(drag.which, true); drag.acc = 0; }          // clockwise tightens
+    else if (drag.acc < -0.5 && state[drag.which]){ setLock(drag.which, false); drag.acc = 0; }    // counterclockwise loosens
+    return;
+  }
+  if (drag.kind === 'nut'){ const t = turnOf(drag, e); const dx = e.clientX - drag.x; drag.x = e.clientX;
+    // clockwise walks the slider down, a turn of the nut is FINE_PITCH
+    fineTurn((t === null ? -dx*0.004 : t/TAU*FINE_PITCH)*(e.shiftKey ? 0.25 : 1)*(fineOn ? FINE_K : 1)); return; }
   if (drag.kind === 'part'){
     setRay(e);
     if (!ray.ray.intersectPlane(dragPlane, hitP)) return;
@@ -1593,7 +1612,7 @@ el.addEventListener('pointermove', e => {
     state.partGoal = goal; state.partMoveT = performance.now();
     return;
   }
-  if (drag.kind === 'zeroKnob'){ const dx = e.clientX - drag.x; drag.x = e.clientX; setDelta(state.delta + dx*0.02*(e.shiftKey ? 0.2 : 1)*(fineOn ? FINE_K : 1)); return; }
+  if (drag.kind === 'zeroKnob'){ const t = turnOf(drag, e); const dx = e.clientX - drag.x; drag.x = e.clientX; setDelta(state.delta + (t === null ? dx*0.02 : t/TAU*3)*(e.shiftKey ? 0.2 : 1)*(fineOn ? FINE_K : 1)); return; }
   setRay(e);
   if (!ray.ray.intersectPlane(dragPlane, hitP)) return;
   const dy = hitP.y - drag.y;
@@ -1601,6 +1620,7 @@ el.addEventListener('pointermove', e => {
   if (moveSlider(dy*(e.shiftKey ? 0.2 : 1)*(fineOn ? FINE_K : 1))) drag.y = hitP.y;
 });
 function endDrag(e){ if (!drag) return;
+  if (drag.kind === 'clamp' && !drag.moved) setLock(drag.which, !state[drag.which]);   // (a plain press still clicks it)
   // in click-face mode a click (not a drag) on a flat face measures that face
   if (drag.kind === 'part' && faceMode && drag.spot && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 5){ state.partDrag = false; state.dwelled = false; state.autoLower = false; measureFace(drag.spot); }
   else if (drag.kind === 'part'){ state.partDrag = false; state.autoLower = !state.dwelled; state.dwelled = false; } drag = null; controls.enabled = true; el.style.cursor = ''; try { el.releasePointerCapture(e.pointerId); } catch (err) {} }

@@ -3323,8 +3323,13 @@ function bindPointer() {
     if (p && p.role === 'part') return;
     if (!p || !p.role) return;
     e.stopImmediatePropagation(); camTween = null;
-    if (p.role === 'sliderLock') { setSliderLock(!state.sliderLocked); toast(state.sliderLocked ? 'Slider locked' : 'Slider unlocked'); return; }
-    if (p.role === 'bezelLock') { setBezelLock(!state.bezelLocked); toast(state.bezelLocked ? 'Bezel locked' : 'Bezel unlocked'); return; }
+    // the two lock screws read a turn as a turn: clockwise tightens, counterclockwise loosens (a plain press still clicks it)
+    if (p.role === 'sliderLock' || p.role === 'bezelLock') {
+      const c = new T.Box3().setFromObject(p.hit.object).getCenter(new T.Vector3()).project(camera), r = canvas.getBoundingClientRect(), cx = r.left + (c.x + 1) / 2 * r.width, cy = r.top + (1 - c.y) / 2 * r.height;
+      drag = { type: 'screw', role: p.role, cx, cy, last: Math.atan2(e.clientY - cy, e.clientX - cx), acc: 0, moved: false };
+      canvas.setPointerCapture(e.pointerId);
+      return;
+    }
     if (p.role === 'bezel') {
       if (state.bezelLocked) { toast('The bezel is locked. Click the screw under the dial to free it.'); return; }
       plane.setFromNormalAndCoplanarPoint(new T.Vector3(0, 0, 1).transformDirection(dial.matrixWorld), p.hit.point);
@@ -3356,6 +3361,15 @@ function bindPointer() {
       });
       return;
     }
+    if (drag.type === 'screw') {
+      if (Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 12) return;
+      const a = Math.atan2(e.clientY - drag.cy, e.clientX - drag.cx); let d = a - drag.last; drag.last = a; d = Math.atan2(Math.sin(d), Math.cos(d));
+      drag.acc += d; if (Math.abs(drag.acc) > 0.12) drag.moved = true;
+      const slider = drag.role === 'sliderLock', now = slider ? state.sliderLocked : state.bezelLocked;
+      const set = v => { if (slider) { setSliderLock(v); toast(v ? 'Slider locked' : 'Slider unlocked'); } else { setBezelLock(v); toast(v ? 'Bezel locked' : 'Bezel unlocked'); } drag.acc = 0; };
+      if (drag.acc > 0.5 && !now) set(true); else if (drag.acc < -0.5 && now) set(false);
+      return;
+    }
     setRay(e);
     if (!raycaster.ray.intersectPlane(plane, tmpV)) return;
     if (drag.type === 'slider') {
@@ -3368,7 +3382,9 @@ function bindPointer() {
       state.bezel += d * (state.fine ? FINE.bezel : 1) * (e.shiftKey ? 0.2 : 1);
     }
   });
-  const endDrag = e => { if (!drag) return; drag = null; canvas.style.cursor = 'grab'; try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} };
+  const endDrag = e => { if (!drag) return;
+    if (drag.type === 'screw' && !drag.moved) { if (drag.role === 'sliderLock') { setSliderLock(!state.sliderLocked); toast(state.sliderLocked ? 'Slider locked' : 'Slider unlocked'); } else { setBezelLock(!state.bezelLocked); toast(state.bezelLocked ? 'Bezel locked' : 'Bezel unlocked'); } }
+    drag = null; canvas.style.cursor = 'grab'; try { canvas.releasePointerCapture(e.pointerId); } catch (_) {} };
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
   wheelSkip = e => { if (state.exam) return false; const p = pick(e); return !!(p && p.role === 'wheel'); };
@@ -3549,6 +3565,15 @@ function loop(now) {
 
 // "Show me" (js/guide.js) asks where things are on screen: a part named in the Examine labels, or a
 // reading mark (where the practice arrows point). Page coordinates, or null when it's behind the camera.
+// where the dial face is on the screen (its middle and its radius in pixels), for the arrow that shows which way to turn the bezel
+window.__guideDial = () => {
+  if (isVern() || !dial) return null;
+  const bx = new T.Box3().setFromObject(dial), c = bx.getCenter(new T.Vector3()), sz = bx.getSize(new T.Vector3()), R = Math.max(sz.x, sz.y, sz.z) / 2;
+  const right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize(), r = renderer.domElement.getBoundingClientRect();
+  const a = c.clone().project(camera), b = c.clone().add(right.multiplyScalar(R)).project(camera);
+  if (a.z > 1 || a.z < -1) return null;
+  return { x: r.left + (a.x + 1) / 2 * r.width, y: r.top + (1 - a.y) / 2 * r.height, r: Math.abs(b.x - a.x) / 2 * r.width };
+};
 window.__guideSpot = name => {
   let p = null;
   const e = (typeof examList === 'function' ? examList() : EXAM).find(x => x[0] === name);

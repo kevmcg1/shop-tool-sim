@@ -30,7 +30,7 @@
     depth: () => /rod on the floor/i.test(val('status')), height: () => !!$('contact') && $('contact').classList.contains('ok') };
   touching.vern = touching.dial;
   // wait until it has been backed off and brought back into contact, by hand
-  const offThenOn = () => ({ enter: s => { s.phase = 0; }, waitFor: s => { const on = touching[tool](); if (!on) s.phase = 1; return s.phase === 1 && on; } });
+  const offThenOn = () => ({ enter: s => { s.phase = 0; s.dragAt = dragged; }, waitFor: s => { const on = touching[tool](); if (!on) s.phase = 1; return (s.phase === 1 || dragged > s.dragAt) && on; } });   // (backed off and back on, or a real drag that ended on the part: it may already have been resting there)
 
   // said where each tool's minimap (the flat view) first comes up
   const MINIMAP_NOTE = 'This corner view is the <b>flat view</b>, a minimap of the scales.\nYou won’t have one in real life. It’s only here to make the marks easier to see.\nHide it, or enlarge it for a closer look, whenever you like.';
@@ -70,6 +70,7 @@
   if (partList){ partList.addEventListener('change', onPartPick); partList.addEventListener('pick', onPartPick); }
   const PART = sel => ({ target: sel, part: true, title: 'Pick a part',
     text: s => s.done ? 'That part is in place.\nPick another from the list if you like, or press <b>Next</b> to carry on.' : 'Something to measure comes next.\nAny part from this list will do.',
+    skipSay: 'You skipped picking a part, so there is nothing to measure yet.\nPick one from the <b>Part</b> list when you want to try the readings.',
     enter: () => { partPicked = false; }, waitFor: () => false });
   // right after a part is picked: the part needs wiping where the tool's faces will touch it, the same as the tool's own faces were
   const WIPE_PART = {
@@ -130,7 +131,7 @@
   const PRACTICE = { target: '#practiceBtn', title: 'Now try one yourself', text: () => 'Click <b>Practice</b>.\nThe answers hide and you do the reading.\nSlip up? That’s normal. It shows you why, and that’s how it sticks.\nYou can run <b>How do I use it?</b> again any time.' + NL_REAL };
   // the jaws or rod close on the part by hand: which way to roll the thumb wheel depends on the part
   const wheelWay = () => { const h = val('fH'); return /open/.test(h) ? ['right', 'open the jaws'] : /extend/.test(h) ? ['right', 'run the depth rod out'] : ['left', 'close the jaws']; };
-  const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', dir: () => wheelWay()[0], drag: true,
+  const BY_HAND_CAL = { spot: 'Thumb wheel', box: [300, 200], view: 'iso', title: 'Close it on the part by hand', byHand: true, dir: () => wheelWay()[0], drag: true,
     text: () => `The part’s in place.\nWatch the hand. Press on the thumb wheel where the ring pulses.\nHold the button and drag ${wheelWay()[0]} along the arrow to ${wheelWay()[1]} until they touch the part.\nHold <b>Shift</b> to ease it in gently.`,
     waitFor: () => touching[tool]() };
 
@@ -144,28 +145,42 @@
   // "Show me how" for "Not on 0?": the bezel is turned by its own slider, so the face turns round until the needle is on 0.
   // With the dial already on 0 it is turned off a little first, so there is something to put right.
   let howJob = 0;
-  const showBezel = () => {
+  // The arrow that shows which way to turn the bezel, drawn round the dial on the screen (clockwise or counterclockwise) with how much to turn it.
+  let bezArrow = null;
+  const hideBezArrow = () => { if (bezArrow){ bezArrow.remove(); bezArrow = null; } };
+  const showBezArrow = (cw, text) => {
+    hideBezArrow();
+    const dd = window.__guideDial && window.__guideDial(), sp = dd || (window.__guideSpot && window.__guideSpot('dial')), v = $('view'), vr = v && v.getBoundingClientRect(); if (!sp || !vr || !root) return;
+    const r = dd ? Math.max(40, Math.min(dd.r * 0.8, 150)) : Math.max(46, Math.min(vr.width, vr.height) * 0.13);
+    bezArrow = document.createElement('div'); bezArrow.className = 'gd-bezarrow'; bezArrow.setAttribute('aria-hidden', 'true');
+    bezArrow.style.cssText = 'position:fixed;z-index:2147482000;pointer-events:none;left:' + (sp.x - r - 6) + 'px;top:' + (sp.y - r - 6) + 'px;width:' + (2*r + 12) + 'px;height:' + (2*r + 12) + 'px';
+    const c = r + 6, a0 = -2.2, a1 = 0.9, ex = c + r*Math.cos(a1), ey = c + r*Math.sin(a1), tx = -Math.sin(a1), ty = Math.cos(a1);   // (an arc that runs clockwise on screen, its head at the end)
+    bezArrow.innerHTML = '<svg width="100%" height="100%" viewBox="0 0 ' + (2*c) + ' ' + (2*c) + '" style="overflow:visible;' + (cw ? '' : 'transform:scaleX(-1)') + '"><path d="M' + (c + r*Math.cos(a0)) + ' ' + (c + r*Math.sin(a0)) + ' A' + r + ' ' + r + ' 0 0 1 ' + ex + ' ' + ey + '" fill="none" stroke="#5fcf8a" stroke-width="5" stroke-linecap="round" opacity=".95"/><polygon points="' + (ex + tx*12) + ',' + (ey + ty*12) + ' ' + (ex - ty*9 - tx*4) + ',' + (ey + tx*9 - ty*4) + ' ' + (ex + ty*9 - tx*4) + ',' + (ey - tx*9 - ty*4) + '" fill="#5fcf8a"/></svg>'
+      + '<span style="position:absolute;left:50%;top:100%;transform:translate(-50%,6px);white-space:nowrap;padding:3px 9px;border-radius:999px;background:#14301f;color:#9be8b6;font:600 12px/1.3 system-ui,sans-serif;border:1px solid #2f7a4d">' + text + '</span>';
+    root.appendChild(bezArrow);
+  };
+  // "Show me how" for the dial: it looks at the dial, says which way to turn the bezel and how far (an arrow round the dial says it too), and then
+  // really turns it, by its own slider, until the needle is on 0. With the dial already on 0 it is turned off a little first, so there is something to put right.
+  const guidedBezel = (turnTo) => {
     const rng = $('bezelRange'); if (!rng) return;
     if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click();   // (a locked bezel won't turn)
     const job = ++howJob, nav = navId, alive = () => root && navId === nav && howJob === job;
-    const turn = (to, ms) => new Promise(done => {
-      const from = +rng.value, t0 = performance.now();
-      const f = now => {
-        if (!alive()) return done(false);
-        const k = Math.min(1, (now - t0) / ms), e = k < .5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-        rng.value = Math.round(from + (to - from) * e); rng.dispatchEvent(new Event('input', { bubbles: true }));
-        k < 1 ? requestAnimationFrame(f) : done(true);
-      };
-      requestAnimationFrame(f);
-    });
     const doEl = card.querySelector('.gd-do'), say = t => { doEl.hidden = false; doEl.querySelector('span').textContent = t; };
+    const wait = ms => new Promise(r => setTimeout(r, ms));
     (async () => {
-      if (+rng.value === 0){ say('Say it reads a little off…'); if (!await turn(18, 900)) return; await new Promise(r => setTimeout(r, 700)); if (!alive()) return; }
-      say('Turn the bezel until the needle is on 0.');
-      if (!await turn(0, 1400)) return;
-      say('There. Dead on 0, and good to go.');
+      const dv = document.querySelector('#view [data-view="dial"]'); if (dv) dv.click();   // the camera comes in on the dial
+      await wait(900); if (!alive()) return;
+      if (+rng.value === 0){ say('Let’s nudge it off a little, the way a real one can drift…'); if (!await turnTo(6, 900, alive)) return; await wait(500); if (!alive()) return; }
+      const v = +rng.value, n = Math.abs(v), cw = v > 0;   // (a positive offset has turned the face counterclockwise, so putting it right is clockwise)
+      const mark = n === 1 ? '1 mark' : n + ' marks';
+      say('The needle is ' + mark + ' ' + (cw ? 'past' : 'short of') + ' 0. Turning the bezel ' + (cw ? 'clockwise' : 'counterclockwise') + ' by ' + mark + ' puts it right.');
+      showBezArrow(cw, (cw ? 'Clockwise' : 'Counterclockwise') + ' · ' + mark);
+      await wait(1800); if (!alive()) return;
+      if (!await turnTo(0, 2000, alive)) return;
+      say('There. The needle is on 0 now, and good to go.'); await wait(1400); if (alive()) hideBezArrow();
     })();
   };
+  const showBezel = () => { guidedBezel((to, ms, alive) => turnBezel(to, ms, alive)); };
 
   // "Turn the bezel to zero": with the jaws closed the needle must read exactly 0, so the person turns the bezel (its slider) until it does,
   // or presses "Zero the bezel" and watches the face turn round by itself. If the bezel happens to be on 0 already, it is turned off a
@@ -183,15 +198,7 @@
     requestAnimationFrame(f);
   });
   const unlockBezel = () => { if ($('bezelLockBtn') && $('bezelLockBtn').getAttribute('aria-pressed') === 'true') $('bezelLockBtn').click(); };   // (a locked bezel won't turn)
-  const zeroBezel = () => {
-    const rng = $('bezelRange'); if (!rng) return;
-    unlockBezel();
-    const job = ++howJob, nav = navId, alive = () => root && navId === nav && howJob === job;
-    const doEl = card.querySelector('.gd-do'), say = t => { doEl.hidden = false; doEl.querySelector('span').textContent = t; };
-    if (+rng.value === 0){ say('Already dead on 0.'); return; }
-    say('Turning the bezel until the needle is on 0…');
-    turnBezel(0, 1200, alive).then(ok => { if (ok) say('There. Dead on 0, and good to go.'); });
-  };
+  const zeroBezel = () => { if (+($('bezelRange') || {}).value === 0){ const doEl = card.querySelector('.gd-do'); doEl.hidden = false; doEl.querySelector('span').textContent = 'Already dead on 0.'; return; } guidedBezel((to, ms, alive) => turnBezel(to, ms, alive)); };
   const BEZEL = { target: '#bezelRange', view: 'dial', title: 'Turn the bezel to zero', howLabel: 'Zero the bezel', how: zeroBezel,
     enter: s => { s.stage = 0; s.nudged = false; s.asked = false; },
     text: s => 'The jaws are closed, so the needle has to read exactly 0.\n'
@@ -277,7 +284,7 @@
       { target: '#view', view: 'iso', hands: true, next: 'Next', title: 'How to hold it', text: () => window.__guideHandsOption && window.__guideHandsOption() === 2
         ? 'Hold the micrometer in your right hand.\nThe frame rests in your palm, and your other fingers wrap round it.\nYour thumb and first finger reach up to the <b>ratchet</b>.\nHold the part in your left hand, between the faces.\nKeep it quick and light: warm hands make the steel grow.'
         : 'Rest the frame in your left palm, with your fingers curled round the back of it.\nTurn the <b>ratchet</b> with the thumb, first finger and middle finger of your right hand.\nTuck the other two fingers into your palm.\nUse the ratchet, not the thimble: it clicks when the pressure is right.\nKeep it quick and light: warm hands make the steel grow.' },
-      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Close it on the part by hand',
+      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, byHand: true, title: 'Close it on the part by hand',
         text: 'The part slides in between the anvil and spindle for you.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nClose the spindle on the part until the ratchet clicks.\nThat click is the right feel.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'a', view: 'scale', hl: 'num', flat: 'the sleeve number', title: 'Read the sleeve number', text: () => 'The camera’s on the sleeve now.\nLook for the last number the thimble has uncovered.\nEach number is a hundred thou (0.100″).' + now('vA') },
@@ -299,7 +306,7 @@
       { target: '#reading .bd', title: 'Zero all the way round', text: () => 'Every card reads zero as well.' + now('vT', 'The reading is') + '\nThat’s a tool you can trust.\nNow you’re ready to measure.' },
       PART('section:has(#sampleSel) .dd, #sampleSel'),
       CLEAN_PART(),
-      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, title: 'Run the rod down by hand',
+      Object.assign({ spot: 'Ratchet stop', box: [280, 220], view: 'iso', arrow3d: true, drag: true, byHand: true, title: 'Run the rod down by hand',
         text: 'The part slides under the base, and the base sits down on it.\nNow watch the hand. Press on the ratchet stop where the ring pulses.\nHold the button and circle the way the arrow goes.\nRun the rod down until it lands on the floor and the ratchet clicks.' }, offThenOn()),
       LOOK('micrometer'),
       { spot: 'nextNum', view: 'scale', flat: 'the first number showing below the thimble', title: 'Find the first number you can see', text: () => {
@@ -336,7 +343,13 @@
       ]),
       PART('section:has(#partSel) .dd, #partSel'),
       CLEAN_PART(),
-      Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', drag: true, title: 'Bring the scriber down by hand',
+      { spot: 'Slider clamp', box: [200, 150], view: 'iso', next: 'Next', phase: 'prep', title: 'Meet the clamps',
+        text: () => 'The knurled screw on the slider’s side is the <b>slider clamp</b>. Loose, the slider glides along the beam. Tight, it stays exactly where you left it.\nThe one above it, on the fine-feed unit, is the <b>fine-feed clamp</b>. It locks that unit to the beam.\nTurn a clamp clockwise to tighten it and counterclockwise to loosen it. A tight clamp turns <b>red</b> on the screen.\nBoth should be loose to move the slider freely.' },
+      { spot: 'Fine-feed nut', box: [200, 150], view: 'iso', next: 'Next', phase: 'prep', title: 'Meet the fine-feed nut',
+        text: () => 'The round nut on top is the <b>fine-feed nut</b>. It is for the last little bit of the way.\nFirst tighten the fine-feed clamp and make sure the slider clamp is loose. Then every turn of the nut walks the slider ' + (u === 'mm' ? '0.5 mm' : '0.020″') + ' up or down, slowly and steadily.\nClockwise walks the slider down, counterclockwise walks it up.\nNothing about the nut is rushed. Small, smooth turns are what it likes.' },
+      { spot: 'Slider', box: [240, 200], view: 'iso', next: 'Next', phase: 'prep', title: 'Moving the slider',
+        text: () => 'Loosen both clamps, then hold the slider by its body, not by the scriber or a clamp.\nSlide it along the beam in one smooth motion, keeping the base flat on the plate.\nStop a little short of the part. Closing the last bit with a rush is how a scriber gets bumped.\nThen tighten the fine-feed clamp and creep up on the part with the nut.\nWhen the reading is where you want it, tighten the slider clamp so it can’t drift.' },
+      Object.assign({ spot: 'Slider', box: [260, 240], view: 'iso', refit: true, dir: 'y', drag: true, byHand: true, title: 'Bring the scriber down by hand',
         text: 'The part slides under the scriber for you.\nNow watch the hand. Press on the slider where the ring pulses.\nHold the button and drag down the beam along the arrow.\nStop when the scriber rests on the part’s face.' }, offThenOn()),
       LOOK('height gage'),
       // the card sits on the other scale's side of the beam: on the inch side while millimeters are read, and on
@@ -495,7 +508,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   document.head.appendChild(css);
 
   /* ---------- the overlay ---------- */
-  let root = null, hole, dim, svg, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '';
+  let dragged = 0, root = null, hole, dim, svg, card, stepI = 0, timer = 0, waitDone = false, clickOff = null, saved = null, lastText = '';
   // the hand that shows a drag: its path, the moving hand, and its label (see showDrag)
   let dragSvg = null, dragEls = null, hand = null, dragLbl = null, pressing = false, lastDragKey = '', lastLbl = '';
   let lastR = null, lastSide = -1, lastCard = null, lastSvg = '', arrowPath = null, arrowHead = null, cardW = 0, cardH = 0;
@@ -706,7 +719,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     });
     document.addEventListener('hands-visibility', () => { if (root) syncHands(); });   // (the toolbar button changes it too)
     card.querySelector('.gd-opts').addEventListener('click', e => { const b = e.target.closest('button[data-opt]'); if (b && window.__guideHandsSetOption){ window.__guideHandsSetOption(+b.dataset.opt); syncHands(); } });
-    card.querySelector('.gd-next').addEventListener('click', () => stepI >= STEPS.length - 1 ? stop() : advance());
+    card.querySelector('.gd-next').addEventListener('click', () => { if (stepI >= STEPS.length - 1) stop(); else { markSkip(); advance(); } });
     document.body.appendChild(root);
     b.classList.add('guiding');
     window.addEventListener('keydown', onKey, true);
@@ -720,6 +733,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     const follow = () => { if (!root) return; place(); requestAnimationFrame(follow); };
     requestAnimationFrame(follow);
     if (root.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+    STEPS.forEach(x => { x.skipped = false; x.settled = false; });
     go(0);
   }
   function stop(){
@@ -732,7 +746,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     window.removeEventListener('pointermove', onMove, true);
     window.removeEventListener('pointerup', onRelease, true);
     window.removeEventListener('pointercancel', onRelease, true);
-    const gone = root; root = null; navId++;
+    hideBezArrow(); const gone = root; root = null; navId++;
     dodgeFlat(null);
     const fl = $('flat');
     if ($('flatMaxBtn') && flatIsMax() !== flatMax0) $('flatMaxBtn').click();   // back to the size it had
@@ -763,7 +777,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   }
   // a drag across the 3D view counts for "Look around": the first press arms it, a drag of just 10 px lets it go on
   function onMove(e){ if (pressing && !pressing.far && Math.hypot(e.clientX - pressing.x, e.clientY - pressing.y) > 10) pressing.far = true; }
-  function onRelease(){ if (pressing && pressing.view && pressing.far) looked = 1; pressing = false; }
+  function onRelease(){ if (pressing && pressing.view && pressing.far) looked = 1; if (pressing && pressing.far) dragged++; pressing = false; }
   function onKey(e){
     if (e.key === 'Escape'){ e.preventDefault(); e.stopPropagation(); stop(); }
   }
@@ -779,7 +793,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     stepI = i; navId++;
     const s = STEPS[i];
     if (clickOff) { clickOff(); clickOff = null; }
-    waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
+    hideBezArrow(); waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
     if (/^Zero on /.test(s.title)) ensureClosed();   // (a person who skipped ahead early would otherwise find the tool still open, and every "zero" reading wrong)
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
@@ -792,12 +806,12 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!s.spot) reveal(t);
     // a flat-view step brings the flat view out (opened, grown or scrolled to), and it goes back when the walkthrough ends
     if (s.flatStep) showFlat();
-    card.querySelector('h4').textContent = s.title;
+    card.querySelector('h4').textContent = friendly(s.title); card.querySelector('h4').dataset.step = s.title;
     card.querySelector('.gd-count').textContent = `Step ${i + 1} of ${STEPS.length}`;
     if (window.__gdRich){ window.__gdRich.paint(root, card, STEPS, i, tool); window.__gdRich.paper(card, !!s.paper && !s.paper3d, tool); }   // the phase, its color, the progress bar, the cleaning picture
     card.querySelector('.gd-back').disabled = i === 0;
     const next = card.querySelector('.gd-next');
-    next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip' : 'Next');
+    next.textContent = i === STEPS.length - 1 ? 'Finish' : s.next || (s.waitClick || s.waitFor ? 'Skip for now' : 'Next');
     next.hidden = !!s.choose;
     const ch = card.querySelector('.gd-choose');
     ch.hidden = !s.choose;
@@ -827,13 +841,37 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   }
   // a part is picked: the tool puts it in place by itself (the person brings the tool to it by hand), and on we go
   function partChosen(){
-    STEPS[stepI].done = true; waitDone = true;
+    STEPS[stepI].done = true; STEPS[stepI].skipped = false; waitDone = true;
     if (window.__guidePlacePart) setTimeout(() => { try { window.__guidePlacePart(); } catch (e) {} }, 150);
     const doEl = card.querySelector('.gd-do'); doEl.hidden = false;
     doEl.querySelector('span').textContent = 'Nice! On to the next step…';
     const id = navId; setTimeout(() => { if (root && navId === id) advance(); }, 500);
   }
   // an automatic "on to the next step": always forward, never back to a step that is done
+  // The skip tracker: a step that asks for something to be done (a drag, a click, a part) and is moved past with Skip is marked, the bar shows
+  // it, and the steps after it say so and carry on from where the tool really is. A by-hand step that is skipped is done for the person, so
+  // the readings that follow still have the tool on the part.
+  // How a step's name is worded on the card: warm and unhurried. (The plain name stays on the card as data-step, for anything that looks a step up.)
+  const FRIENDLY = { 'Add them up': 'Let’s add it all up', 'Bring the scriber down by hand': 'Gently bring the scriber down', 'Check its range': 'Take a quick look at its range',
+    'Clean the part too': 'A little wipe for the part, too', 'Close it on the part by hand': 'Gently close it on the part', 'Run the rod down by hand': 'Gently run the rod down',
+    'First, clean and check zero': 'First, a little clean and a zero check', 'How to hold it': 'A comfortable way to hold it', 'Inches or millimeters?': 'Which would you like: inches or millimeters?',
+    'Look around': 'Take a little look around', 'Moving the slider': 'Moving the slider, gently', 'Now try one yourself': 'Now, when you’re ready, try one', 'Pick a part': 'Pick a part whenever you like',
+    'Turn the bezel to zero': 'Let’s turn the bezel to zero', 'Zero all the way round': 'Zero, all the way round' };
+  const friendly = t => FRIENDLY[t] || t.replace(/^Count /, 'Let’s count ').replace(/^Find /, 'Let’s find ').replace(/^Read /, 'Let’s read ').replace(/^Zero on /, 'Checking the zero on ');
+  // a few blunt phrases, said more gently
+  const SOFT = [['Now watch the hand.', 'Take a moment to watch the hand.'], ['Stop when', 'Ease off when'], ['Hold the button and', 'Gently hold the button and'], ['Press on the', 'Gently press on the']];
+  const soften = t => SOFT.reduce((x, [a, b]) => x.split(a).join(b), String(t));
+  const SETTLE = { dial: 'closeBtn', vern: 'closeBtn', mic: 'closeBtn', depth: 'ratchetBtn', height: 'lowerBtn' };
+  function markSkip(){
+    const s = STEPS[stepI];
+    if (waitDone || s.done || !(s.waitFor || s.waitClick || s.part || (s.drag && s.drag !== 'look'))) return;
+    s.skipped = true;
+    if (s.byHand && !touching[tool]()){ const b = $(SETTLE[tool]); if (b && !b.disabled){ b.click(); s.settled = true; } }
+  }
+  function skipNote(){
+    const run = []; for (let k = stepI - 1; k >= 0 && STEPS[k].skipped; k--) run.unshift(STEPS[k]);
+    return run.map(x => x.skipSay ? fn(x.skipSay, x) : x.settled ? 'You skipped “' + friendly(x.title) + '”, so I did it for you.' : 'You skipped “' + friendly(x.title) + '”, so we carry on from where the tool is now.').join('\n') + (run.length ? '\n' : '');
+  }
   function advance(){
     let j = stepI + 1;
     while (j < STEPS.length - 1 && STEPS[j].part && STEPS[j].done) j++;
@@ -842,7 +880,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
   function tick(){
     if (!root) return;
     const s = STEPS[stepI];
-    const text = fn(s.text, s);
+    const text = soften(skipNote() + fn(s.text, s));
     if (text !== lastText){
       card.querySelector('p').innerHTML = window.__gdRich ? window.__gdRich.lines(String(text)) : String(text).split('\n').map(l => '<span class="gd-l">' + l + '</span>').join('');
       if (window.__gdRich) window.__gdRich.shortcuts(card, tool, text);
@@ -851,7 +889,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     syncMax();
     if (s.refit && window.__guideRefit) window.__guideRefit();
     if (s.waitFor && !waitDone && s.waitFor(s)){
-      waitDone = true; s.done = true;
+      waitDone = true; s.done = true; s.skipped = false;
       card.querySelector('.gd-do span').textContent = 'Nice! On to the next step…';
       const id = navId; setTimeout(() => { if (root && navId === id) advance(); }, 900);
     }
