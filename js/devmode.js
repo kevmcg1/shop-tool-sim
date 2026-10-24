@@ -844,6 +844,7 @@
         const bad = pads.filter(q => !(Math.abs(Math.abs(q.a) - Math.PI) < 1e-9 || Math.abs(q.a) < 1e-9) || q.y + q.h/2 > 0.08 || q.y - q.h/2 < D.cy);
         if (bad.length) c.fail(name + ': a pad is tilted or runs off the straight wall'); else if (want) c.ok(name + ': the ' + want + ' pad' + (want > 1 ? 's sit' : ' sits') + ' upright on the straight wall' + (want > 1 ? 's' : ''));
       }
+      const fv = w.document.querySelector('[data-view="front"]'); if (fv){ fv.click(); await sleep(3500); }   // (a straight-on view: a drag along the barrel moves the knob in a line, the same on every frame)
       click('openQuick'); await sleep(1500);
       for (const kind of ['ratchet', 'thimble']){
         const pt = w.__micGrab && w.__micGrab(kind); if (!pt){ c.fail(name + ': the ' + kind + ' cannot be found on screen'); continue; }
