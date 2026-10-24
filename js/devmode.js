@@ -831,7 +831,7 @@
   FLOWS.micrometer.push({ name: 'Every frame: the pads sit upright on the straight walls, the thimble and ratchet turn, and it closes to the frame size', win: 'tool', async run(c){
     const w = c.w, C = w.eval('typeof CORE === "undefined" ? null : CORE'); if (!C){ c.fail('the micrometer physics could not be reached'); return; }
     const lcd = () => parseFloat(w.document.getElementById('lcd').textContent), click = id => w.document.getElementById(id).click();
-    const fire = (type, pt) => w.document.querySelector('canvas').dispatchEvent(new w.PointerEvent(type, { clientX: pt.x, clientY: pt.y, pointerId: 9, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
+    const fire = (type, pt) => (w.document.elementFromPoint(pt.x, pt.y) || w.document.querySelector('canvas')).dispatchEvent(new w.PointerEvent(type, { clientX: pt.x, clientY: pt.y, pointerId: 9, pointerType: 'mouse', isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, bubbles: true, cancelable: true }));
     const drag = async (pt, dy) => { fire('pointerdown', pt); for (let k = 1; k <= 12; k++){ fire('pointermove', { x: pt.x, y: pt.y + dy*k*5 }); await sleep(30); } fire('pointerup', { x: pt.x, y: pt.y + dy*60 }); await sleep(400); };
     for (let B = 0; B < 6 && !run.stop; B++){
       const D = C.dims(B), name = B + '–' + (B + 1) + '″ frame';
