@@ -35,8 +35,15 @@ body.practice .howread.hr-main{display:none}
 .hrx-say{margin-top:3px;font-size:19px;font-weight:650;line-height:1.3;color:#cfe0ff}
 .hrx-say:before{content:"\\201C"}.hrx-say:after{content:"\\201D"}
 .hrx-full{margin-top:3px;font-size:13px;line-height:1.45;color:#b4bbc8}
-.hrx-note{margin:6px 0 0;padding:9px 11px;border-radius:9px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.5;color:#b4bbc8}
-.hrx-note b{color:#e6e9ef}
+.hrx-terms{margin:6px 0 0;display:grid;gap:6px}
+.hrx-t{padding:8px 11px;border-radius:9px;background:rgba(255,255,255,.05)}
+.hrx-th{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hrx-t dt{font-size:13px;font-weight:700;color:#e6e9ef}
+.hrx-t dd{margin:0}
+.hrx-tv{padding:1px 8px;border-radius:999px;background:rgba(120,160,255,.14);color:#cfe0ff;font:600 11.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.hrx-td{margin-top:3px!important;font-size:12px;line-height:1.5;color:#b4bbc8}
+.hrx-tips{margin:6px 0 0;padding:0;list-style:none;display:grid;gap:5px}
+.hrx-tips li{padding:1px 0 1px 10px;border-left:2px solid rgba(120,160,255,.45);font-size:12px;line-height:1.5;color:#b4bbc8}
 .hrx-empty{padding:16px 0 6px;font-size:13px;line-height:1.55;color:#b4bbc8}
 @media (prefers-reduced-motion: reduce){.hrx,.hrx.on,.hrx-card,.hrx.on .hrx-card,.howread{transition:none;transform:none}}`;
   document.head.appendChild(css);
@@ -102,11 +109,12 @@ body.practice .howread.hr-main{display:none}
     else if (!whole) full = 'zero inches';
     else full += '';
     const v = parseFloat(str), fr = isFinite(v) ? fractionName(Math.abs(v), d) : null;
-    const notes = [];
-    if (d >= 4 || t) notes.push('<b>Thou</b> is a thousandth of an inch (0.001″). <b>A tenth</b> is a ten-thousandth, 0.0001″: a tenth of a thou. The mic’s thimble reads in tenths.');
-    else notes.push('<b>Thou</b> is a thousandth of an inch (0.001″). Say the thou as a whole number: 0.250 is “two hundred fifty thou”.');
-    if (extra) notes.push('Digits past the fourth decimal are too fine to say in the shop.');
-    return { shop: neg + shop, full: neg + full, also: fr, notes };
+    // what the words mean, one row each, then the tips
+    const terms = [['Thou', '0.001″', 'a thousandth of an inch.']], tips = [];
+    if (d >= 4 || t) terms.push(['A tenth', '0.0001″', 'a ten-thousandth: a tenth of a thou. The mic’s thimble reads in tenths.']);
+    else tips.push('Say the thou as a whole number: 0.250 is “two hundred fifty thou”.');
+    if (extra) tips.push('Digits past the fourth decimal are too fine to say in the shop.');
+    return { shop: neg + shop, full: neg + full, also: fr, terms, tips };
   }
   // Said in full, like the inch ones: millimeters, then hundredths, then microns (thousandths of a millimeter).
   // 13.645 is "thirteen millimeters, sixty-four hundredths and five microns"; 0.37 is "thirty-seven hundredths of a millimeter";
@@ -127,11 +135,15 @@ body.practice .howread.hr-main{display:none}
       const fullRest = hundTxt ? hundTxt + (mic ? ' and ' + words(mic) + (mic === 1 ? ' thousandth' : ' thousandths') : '') : words(mic) + (mic === 1 ? ' thousandth' : ' thousandths');
       full = (mmTxt ? mmTxt + ' and ' : '') + fullRest + (whole ? '' : ' of a millimeter');
     }
-    const notes = [];
-    notes.push('<b>A hundredth</b> is 0.01 mm (10 microns): the smallest step on a metric caliper or the thimble of a metric mic. <b>A micron</b> is 0.001 mm.');
-    if (mic) notes.push('Say the last digit in microns: 0.005 mm is “five microns”.');
-    if (extra) notes.push('Digits past the third decimal are too fine to say in the shop.');
-    return { shop: neg + shop, full: neg + full, also: null, notes };
+    // what the words mean, one row each (only the ones used above), then the tips
+    const terms = [], tips = [];
+    if (n2 % 10 === 0 && n2) terms.push(['A tenth', '0.1 mm', 'ten hundredths: 0.60 mm is “six tenths”.']);
+    if (n2 && n2 % 10) terms.push(['A hundredth', '0.01 mm', '10 microns. The smallest step on a metric caliper or on the thimble of a metric mic.']);
+    if (mic) terms.push(['A micron', '0.001 mm', 'a thousandth of a millimeter.']);
+    if (!terms.length) terms.push(['A hundredth', '0.01 mm', '10 microns. The smallest step on a metric caliper or on the thimble of a metric mic.'], ['A micron', '0.001 mm', 'a thousandth of a millimeter.']);
+    if (mic) tips.push('Say the last digit in microns: 0.005 mm is “five microns”.');
+    if (extra) tips.push('Digits past the third decimal are too fine to say in the shop.');
+    return { shop: neg + shop, full: neg + full, also: null, terms, tips };
   }
 
   /* ---------- reading the page ---------- */
@@ -191,7 +203,8 @@ body.practice .howread.hr-main{display:none}
         '<div class="hrx-l">Say it like this</div><div class="hrx-say">' + esc(cap1(s.shop)) + '</div>' +
         '<div class="hrx-l">Word for word</div><div class="hrx-full">' + esc(cap1(s.full)) + '</div>' +
         (s.also ? '<div class="hrx-l">Also called</div><div class="hrx-full">' + esc(s.also) + '</div>' : '') +
-        s.notes.map(n => '<p class="hrx-note">' + n + '</p>').join('') + '</div>';
+        '<div class="hrx-l">Words to know</div><dl class="hrx-terms">' + s.terms.map(t => '<div class="hrx-t"><div class="hrx-th"><dt>' + esc(t[0]) + '</dt><dd class="hrx-tv">' + esc(t[1]) + '</dd></div><dd class="hrx-td">' + esc(cap1(t[2])) + '</dd></div>').join('') + '</dl>' +
+        (s.tips.length ? '<div class="hrx-l">Good to know</div><ul class="hrx-tips">' + s.tips.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' : '') + '</div>';
     }).join('');
   }
   function open(src, from) {
