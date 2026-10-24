@@ -1878,7 +1878,7 @@ function updateUI() {
   let fk = 'Measuring', fv = 'No part', fh = 'choose one in the sidebar', col = '';
   if (def) {
     col = TOOL[def.tool].c; fk = TOOL[def.tool].name;
-    fv = `${def.label} ${def.what}`;
+    fv = sample.type === 'tgauge' ? 'Telescopic gage locked' : `${def.label} ${def.what}`;   // (short, so the tile never cuts it off)
     fh = contact ? (def.tool === 'depth' ? 'rod on the bottom' : 'jaws touching') : (def.tool === 'od' ? 'close the jaws' : def.tool === 'id' ? 'open the jaws' : 'extend the rod');
   }
   if (col) fc.style.setProperty('--c', col); else fc.style.removeProperty('--c');
