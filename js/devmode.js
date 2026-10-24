@@ -91,7 +91,8 @@
   function discover(w){
     const d = w.document, list = [], count = {};
     const key = (base, kind) => { const k = kind + ':' + base; count[k] = (count[k] || 0) + 1; return count[k] > 1 ? k + '#' + count[k] : k; };
-    const skip = el => el.closest('.holo, .gd, .dev') || (el.matches('a[href]') && !el.classList.contains('tab')) ||   // (the page's own tabs are in; links that leave the site are not) el.disabled || !visible(el) || (el.id && /^(logoMark)$/.test(el.id));
+    const skip = el => el.closest('.holo, .gd, .dev') || (el.matches('a[href]') && !el.classList.contains('tab')) ||   // (the page's own tabs are in; links that leave the site are not)
+      el.disabled || !visible(el) || (el.id && /^(logoMark)$/.test(el.id));
     d.querySelectorAll('button, [role=tab], a.tab, input[type=checkbox], input[type=radio]').forEach(el => {
       if (skip(el)) return; if (el.closest('.dd-list')) return;
       const kind = el.tagName === 'INPUT' ? 'toggle' : 'click', base = labelOf(el);
@@ -707,6 +708,135 @@
   ['caliper', 'vernier', 'micrometer', 'depth', 'height'].forEach(id => { FLOWS[id] = [MOUSE_FLOW]; });
   FLOWS.telescopic.push(MOUSE_FLOW);
 
+  /* ---------------- practice, the walkthrough and the embeds, in every tool that has them ---------------- */
+  const pressKey = (w, k, o) => { const e = new w.KeyboardEvent('keydown', Object.assign({ key: k, code: k, bubbles: true, cancelable: true }, o || {})); (w.document.activeElement || w.document.body).dispatchEvent(e); };
+  const num = t => { const m = /(\d+\.\d+)/.exec(String(t || '')); return m ? parseFloat(m[1]) : NaN; };
+  const hasNote = w => !!w.document.querySelector('.cheat-veil');
+  const gdText = w => { const k = w.document.querySelector('.gd-card'); return k ? k.innerText.replace(/\s+/g, ' ') : ''; };
+  const gdTitle = w => { const h = w.document.querySelector('.gd-card h4'); return h ? h.textContent : ''; };
+  const gdNext = w => { const n = w.document.querySelector('.gd-next'); if (!n || n.hidden) return false; const last = /Finish/.test(n.textContent); n.click(); return !last; };
+  const pickPart = async w => { const l = w.document.getElementById('sampleSel') || w.document.getElementById('partSel'); if (!l) return; const o = [...l.options].find(x => x.value !== 'none'); if (o){ l.value = o.value; l.dispatchEvent(new w.Event('change')); await sleep(1800); } };
+  // walks the whole walkthrough, calling `look` on every step
+  async function walkGuide(c, look){
+    const w = c.w, b = w.document.getElementById('guideBtn'); if (!b){ c.fail('the How do I use it? button is missing'); return false; }
+    b.click(); await sleep(900);
+    const ch = w.document.querySelector('.gd-choose button'); if (ch){ ch.click(); await sleep(700); }
+    for (let k = 0; k < 70; k++){
+      const t = gdTitle(w); w.__devTitles = (w.__devTitles || []).concat(t);
+      if (t === 'Pick a part'){ await pickPart(w); await sleep(900); if (gdTitle(w) !== t) continue; } else await look(t, k);   // (picking a part moves the card on by itself)
+      const pick = w.document.querySelector('.gd-choose:not([hidden]) button'); if (pick){ pick.click(); await sleep(500); }
+      await sleep(250); if (!gdNext(w)) break; await sleep(650);
+    }
+    const x = w.document.querySelector('.gd-x'); if (x) x.click(); await sleep(400); return true;
+  }
+  const practiceFlows = [
+    { name: 'Practice: the “I see you!” note comes up for the inspector shortcuts, only while practising', win: 'tool', async run(c){
+      const w = c.w, ps = w.document.getElementById('practiceBtn');
+      pressKey(w, 'F12'); await sleep(400); if (hasNote(w)) c.fail('the note came up although nobody is practising'); else c.ok('no note outside practice');
+      if (!ps){ c.fail('there is no Practice button'); return; }
+      if (!w.__inPractice()) ps.click(); await sleep(900);
+      if (!w.__inPractice()){ c.fail('Practice did not start'); return; }
+      for (const [label, k, o] of [['F12', 'F12'], ['Ctrl+Shift+I', 'KeyI', { ctrlKey: true, shiftKey: true }], ['Ctrl+Shift+J', 'KeyJ', { ctrlKey: true, shiftKey: true }], ['Ctrl+Shift+C', 'KeyC', { ctrlKey: true, shiftKey: true }], ['Ctrl+U', 'KeyU', { ctrlKey: true }], ['Cmd+Option+I', 'KeyI', { metaKey: true, altKey: true }]]){
+        pressKey(w, k === 'F12' ? 'F12' : k, o); await sleep(450);
+        const card = w.document.querySelector('.cheat-card');
+        if (!card) c.fail(label + ' did not bring up the note'); else if (!/I see you!/.test(card.textContent) || !/Please don.t cheat, I know you can get it right!/.test(card.textContent)) c.fail(label + ': the note has the wrong words'); else c.ok(label + ' brings up the note');
+        pressKey(w, 'Escape'); await sleep(450); if (hasNote(w)) c.fail('Escape did not close the note'); await sleep(1300);
+      }
+      pressKey(w, 'KeyI'); await sleep(300); if (hasNote(w)) c.fail('a plain I key brought up the note'); else c.ok('a plain key does not');
+      ps.click(); await sleep(700);
+    } },
+    { name: 'Practice: the feedback counts every section, tracks the slips and never hands over the answer', win: 'tool', async run(c){
+      const w = c.w, d = w.document, ps = d.getElementById('practiceBtn'); if (!ps){ c.fail('there is no Practice button'); return; }
+      if (!w.__inPractice()) ps.click(); await sleep(900);
+      let sawTracker = 0;
+      for (let k = 0; k < 3; k++){
+        const g = d.getElementById('guess'); g.value = ['0', '0', '0.5'][k]; g.dispatchEvent(new w.Event('input', { bubbles: true }));
+        d.getElementById('checkBtn').click(); await sleep(900);
+        const fbx = d.getElementById('feedback') || d.getElementById('pfb') || d.body, hero = fbx.querySelector('.fx-hero'), trk = fbx.querySelector('.fx-track');
+        if (!hero){ c.fail('no feedback after a wrong answer'); continue; }
+        const head = hero.querySelector('h4').textContent, sub = hero.querySelector('p').textContent;
+        const m = /(\d+) of (\d+) section/.exec(sub);
+        if (!m && !/Just one/.test(head) && !/One|only one|1 of/.test(sub)) c.fail('the feedback does not say how many sections were right: “' + sub + '”');
+        if (trk){ sawTracker++; const bad = trk.querySelectorAll('.fx-tk.bad').length, good = trk.querySelectorAll('.fx-tk.good').length;
+          if (/Just one (piece|extra)/.test(head) && bad !== 1) c.fail('“' + head + '” although ' + bad + ' sections were wrong');
+          if (m && (+m[1] !== good)) c.fail('says ' + m[1] + ' right but the tracker shows ' + good);
+          if (/left out/.test(fbx.innerText) && /You did everything else right/.test(fbx.innerText) && bad > 1) c.fail('“You did everything else right” although ' + bad + ' sections were wrong'); }
+        // the example in the Go to box stays well away from the answer
+        const ans = num((fbx.querySelector('.fx-num.ans b') || {}).textContent), ph = num((d.getElementById('setTo') || {}).placeholder);
+        if (!isNaN(ans) && !isNaN(ph) && Math.abs(ans - ph) < 0.05 * (/mm/.test((d.getElementById('setTo') || {}).placeholder) ? 25.4 : 1)) c.fail('the Go to example (' + ph + ') is almost the answer (' + ans + ')');
+        const nx = [...d.querySelectorAll('button')].find(x => /^\s*Next/.test(x.textContent) && x.offsetParent); if (nx){ nx.click(); await sleep(700); }
+      }
+      if (sawTracker) c.ok('the section tracker showed on ' + sawTracker + ' of 3 wrong answers'); else c.fail('the section tracker never showed');
+      ps.click(); await sleep(600);
+    } },
+    { name: 'Walkthrough: part cleaning names IPA and Scotch-Brite for the material, and the minimap labels never overlap', win: 'tool', async run(c){
+      const w = c.w; let cleaned = false, steps = 0, overlaps = 0, withBoxes = 0;
+      await walkGuide(c, async t => {
+        steps++;
+        const bx = (w.__flatBoxes || []).map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h })); if (bx.length) withBoxes++;
+        for (let i = 0; i < bx.length; i++) for (let j = i + 1; j < bx.length; j++){ const a = bx[i], b = bx[j]; if (Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 1 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 1) overlaps++; }
+        if (t === 'Clean the part too'){ cleaned = true; await sleep(600); const tx = gdText(w); if (!/IPA/.test(tx)) c.fail('the part-cleaning step does not mention IPA'); else if (!/Scotch-Brite/.test(tx)) c.fail('it does not mention Scotch-Brite'); else if (!/Search the web/.test(tx)) c.fail('it does not say to search the web just in case'); else c.ok('the part-cleaning step suggests IPA and Scotch-Brite, and a search'); }
+        const tip = w.document.querySelector('.gd-card .gd-l.tip, .gd-card .gd-l.ok, .gd-card .gd-l.key, .gd-card .gd-l.act');
+        if (tip && !tip.__dev){ tip.__dev = 1; const cs = w.getComputedStyle(tip); if (parseFloat(cs.borderLeftWidth) > 0 || !/gradient/.test(cs.backgroundImage)) c.fail('an embed is not drawn as brackets'); }
+      });
+      if (!cleaned) c.fail('never reached the part-cleaning step'); if (overlaps) c.fail(overlaps + ' minimap labels overlapped over ' + steps + ' steps'); else c.ok('no minimap labels overlapped (' + withBoxes + ' steps had labels)');
+    } }
+  ];
+  ['caliper', 'vernier', 'micrometer', 'depth', 'height'].forEach(id => FLOWS[id].push(...practiceFlows));
+  FLOWS.caliper.push({ name: 'Walkthrough: turn the bezel to zero, with a Zero the bezel button; dial reads say marks past the last number', win: 'tool', async run(c){
+    const w = c.w; let bez = false, marks = false;
+    const b = w.document.getElementById('guideBtn'); b.click(); await sleep(900);
+    for (let k = 0; k < 40; k++){
+      const t = gdTitle(w);
+      if (t === 'Turn the bezel to zero'){
+        bez = true; await until(() => /drifted|isn.t quite on 0/.test(gdText(w)) && +w.document.getElementById('bezelRange').value !== 0, 120000);
+        const how = w.document.querySelector('.gd-how'); if (!how || how.hidden || !/Zero the bezel/.test(how.textContent)) c.fail('there is no Zero the bezel button'); else c.ok('there is a Zero the bezel button');
+        if (!/drifted|isn.t quite on 0/.test(gdText(w))) c.fail('the bezel was not turned off a little for the person to put right'); else c.ok('the bezel is a little off for the person to put right');
+        const slider = w.document.getElementById('bezelRange'); if (+slider.value === 0) c.fail('the slider reads 0 while the needle is off'); how.click();
+        await until(() => gdTitle(w) !== 'Turn the bezel to zero', 8000); if (+slider.value !== 0) c.fail('Zero the bezel did not bring the slider to 0'); else c.ok('Zero the bezel puts it on 0 and moves on'); }
+      if (t === 'Read the dial'){ await sleep(500); const tx = gdText(w); if (/\d+ marks? past the \d+|right on the \d+/.test(tx)) { marks = true; c.ok('the dial step says how many marks past the last number'); } else c.fail('the dial step does not say how many marks past the last number: ' + tx.slice(0, 160)); }
+      if (t === 'Pick a part') await pickPart(w);
+      if (!gdNext(w)) break; await sleep(800);
+    }
+    if (!bez) c.fail('the walkthrough has no Turn the bezel to zero step'); if (!marks) c.fail('never saw the dial reading step'); const x = w.document.querySelector('.gd-x'); if (x) x.click();
+  } });
+  FLOWS.height.push({ name: 'Walkthrough: it explains why the number below is the one to take', win: 'tool', async run(c){
+    const w = c.w; let seen = false; await walkGuide(c, async t => { if (/Find the (inch|centimeter) mark/.test(t)){ seen = true; await sleep(400); const tx = gdText(w); if (!/Why \d+/.test(tx) || !/at or below/.test(tx)) c.fail('“' + t + '” does not explain why the lower number'); else c.ok('“' + t + '” explains why the lower number'); } });
+    if (!seen) c.fail('never saw the Find the inch mark step');
+  } });
+  FLOWS.micrometer.push({ name: 'Every frame size is its own round C, and every part measures at every size', win: 'tool', async run(c){
+    const w = c.w, C = w.eval('typeof CORE === "undefined" ? null : CORE'); if (!C){ c.fail('the micrometer physics could not be reached'); return; }   // (CORE is a top-level const in the tool's page, so it is not on window)
+    const paints = new Set(); let bad = 0, n = 0;
+    for (let B = 0; B < 6; B++){
+      const D = C.dims(B); paints.add(C.STYLE[B].paint);
+      if (Math.abs(D.rxi - D.ryi) > 1e-9 || Math.abs(D.rxo - D.ryo) > 1e-9) c.fail('size ' + B + '–' + (B + 1) + ' is not a perfect round C');
+      for (const key of C.available(B)){
+        for (let t = 0; t < 25; t++){
+          const S = C.makeSample(key, B, Math.random);
+          for (const fid of Object.keys(S.targets || {})){
+            n++; const tg = S.targets[fid], truth = S.vals[fid]; let way = false;
+            for (const sd of [-1, 1]){ const pi = C.pathInfo(S, tg.s, C.restZ(S, tg.s, B, sd), tg.z, B); if (pi.ok){ way = true; break; } }
+            const e = C.evalAt(S, tg.s, tg.z, null, B), outside = truth < B - 1e-9 || truth > B + 1 + 1e-9;
+            if (!way || (outside ? !(e.tooSmall || e.tooBig || e.blocked) : (!e.eff || e.gap || Math.abs(e.measured - truth) > 1.5e-4))) bad++;
+          }
+        }
+      }
+    }
+    if (paints.size !== 6) c.fail('the six frames do not all have their own paint'); else c.ok('six different frames');
+    if (bad) c.fail(bad + ' of ' + n + ' measurements went wrong across the six sizes'); else c.ok('all ' + n + ' measurements across the six sizes were right');
+  } });
+  FLOWS.telescopic.push({ name: 'Lock knob: red when locked, plain when unlocked, on every gauge', async run(c){
+    const L = c.L;
+    for (let i = 0; i < L.GAUGES.length; i++){
+      L.selectGauge(i); await sleep(3500);
+      if (L.S.unlocked) L.toggleLock(); await sleep(1500);
+      const col = () => { const out = []; L.gp().knobG.traverse(o => { if (o.isMesh && o.material && o.material.userData && o.material.userData.tgLook) out.push(o.material.color); }); return out; };
+      const red = col().some(x => x.r > 0.6 && x.g < 0.25 && x.b < 0.25);
+      L.toggleLock(); await sleep(1500); const plain = !col().some(x => x.r > 0.6 && x.g < 0.25 && x.b < 0.25); L.toggleLock(); await sleep(400);
+      if (red && plain) c.ok('gauge ' + L.GAUGES[i].name + ': red locked, plain unlocked'); else c.fail('gauge ' + L.GAUGES[i].name + ': locked ' + (red ? 'red' : 'NOT red') + ', unlocked ' + (plain ? 'plain' : 'STILL red'));
+    }
+  } });
+
   // what to say about a stretch of frames
   function smoothNote(c, what, f){
     if (f.n < 6){ c.warn(what + ': too few frames to rate (' + f.n + ')'); return; }
@@ -820,7 +950,7 @@
       try {
         if (ids[n] === 'page'){ await openTool('caliper'); await runFlows('page', T, mode, rng(seed)); }
         else await testTool(ids[n], mode, seed, T, opt);
-      } catch (e) { T.findings.push({ k: 'harness', type: 'test harness stopped', detail: String(e && e.message || e), count: 1, example: [] }); }
+      } catch (e) { T.findings.push({ k: 'harness', type: 'test harness stopped', detail: String(e && e.message || e) + (e && e.stack ? ' @ ' + String(e.stack).split('\n').slice(1, 3).concat(String(e.stack).split('\n').slice(-4)).map(x => x.trim().replace(/^at /, '')).join(' < ') : ''), count: 1, example: [] }); }
       render();
     }
     run.report.totalMs = Date.now() - t0;

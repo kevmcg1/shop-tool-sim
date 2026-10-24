@@ -202,7 +202,7 @@
     waitFor: s => {
       const r = $('bezelRange'); if (!r) return true;
       if (!s.stage){
-        if (!isClosed()){ if (!s.asked){ s.asked = true; ensureClosed(); } return false; }
+        if (!isClosed()){ if (!s.asked || Date.now() - s.askedAt > 4800){ s.asked = true; s.askedAt = Date.now(); ensureClosed(); } return false; }   // (asks again if the jaws stopped short, as they can on a slow screen)
         s.stage = 1;
         if (+r.value === 0){ unlockBezel(); s.nudged = true; s.busy = true; const nav = navId; turnBezel(6, 900, () => root && navId === nav).then(() => { s.busy = false; }); }
         return false;
