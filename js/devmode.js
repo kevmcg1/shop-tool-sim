@@ -730,16 +730,16 @@
     const x = w.document.querySelector('.gd-x'); if (x) x.click(); await sleep(400); return true;
   }
   const practiceFlows = [
-    { name: 'Practice: the “I see you!” note comes up for the inspector shortcuts, only while practising', win: 'tool', async run(c){
+    { name: 'The “Hey, no cheating!” note comes up for the inspector shortcuts, in every mode', win: 'tool', async run(c){
       const w = c.w, ps = w.document.getElementById('practiceBtn');
-      pressKey(w, 'F12'); await sleep(400); if (hasNote(w)) c.fail('the note came up although nobody is practising'); else c.ok('no note outside practice');
+      pressKey(w, 'F12'); await sleep(400); if (!hasNote(w)) c.fail('F12 did not bring up the note outside practice'); else c.ok('the note comes up outside practice too'); pressKey(w, 'Escape'); await sleep(1700);
       if (!ps){ c.fail('there is no Practice button'); return; }
       if (!w.__inPractice()) ps.click(); await sleep(900);
       if (!w.__inPractice()){ c.fail('Practice did not start'); return; }
       for (const [label, k, o] of [['F12', 'F12'], ['Ctrl+Shift+I', 'KeyI', { ctrlKey: true, shiftKey: true }], ['Ctrl+Shift+J', 'KeyJ', { ctrlKey: true, shiftKey: true }], ['Ctrl+Shift+C', 'KeyC', { ctrlKey: true, shiftKey: true }], ['Ctrl+U', 'KeyU', { ctrlKey: true }], ['Cmd+Option+I', 'KeyI', { metaKey: true, altKey: true }]]){
         pressKey(w, k === 'F12' ? 'F12' : k, o); await sleep(450);
         const card = w.document.querySelector('.cheat-card');
-        if (!card) c.fail(label + ' did not bring up the note'); else if (!/I see you!/.test(card.textContent) || !/Please don.t cheat, I know you can get it right!/.test(card.textContent)) c.fail(label + ': the note has the wrong words'); else c.ok(label + ' brings up the note');
+        if (!card) c.fail(label + ' did not bring up the note'); else if (!/Hey, no cheating!/.test(card.textContent) || !/Please don.t cheat, I know you can get it right!/.test(card.textContent)) c.fail(label + ': the note has the wrong words'); else c.ok(label + ' brings up the note');
         pressKey(w, 'Escape'); await sleep(450); if (hasNote(w)) c.fail('Escape did not close the note'); await sleep(1300);
       }
       pressKey(w, 'KeyI'); await sleep(300); if (hasNote(w)) c.fail('a plain I key brought up the note'); else c.ok('a plain key does not');

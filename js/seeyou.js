@@ -1,4 +1,4 @@
-// "I see you!": in practice mode, a friendly note when someone reaches for the browser's inspector (F12, Ctrl+Shift+I / J / C / K / E,
+// "Hey, no cheating!": a friendly note (in every mode) when someone reaches for the browser's inspector (F12, Ctrl+Shift+I / J / C / K / E,
 // Cmd+Option+I / J / C, Ctrl+U to view the source). It never blocks anything: it just says hello, kindly. Each tool page (and the page
 // around them, when it has the focus) loads this; a tool says whether it is practising with window.__inPractice().
 (function(){
@@ -23,7 +23,7 @@
     if (veil) return; lastAt = Date.now();
     veil = document.createElement('div'); veil.className = 'cheat-veil'; veil.setAttribute('role', 'alertdialog'); veil.setAttribute('aria-modal', 'true'); veil.setAttribute('aria-labelledby', 'cheatT');
     veil.innerHTML = '<div class="cheat-card"><div class="cheat-eye" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3.2"/></svg></div>' +
-      '<h3 id="cheatT">I see you!</h3><p>Please don’t cheat, I know you can get it right!</p><button type="button">Okay!</button></div>';
+      '<h3 id="cheatT">Hey, no cheating!</h3><p>Please don’t cheat, I know you can get it right!</p><button type="button">Okay!</button></div>';
     veil.addEventListener('click', e => { if (e.target === veil || e.target.closest('button')) hide(); });
     document.body.appendChild(veil); requestAnimationFrame(() => { if (veil) veil.classList.add('on'); });
     const b = veil.querySelector('button'); if (b) b.focus({ preventScroll: true });
@@ -40,8 +40,7 @@
   }
   window.addEventListener('keydown', e => {
     if (!isInspectKey(e)) return;
-    let practising = false; try { practising = !!(window.__inPractice && window.__inPractice()); } catch (err) {}
-    if (practising && Date.now() - lastAt > 1200) show();
+    if (Date.now() - lastAt > 1200) show();
   }, true);
   document.addEventListener('keydown', e => { if (veil && (e.key === 'Escape' || e.key === 'Enter')){ e.preventDefault(); e.stopPropagation(); hide(); } }, true);
   window.__seeYou = show; window.__seeYouKey = isInspectKey;
