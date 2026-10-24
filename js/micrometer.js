@@ -260,7 +260,7 @@ const CORE = (function(){
     if (t && t.hl && t.s === setupId) return t.hl;
     return S.prims.map((p, i) => (p.tags && p.tags[setupId] === featId) ? i : -1).filter(i => i >= 0);
   }
-  return { RHO, STYLE, dims, evalAt, restZ, pathInfo, zExtent, DEFS, available, makeSample, hlPrims };
+  return { RHO, STYLE, dims, xl, xr, evalAt, restZ, pathInfo, zExtent, DEFS, available, makeSample, hlPrims };
 })();
 /*ENDCORE*/
 
@@ -908,6 +908,7 @@ function slotHole(D, B, a){
   return new T.Path(pts.map(([u, v]) => new T.Vector2(m[0] + ux*u - uy*v, m[1] + uy*u + ux*v)));
 }
 
+let lastPads = [];   // the insulating pads of the frame as built (for the dev tools)
 function build(){
   removeSample();
   while (root.children.length){ const c = root.children[0]; disposeTree(c); root.remove(c); }
@@ -930,7 +931,7 @@ function build(){
   rimG.translate(0, 0, -D.rd/2);
   root.add(pickable(new T.Mesh(rimG, FM), 'none'));
   // insulating pads: one on the arm side of the C from the 1–2″ up, and a second on the hub side from the 2–3″ up, on both faces of the web
-  const padSpecs = [];
+  const padSpecs = []; lastPads = padSpecs;
   { const rm = (D.rxi + D.rxo)/2, band = D.rxo - D.rxi, mk = a => ({ x: D.cx + rm*Math.cos(a), y: D.cy/2 + 0.05, a, w: Math.min(band*0.56, 0.7), h: Math.min(1.1, rm*0.55, -D.cy*0.8) });   // flat on the middle of the straight wall (the arm's at a = π, the hub's at 0)
     if (st.pads >= 1) padSpecs.push(mk(Math.PI));
     if (st.pads >= 2) padSpecs.push(mk(0)); }
@@ -3672,6 +3673,14 @@ function grabPoint(obj, ok){
 // "Show me" draws the move to make by hand: from a point on the ratchet stop itself (see grabPoint), three quarters
 // of a turn round the spindle axis the way it tightens (negative about +x), in page coordinates. Circling the pointer
 // round the ratchet turns it with you, so that is exactly the drag
+// (for the dev tools) the pads of the frame as built, and where on the page a knob can be grabbed ('thimble' or 'ratchet')
+window.__micPads = () => lastPads.map(q => ({ x: q.x, y: q.y, a: q.a, w: q.w, h: q.h }));
+window.__micGrab = kind => {
+  const g = kind === 'thimble' ? thG : ratchetG; if (!g) return null;
+  const P = grabPoint(g, h => h.object.userData.kind === kind); if (!P) return null;
+  const r = el.getBoundingClientRect(), v = P.clone().project(camera);
+  return v.z > 1 || v.z < -1 ? null : { x: r.left + (v.x + 1)/2*r.width, y: r.top + (1 - v.y)/2*r.height };
+};
 window.__guideDrag = () => {
   if (!ratchetG) return null;
   const P = grabPoint(ratchetG, h => h.object.userData.kind === 'ratchet');

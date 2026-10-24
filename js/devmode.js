@@ -810,6 +810,9 @@
     for (let B = 0; B < 6; B++){
       const D = C.dims(B); paints.add(C.STYLE[B].paint);
       if (Math.abs(D.rxi - D.ryi) > 1e-9 || Math.abs(D.rxo - D.ryo) > 1e-9) c.fail('size ' + B + '–' + (B + 1) + ' is not a perfect U');
+      // a U: the throat's walls are straight (the same x all the way down to the half circle), then it curves in round the bottom
+      const wall = C.xl(D, D.cy/2), wallR = C.xr(D, D.cy/2), curve = C.xl(D, D.cy - D.rxi*0.6);
+      if (Math.abs(wall - D.armR) > 1e-9 || Math.abs(wallR - D.hx) > 1e-9 || !(curve > D.armR + 0.05) || Math.abs(D.bottom - (D.cy - D.rxo)) > 1e-9) c.fail('size ' + B + '–' + (B + 1) + ' is not a U: straight walls, then a half circle');
       for (const key of C.available(B)){
         for (let t = 0; t < 25; t++){
           const S = C.makeSample(key, B, Math.random);
@@ -824,6 +827,32 @@
     }
     if (paints.size !== 6) c.fail('the six frames do not all have their own paint'); else c.ok('six different frames');
     if (bad) c.fail(bad + ' of ' + n + ' measurements went wrong across the six sizes'); else c.ok('all ' + n + ' measurements across the six sizes were right');
+  } });
+  FLOWS.micrometer.push({ name: 'Every frame: the pads sit upright on the straight walls, the thimble and ratchet turn, and it closes to the frame size', win: 'tool', async run(c){
+    const w = c.w, C = w.eval('typeof CORE === "undefined" ? null : CORE'); if (!C){ c.fail('the micrometer physics could not be reached'); return; }
+    const lcd = () => parseFloat(w.document.getElementById('lcd').textContent), click = id => w.document.getElementById(id).click();
+    const fire = (type, pt) => w.document.querySelector('canvas').dispatchEvent(new w.PointerEvent(type, { clientX: pt.x, clientY: pt.y, pointerId: 7, bubbles: true, cancelable: true }));
+    const drag = async (pt, dy) => { fire('pointerdown', pt); for (let k = 1; k <= 12; k++){ fire('pointermove', { x: pt.x, y: pt.y + dy*k*5 }); await sleep(30); } fire('pointerup', { x: pt.x, y: pt.y + dy*60 }); await sleep(400); };
+    for (let B = 0; B < 6 && !run.stop; B++){
+      const D = C.dims(B), name = B + '–' + (B + 1) + '″ frame';
+      const btn = w.document.querySelector('[data-range="' + B + '"]'); if (!btn){ c.fail('there is no ' + name + ' button'); continue; }
+      btn.click(); await sleep(9000);
+      const want = C.STYLE[B].pads, pads = w.__micPads ? w.__micPads() : null;
+      if (!pads) c.fail(name + ': the pads cannot be read');
+      else {
+        if (pads.length !== want) c.fail(name + ': ' + pads.length + ' pads, should be ' + want);
+        const bad = pads.filter(q => !(Math.abs(Math.abs(q.a) - Math.PI) < 1e-9 || Math.abs(q.a) < 1e-9) || q.y + q.h/2 > 0.08 || q.y - q.h/2 < D.cy);
+        if (bad.length) c.fail(name + ': a pad is tilted or runs off the straight wall'); else if (want) c.ok(name + ': the ' + want + ' pad' + (want > 1 ? 's sit' : ' sits') + ' upright on the straight wall' + (want > 1 ? 's' : ''));
+      }
+      click('openQuick'); await sleep(1500);
+      for (const kind of ['ratchet', 'thimble']){
+        const pt = w.__micGrab && w.__micGrab(kind); if (!pt){ c.fail(name + ': the ' + kind + ' cannot be found on screen'); continue; }
+        const r0 = lcd(); await drag(pt, 1); const r1 = lcd(); await drag(pt, -1); const r2 = lcd();
+        if (r0 === r1 && r1 === r2) c.fail(name + ': dragging the ' + kind + ' did not change the reading'); else c.ok(name + ': the ' + kind + ' turns the spindle');
+      }
+      click('closeQuick'); const closed = await until(() => Math.abs(lcd() - B) < 5e-5, 25000);
+      if (closed) c.ok(name + ': closes to ' + B + '.0000'); else c.fail(name + ': closed to ' + lcd().toFixed(4) + ', not ' + B + '.0000');
+    }
   } });
   FLOWS.telescopic.push({ name: 'Lock knob: red when locked, plain when unlocked, on every gauge', async run(c){
     const L = c.L;
