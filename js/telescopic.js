@@ -1510,7 +1510,7 @@ resize();selectSample(0);camGo('overview',true);shopApply();
 if(window.__holo)window.__holo.attach({THREE,select:$('sampleSel'),
  caption:v=>{const s=SAMPLES[+v];return s?[s.name,s.tag]:['',''];},
  build:v=>{const s=SAMPLES[+v];if(!s)return null;const g=new THREE.Group();g.add(new THREE.Mesh(partShapeGeo(s).geo));return g;}});
-window.__lab={nativeShown:()=>{if(FLY.fadeWait)fadeFly();},gp:()=>GP,PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
+window.__lab={nativeShown:()=>{if(FLY.fadeWait)fadeFly();},gp:()=>GP,PV,FLY,toolFacing,fly:()=>({waiting:FLY.waiting,attached:FLY.attached,native:FLY.native,swapping:FLY.swapping,on:FLY.on,clip:FLY.clip,t:AW.t,dir:AW.dir,pivotVisible:pivot.visible,sx:FLY.shown.x,sy:FLY.shown.y}),landed:()=>{},toolReady,swapping,overlay,pending,gaugeBack,AW,camera,pivot,cam,autoMeasure,runAuto,AM,update,S,GAUGES,SAMPLES,toggleLock,toggleInsert,measure,send,setTiltCmd,selectSample,selectGauge,limits,guideStart,guideGo,guideIndex:t=>GSTEPS.findIndex(x=>x.title===t),PINCH_MS,BUBBLE_MS};
 requestAnimationFrame(tick);   // draws behind the loading screen
 // Like the other tools: nothing builds in until everything is ready. The shaders are compiled first, the dissolve's own
 // cut-away versions included (one short throwaway sweep, hidden behind the loading screen), so the build-in that follows

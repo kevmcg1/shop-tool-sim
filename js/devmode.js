@@ -875,12 +875,21 @@
   }
   // the gauge is on a tool: drawn there, in the tool's own spot, and the tool read it
   async function landed(c, tab, mm){
-    const { L } = c, f = L.fly(), p = SH().pose();
+    const { L } = c, p = SH().pose();
+    // once it has landed the tool draws its own copy of the gauge and the flight canvas fades out over it (about 1.5 s): wait for that,
+    // then check the tool's own drawing. A tool that cannot draw one keeps the flight canvas, which must then sit on the tool's gauge.
+    await until(() => { const q = L.fly(); return q.attached && (!q.native || !q.on); }, 6000);
+    const f = L.fly(), dw0 = dockWin(tab);
     if (!f.attached) c.fail('the gauge is not drawn on the tool'); else c.ok('the gauge is drawn on the tool');
     if (!p) c.fail('the tool reports no gauge pose');
-    else if (f.sx != null && (Math.abs(f.sx - p.x) > 3 || Math.abs(f.sy - p.y) > 3)) c.fail('the drawn gauge is ' + Math.round(Math.hypot(f.sx - p.x, f.sy - p.y)) + ' px off the tool’s gauge');
-    else c.ok('it sits on the tool’s own gauge');
-    if (!f.on) c.fail('the flight canvas is off while the gauge should be drawn');
+    else if (f.native){
+      let own = null; try { own = dw0 && dw0.__tgObj && dw0.__tgObj(); } catch (e) {}
+      if (!own || own.visible === false) c.fail('the tool took over the gauge but is not drawing one'); else c.ok('the tool draws its own gauge on its own faces');
+      if (f.on) c.fail('the flight canvas is still up over the tool’s own gauge');
+    } else {
+      if (f.sx != null && (Math.abs(f.sx - p.x) > 3 || Math.abs(f.sy - p.y) > 3)) c.fail('the drawn gauge is ' + Math.round(Math.hypot(f.sx - p.x, f.sy - p.y)) + ' px off the tool’s gauge'); else c.ok('it sits on the tool’s own gauge');
+      if (!f.on) c.fail('the flight canvas is off while the gauge should be drawn');
+    }
     const dw = dockWin(tab);
     if (!dw) c.fail('the tool frame is missing'); else if (showsLength(dw, mm)) c.ok('the ' + NAME[tab] + ' reads the gauge: ' + mm.toFixed(2) + ' mm'); else c.fail('the ' + NAME[tab] + ' does not show ' + mm.toFixed(2) + ' mm (' + (mm/IN).toFixed(4) + ' in) anywhere');
   }
