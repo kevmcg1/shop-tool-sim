@@ -88,13 +88,14 @@ lockDown(window);
   });
   tabs.appendChild(ink);
   // each app gets its own frame the first time it is opened, and keeps its state after that
-  function frameFor(a){
+  function frameFor(a, warm){
     if (frames[a.id]) return frames[a.id];
     const f = document.createElement('iframe');
+    if (warm){ f.dataset.warm = '1'; f.classList.add('warm'); }
     f.id = 'app-' + a.id; f.title = a.name; f.setAttribute('role', 'tabpanel');
     f.setAttribute('allow', 'fullscreen; autoplay');
     f.addEventListener('load', () => {
-      if (current !== a.id) pause(f, true);
+      if (current !== a.id && !f.dataset.warm) pause(f, true);
       try { lockDown(f.contentWindow); } catch (err) {}
       try {
         f.contentDocument.addEventListener('click', e => {
@@ -163,13 +164,13 @@ lockDown(window);
     // a hidden frame has no size, so its layout is stale: have it lay itself out again now it shows
     const relayout = () => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} };
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
-    // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
-    // the new tool's own page pops in (js/bubbles.js; the tabs and logo round it stay as they are), and then its picture glides in (a tool
-    // opened before builds back in)
+    // The tools are all loaded in the background (warmUp, below), so changing tabs never loads or pops anything: the tool that is
+    // there dissolves back in (a tool opened before its warm-up got to it builds in by itself as it finishes loading). The bubbles
+    // are only for the page loading.
     const fx = toolFx(f);
-    let fw = null; try { fw = f.contentWindow; } catch (e) {}
-    if (fw && fw.__bubbles){ fw.__bubbles(); if (fx){ if (fw.__afterBubbles) fw.__afterBubbles(() => fx.in()); else fx.in(); } }
-    else if (fx) fx.in();
+    if (f.dataset.warm){ delete f.dataset.warm; f.classList.remove('warm'); pause(f, false); }
+    const settled = () => { if (window.__phase === 'switch' && window.__setPhase) window.__setPhase('ready'); };
+    if (fx) Promise.resolve(fx.in()).then(settled, settled); else settled();
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
     dockSync();
   }
@@ -382,6 +383,47 @@ lockDown(window);
     } catch (err) { holeList = []; }
     return holeList;
   }
+  // Loading in the background: once the first tool is up and the page is quiet, every other tool loads in its own frame, out of
+  // sight (laid out at full size but invisible, one at a time). Each one builds in, dissolves out again and is put to sleep, so a tab
+  // switch just dissolves it back in.
+  function warmUp(){
+    const c = navigator.connection;
+    if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return;   // (a data-saving connection loads a tool when it is opened)
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const next = () => {
+      const a = APPS.find(x => !frames[x.id]);
+      if (!a) return;
+      const f = frameFor(a, true), t0 = Date.now();
+      const done = () => {
+        if (f.dataset.warm){ delete f.dataset.warm; f.classList.remove('warm'); if (current !== a.id) pause(f, true); }
+        setTimeout(next, 400);
+      };
+      const poll = () => {
+        if (!f.dataset.warm) return done();   // (opened by its tab meanwhile: it carries on as the tool on show)
+        let w; try { w = f.contentWindow; } catch (e) { return done(); }
+        const fx = w && w.__toolFx;
+        if (w && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading') && w.__phase === 'ready' && fx){
+          if (calm) return done();
+          const go = () => { if (f.dataset.warm) Promise.resolve(fx.out()).then(done, done); else done(); };
+          return setTimeout(go, 300);
+        }
+        if (Date.now() - t0 > 90000) return done();
+        setTimeout(poll, 250);
+      };
+      poll();
+    };
+    next();
+  }
+  (function arm(){
+    const t0 = Date.now();
+    const tick = () => {
+      let w; try { w = frames[current] && frames[current].contentWindow; } catch (e) {}
+      const ready = w && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading') && w.__phase === 'ready';
+      if (ready || Date.now() - t0 > 60000) (window.requestIdleCallback || (g => setTimeout(g, 200)))(warmUp, { timeout: 3000 });
+      else setTimeout(tick, 500);
+    };
+    setTimeout(tick, 1000);
+  })();
   // dev mode (js/devmode.js) drives the tabs through this
   window.__shell = { APPS, show, frameFor, frames, current: () => current,
   // where the tool's gauge is on screen right now (the lab's gauge is drawn over it), or null
