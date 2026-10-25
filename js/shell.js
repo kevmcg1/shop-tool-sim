@@ -163,6 +163,7 @@ lockDown(window);
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
     // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
     const fx = toolFx(f); if (fx) fx.in();
+    try { f.contentWindow.__bubbles && f.contentWindow.__bubbles(); } catch (e) {}   // (its buttons and cards pop in, js/bubbles.js)
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
     dockSync();
   }
