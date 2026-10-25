@@ -3720,7 +3720,7 @@ function start(){
       return g;
     } });
   window.__load ? window.__load.done() : $('loading').remove();
-  Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });   // builds in now, and goes and comes back as tools are switched
+  Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, canvas: () => renderer.domElement });   // builds in now, and goes and comes back as tools are switched
 
   // the first view is framed before the layout has settled (fonts, panels, the flat view's corner),
   // so frame it again a few times as things land, until the first touch from the user

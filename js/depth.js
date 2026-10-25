@@ -3732,7 +3732,7 @@ function start(){
       const g = new T.Group(); g.add(new T.Mesh(geo, PM[S.mat] || PM.milled)); return g;
     } });
   window.__load ? window.__load.done() : $('loading').remove();
-  Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } });   // builds in now, and goes and comes back as tools are switched
+  Dissolve.tool(root, { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, canvas: () => renderer.domElement });   // builds in now, and goes and comes back as tools are switched
   started = true;
   const S = state.sample;
   if (S){ const f = S.feats.find(x => x.valid); if (f) goToFeature(f.id, true); }

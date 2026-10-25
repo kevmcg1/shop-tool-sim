@@ -2429,7 +2429,7 @@ async function start(){
       return g;
     } });
   window.__load ? window.__load.done() : $('loading').remove();
-  Dissolve.tool(root, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
+  Dissolve.tool(root, { frame: () => invalidate(1000), canvas: () => renderer.domElement });   // builds in now, and goes and comes back as tools are switched
   requestAnimationFrame(tick);
 }
 const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();

@@ -162,8 +162,11 @@ lockDown(window);
     const relayout = () => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} };
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
     // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
-    const fx = toolFx(f); if (fx) fx.in();
-    try { f.contentWindow.__bubbles && f.contentWindow.__bubbles(); } catch (e) {}   // (its buttons and cards pop in, js/bubbles.js)
+    // its text, buttons and cards pop in first (js/bubbles.js), then the tool itself glides in (a tool opened before builds back in)
+    const fx = toolFx(f);
+    let fw = null; try { fw = f.contentWindow; } catch (e) {}
+    if (fw && fw.__bubbles){ fw.__bubbles(); if (fx){ if (fw.__afterBubbles) fw.__afterBubbles(() => fx.in()); else fx.in(); } }
+    else if (fx) fx.in();
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
     dockSync();
   }

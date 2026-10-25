@@ -3678,7 +3678,7 @@ async function start() {
     caption: v => PARTS[v] ? [PARTS[v].label, TOOL[PARTS[v].tool].name + ' · ' + PARTS[v].what] : ['No part', ''],
     build: v => { const d = PARTS[v]; return d ? d.build((d.range[0] + d.range[1])/2).obj : null; } });
   window.__load ? window.__load.done() : $('loading').remove();
-  Dissolve.tool(cal, { frame: () => invalidate(1000) });   // builds in now, and goes and comes back as tools are switched
+  Dissolve.tool(cal, { frame: () => invalidate(1000), canvas: () => renderer.domElement });   // builds in now, and goes and comes back as tools are switched
 
   // the first view is framed before the layout has settled (fonts, panels, the flat view's corner),
   // so frame it again a few times as things land, until the first touch from the user

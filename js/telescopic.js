@@ -1522,6 +1522,6 @@ requestAnimationFrame(tick);   // draws behind the loading screen
  Dissolve.out(toolRoot,{ms:140,cells:40,frame:()=>invalidate(120)});
  for(let i=0;i<9;i++)await nextFrame();
  window.__load?window.__load.done():($('loading')&&$('loading').remove());
- Dissolve.tool(toolRoot,{frame:()=>invalidate(1000)});   // builds in as the loading screen fades, and gives the shell its dissolve for tab changes
+ Dissolve.tool(toolRoot,{frame:()=>invalidate(1000),canvas:()=>cv});   // builds in as the loading screen fades, and gives the shell its dissolve for tab changes
 })();
 })();

@@ -245,11 +245,29 @@
       opts = opts || {};
       let away = false;
       const o = extra => Object.assign({ cells: 64, ms: 800 }, opts, extra);
+      // The whole tool glides in and out as its picture (the 3D canvas) rises and fades: only opacity and transform change, so the
+      // browser does it off the main thread and it stays smooth however busy the page is. The pieces of a part that is swapped still use
+      // the cell dissolve above.
+      const cvEl = () => { try { return opts.canvas ? opts.canvas() : null; } catch (e) { return null; } };
+      const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
+      const glide = (cv, show) => {
+        if (!cv || !cv.animate || calm()){ if (cv) cv.style.opacity = show ? '' : '0'; return Promise.resolve(); }
+        cv.getAnimations().forEach(a => a.cancel());
+        cv.style.willChange = 'transform, opacity';
+        const keys = show
+          ? [{ opacity: 0, transform: 'translate3d(0, 22px, 0) scale(.93)' }, { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' }]
+          : [{ opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' }, { opacity: 0, transform: 'translate3d(0, 10px, 0) scale(.97)' }];
+        const a = cv.animate(keys, { duration: show ? 820 : 300, easing: show ? 'cubic-bezier(.16,.84,.24,1)' : 'cubic-bezier(.4,0,1,1)', fill: 'both' });
+        const end = () => { cv.style.opacity = show ? '' : '0'; cv.style.willChange = ''; try { a.cancel(); } catch (e) {} };
+        return a.finished.then(end, end);
+      };
       const fx = window.__toolFx = {
         out(){
           if (away) return Promise.resolve();
           away = true;
-          return run(root, false, o({ done: () => { if (away) root.visible = false; if (opts.frame) opts.frame(); } }));
+          const cv = cvEl();
+          if (!cv) return run(root, false, o({ done: () => { if (away) root.visible = false; if (opts.frame) opts.frame(); } }));
+          return glide(cv, false).then(() => { if (away) root.visible = false; if (opts.frame) opts.frame(); });
         },
         // the look changes by painting over the surface (a finish switched on or off), without the tool leaving the picture
         paint(apply, extra){
@@ -259,10 +277,23 @@
         in(){
           const was = away; away = false;
           if (!root.visible){ root.visible = true; if (opts.frame) opts.frame(); }
-          return was ? run(root, true, o()) : Promise.resolve();
+          if (!was) return Promise.resolve();
+          const cv = cvEl();
+          if (!cv) return run(root, true, o());
+          // let it draw once before it shows, so the first moment is a finished picture
+          return new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => glide(cv, true));
         }
       };
-      away = true; fx.in();
+      away = true;
+      const cv0 = cvEl();
+      if (cv0){
+        // it stays out of sight until everything else on the page has popped in (js/bubbles.js), then glides in once it has loaded
+        if (!calm()) cv0.style.opacity = '0';
+        let started = false;
+        const go = () => { if (started) return; started = true; fx.in(); };
+        if (window.__afterBubbles) window.__afterBubbles(go); else go();
+        setTimeout(go, 25000);   // (never left out of sight)
+      } else fx.in();
       return fx;
     }
     return { out: (obj, opts) => run(obj, false, opts), in: (obj, opts) => run(obj, true, opts), paint, tool };
