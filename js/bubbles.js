@@ -132,11 +132,9 @@
   window.__bubbles = (m) => { settled = false; nextMode = m || 'switch'; lastAt = 0; hide(); setTimeout(run, 40); };
   // the tool's picture has arrived: the page is ready again (and so is the page round it, if this was a tool being changed)
   window.__phaseDone = () => { setPhase('ready'); try { if (window.parent !== window && window.parent.__phase === 'switch' && window.parent.__setPhase) window.parent.__setPhase('ready'); } catch (e) {} };
-  // a tool page waits for its loading screen to go; the page around the tools has none and starts as soon as it is read
-  const start = () => {
-    if (!document.getElementById('loading')){ requestAnimationFrame(() => setTimeout(run, 30)); return; }
-    const t = setInterval(() => { const l = document.getElementById('loading'); if (!l || l.classList.contains('ld-out')){ clearInterval(t); setTimeout(run, 20); } }, 40);
-    setTimeout(() => clearInterval(t), 30000);
-  };
+  // A tool page does not wait for its loading screen (the 3D engine can take a while): its controls and text pop as soon as the page is
+  // laid out, round the loading bar, and the 3D picture glides in once the engine is ready. The page around the tools starts as soon as
+  // it is read.
+  const start = () => requestAnimationFrame(() => setTimeout(run, 0));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
