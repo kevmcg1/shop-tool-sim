@@ -3,8 +3,9 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep ONE entry per day, and each entry to ONE short, simple sentence: if today already has an entry, add to its sentence instead of a new entry.
 window.__SHOP = {
-  version: '1.3.29',
+  version: '1.3.30',
   changelog: [
+    { v: '1.3.30', date: '2026-10-25', title: 'Stable release badge and softer messages', items: ['Added a Stable release badge under each logo, and status messages and the side panel now pop in smoothly.'] },
     { v: '1.3.29', date: '2026-10-24', title: 'Friendlier walkthroughs and sturdier knobs', items: ['Walkthroughs are friendlier, the micrometer frame is a U, and opening the inspector shows a no-cheating note.'] },
     { v: '1.3.28', date: '2026-10-23', title: 'Gentler openers and a range check', items: ['The How do I use it? openers are lighter and the micrometer walkthrough checks its range first.'] },
     { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: ['The How do I use it? card text is now sharper.'] },

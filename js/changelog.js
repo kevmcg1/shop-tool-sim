@@ -5,6 +5,7 @@
   const V = window.__SHOP; if (!V) return;
   const css = document.createElement('style');
   css.textContent = `
+.shop-rel{display:block;width:max-content;margin:6px auto 0;padding:3px 12px;border-radius:999px;font:700 10.5px/1.3 "Inter",system-ui,sans-serif;letter-spacing:.2em;text-transform:uppercase;border:1px solid rgba(95,207,138,.55);color:#5fcf8a;background:rgba(95,207,138,.1)}
 .shop-vrow{display:flex;justify-content:center;margin:8px 0 2px}
 .shop-vchip{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;font:600 11px/1.3 "Inter",system-ui,sans-serif;letter-spacing:.03em;color:var(--muted,#8a8f97);background:transparent;border:1px solid var(--line,#2a2d31);border-radius:999px;cursor:pointer}
 .shop-vchip:hover,.shop-vchip:focus-visible{color:var(--ink,#ececee);border-color:var(--muted,#8a8f97);background:transparent}
@@ -88,7 +89,7 @@
     chip.title = 'Version ' + V.version + ' and the changelog';
     chip.addEventListener('click', open);
     const logo = document.querySelector('header.logo'), reset = document.querySelector('.reset-wrap');
-    if (logo){ const row = document.createElement('div'); row.className = 'shop-vrow'; row.appendChild(chip); const mark = logo.querySelector('.logo-mark'); if (mark) mark.insertAdjacentElement('afterend', row); else logo.appendChild(row); }   // (right under the tool's name, above the range line and the How do I use it? button)
+    if (logo){ const row = document.createElement('div'); row.className = 'shop-vrow'; row.appendChild(chip); const mark = logo.querySelector('.logo-mark'); if (mark) mark.insertAdjacentElement('afterend', row); else logo.appendChild(row); const rel = document.createElement('div'); rel.className = 'shop-rel'; rel.setAttribute('role', 'note'); rel.textContent = 'Stable release'; row.insertAdjacentElement('beforebegin', rel); }   // (right under the tool's name, above the range line and the How do I use it? button)
     else if (reset){
       // Buy me a coffee, just before Reset all
       const coffee = document.createElement('button');
