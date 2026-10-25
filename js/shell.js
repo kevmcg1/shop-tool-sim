@@ -162,7 +162,9 @@ lockDown(window);
     const relayout = () => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} };
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
     // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
-    // its text, buttons and cards pop in first (js/bubbles.js), then the tool itself glides in (a tool opened before builds back in)
+    // the whole page pops in again, the tabs and logo round the tool as well as the tool's own page (js/bubbles.js), and then the tool
+    // itself glides in (a tool opened before builds back in)
+    try { if (window.__bubbles) window.__bubbles(); } catch (e) {}
     const fx = toolFx(f);
     let fw = null; try { fw = f.contentWindow; } catch (e) {}
     if (fw && fw.__bubbles){ fw.__bubbles(); if (fx){ if (fw.__afterBubbles) fw.__afterBubbles(() => fx.in()); else fx.in(); } }

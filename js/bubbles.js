@@ -30,7 +30,7 @@
   // hidden until their turn: everything but the 3D picture, the loading screen and any note (the class comes off in the same breath
   // as the bubbles are made, so nothing flashes)
   const st = document.createElement('style');
-  st.textContent = 'html.bub-wait body *:not(canvas,script,style,#loading,#loading *,.gd,.gd *,.cheat-veil,.cheat-veil *,.dev,.dev *,.toast,.toast *,.shop-cl,.shop-cl *){opacity:0 !important}';
+  st.textContent = 'html.bub-wait body *:not(canvas,iframe,:has(iframe),script,style,#loading,#loading *,.gd,.gd *,.cheat-veil,.cheat-veil *,.dev,.dev *,.toast,.toast *,.shop-cl,.shop-cl *){opacity:0 !important}';
   (document.head || root).appendChild(st);
   const hide = () => root.classList.add('bub-wait');
   const show = () => root.classList.remove('bub-wait');
