@@ -88,7 +88,7 @@
     chip.title = 'Version ' + V.version + ' and the changelog';
     chip.addEventListener('click', open);
     const logo = document.querySelector('header.logo'), reset = document.querySelector('.reset-wrap');
-    if (logo){ const row = document.createElement('div'); row.className = 'shop-vrow'; row.appendChild(chip); const mark = logo.querySelector('.logo-mark'); if (mark) mark.insertAdjacentElement('afterend', row); else logo.appendChild(row); }   // (right under the tool's name, above the range line and the How do I use it? button)
+    if (logo){ const row = document.createElement('div'); row.className = 'shop-vrow'; row.appendChild(chip); const mark = logo.querySelector('.stable-row') || logo.querySelector('.logo-mark'); if (mark) mark.insertAdjacentElement('afterend', row); else logo.appendChild(row); }   // (right under the tool's name, above the range line and the How do I use it? button)
     else if (reset){
       // Buy me a coffee, just before Reset all
       const coffee = document.createElement('button');

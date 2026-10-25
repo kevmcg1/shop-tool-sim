@@ -42,11 +42,6 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .bar::-webkit-scrollbar{display:none}
 .brand{display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:22px;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;padding-top:2px}
 .brand i{font-style:normal;color:#e8c547;opacity:.85}
-/* the "stable release" tag sits just under the logo */
-.brand-wrap{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px}
-.brand-wrap .brand{padding-top:0}
-.stable-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 7px;border:1px solid rgba(95,207,138,.45);border-radius:999px;background:rgba(95,207,138,.08);color:#5fcf8a;font:800 9px/1 "Inter",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
-.stable-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
 .tabs{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:54px}
 .tab{position:relative;display:flex;align-items:center;height:36px;padding:0 14px;border-radius:9px;border:1px solid transparent;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:600;letter-spacing:.01em;white-space:nowrap;text-decoration:none;cursor:pointer;transition:color .22s ease,background-color .22s ease,border-color .22s ease,box-shadow .22s ease}
 .tab:hover{color:var(--ink);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.07)}
@@ -54,7 +49,7 @@ body{display:flex;flex-direction:column;overflow:hidden}
 .tab:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tab-new{margin-right:8px;padding:1px 6px 0;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.09em;line-height:1.4;color:#6da4ff;background:transparent;border:1.5px solid #4f8df0}
 .tab-ink{position:absolute;left:0;top:0;height:2px;width:0;border-radius:2px;background:var(--accent);box-shadow:0 0 10px color-mix(in srgb,var(--accent) 70%,transparent);pointer-events:none;opacity:0;transition:transform .38s cubic-bezier(.22,.8,.25,1),width .38s cubic-bezier(.22,.8,.25,1),opacity .2s ease}
-@media (max-width:640px){ .brand-wrap{display:none} .bar{padding:0 10px} .tab{padding:0 11px} }
+@media (max-width:640px){ .brand{display:none} .bar{padding:0 10px} .tab{padding:0 11px} }
 @media (prefers-reduced-motion: reduce){ .tab,.tab-ink{transition:none} }
 /* nothing on the page can be selected, so a click or drag never highlights text; typing into a box still works */
 html,body{-webkit-user-select:none;user-select:none}
@@ -134,7 +129,6 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
   .reset-wrap > .bmc,.reset-wrap > .reset-all{padding:0 10px}
 }
 @media (max-width:1100px){
-  .brand-wrap{flex-direction:column}
   .brand{font-size:19px}
   .tab{padding:0 8px;font-size:12px;letter-spacing:0}
   .tab-new{display:none}
@@ -145,7 +139,5 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
   .tabs{min-height:44px}
   .tab{height:32px}
   .brand{font-size:20px}
-  .brand-wrap{gap:3px}
-  .stable-tag{padding:2px 7px 2px 6px;font-size:8px}
   .foot{padding:4px 12px;font-size:11px}
 }
