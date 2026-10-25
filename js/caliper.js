@@ -3441,6 +3441,7 @@ function bindUI() {
     state.bezel = 0; toast('Bezel set to zero');
   });
   // reset: back to zero whatever the lock says, and the lock stays as it was
+  if ($('resetZeroBtn')) $('resetZeroBtn').addEventListener('click', () => $('closeBtn').click());   // (the vernier's zero: jaws closed)
   $('bezelResetBtn').addEventListener('click', () => {
     state.bezel = 0; $('bezelRange').value = 0;
     toast(state.bezelLocked ? 'Bezel reset to zero (still locked)' : 'Bezel reset to zero');

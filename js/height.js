@@ -1799,6 +1799,7 @@ function bindUI(){
   $('clampSlider').addEventListener('click', () => setLock('sliderLocked', !state.sliderLocked));
   $('zeroAdj').addEventListener('input', e => setDelta(Number(e.target.value)/100));
   $('zeroBtn').addEventListener('click', zeroOnPlate);
+  $('resetZeroBtn').addEventListener('click', () => { state.seq = null; setDelta(0); toast('Main scale back to its zero'); });
   $('reclampBtn').addEventListener('click', () => {
     state.eps = Math.round(rand(-2.5, 2.5)*100)/100;
     if (state.hs < minHs()) state.hs = minHs();

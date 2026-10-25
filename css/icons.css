@@ -44,6 +44,14 @@ svg[data-icon]{transform-box:fill-box;transform-origin:center;overflow:visible}
 :is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="crosshairs"]{animation:ic-lock-on .8s cubic-bezier(.3,1.4,.5,1) 1}
 :is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="puzzle-piece"]{animation:ic-fit .7s cubic-bezier(.3,1.5,.5,1) 1}
 
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="arrows-up-down"]{animation:ic-bob .7s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="hand"]{animation:ic-wave .8s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="heart"]{animation:ic-beat .8s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="lightbulb"]{animation:ic-glow .9s ease-in-out infinite}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="right-left"]{animation:ic-swap .6s cubic-bezier(.3,1.4,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="ruler"]{animation:ic-measure-h .9s ease-in-out 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="seedling"]{animation:ic-grow .8s cubic-bezier(.3,1.5,.5,1) 1}
+:is(button,a,summary,label,select,[role="button"],.ib,.gd-x):is(:hover,:focus-visible,:active) svg[data-icon="star"]{animation:ic-twinkle .7s ease-in-out 1}
 @keyframes ic-click{0%,100%{transform:none}25%{transform:scale(.82) translateY(1.5px)}45%{transform:scale(1.06)}60%{transform:scale(.92) translateY(1px)}}
 @keyframes ic-feather{0%,100%{transform:rotate(-10deg) translate(0,0)}50%{transform:rotate(12deg) translate(1.5px,-2px)}}
 @keyframes ic-blink{0%,100%{transform:scaleY(1)}40%{transform:scaleY(.08)}60%{transform:scaleY(.08)}}
@@ -79,6 +87,13 @@ svg[data-icon]{transform-box:fill-box;transform-origin:center;overflow:visible}
 @keyframes ic-type{0%,100%{transform:translateY(0)}25%{transform:translateY(1.5px)}50%{transform:translateY(-.5px)}75%{transform:translateY(1px)}}
 @keyframes ic-lock-on{0%{transform:scale(1.5) rotate(45deg)}70%{transform:scale(.9) rotate(0)}100%{transform:scale(1) rotate(0)}}
 @keyframes ic-fit{0%{transform:translate(-4px,2px) rotate(-15deg)}70%{transform:translate(.5px,0) rotate(3deg)}100%{transform:none}}
+@keyframes ic-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+@keyframes ic-wave{0%,100%{transform:rotate(0)}25%{transform:rotate(-16deg)}55%{transform:rotate(14deg)}80%{transform:rotate(-6deg)}}
+@keyframes ic-beat{0%,100%{transform:scale(1)}30%{transform:scale(1.22)}55%{transform:scale(.96)}75%{transform:scale(1.12)}}
+@keyframes ic-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.6) drop-shadow(0 0 3px currentColor)}}
+@keyframes ic-swap{0%{transform:translateX(0)}35%{transform:translateX(-3px)}70%{transform:translateX(2px)}100%{transform:translateX(0)}}
+@keyframes ic-grow{0%{transform:scaleY(.6);transform-origin:50% 100%}70%{transform:scaleY(1.14);transform-origin:50% 100%}100%{transform:scaleY(1);transform-origin:50% 100%}}
+@keyframes ic-twinkle{0%,100%{transform:scale(1) rotate(0)}40%{transform:scale(1.28) rotate(18deg)}70%{transform:scale(.92) rotate(-8deg)}}
 /* a few icons also react to what they stand for while a control is on */
 [aria-pressed="true"] svg[data-icon="eye-slash"],[aria-pressed="true"] svg[data-icon="eye"]{transition:opacity .25s ease}
 button svg[data-icon]{transition:filter .25s ease,opacity .25s ease}
@@ -126,4 +141,12 @@ button svg[data-icon]{transition:filter .25s ease,opacity .25s ease}
 .ic-enter svg[data-icon="keyboard"]{animation:ic-type .7s ease 1}
 .ic-enter svg[data-icon="crosshairs"]{animation:ic-lock-on .8s cubic-bezier(.3,1.4,.5,1) 1}
 .ic-enter svg[data-icon="puzzle-piece"]{animation:ic-fit .7s cubic-bezier(.3,1.5,.5,1) 1}
+.ic-enter svg[data-icon="arrows-up-down"]{animation:ic-bob .7s ease-in-out 2}
+.ic-enter svg[data-icon="hand"]{animation:ic-wave .8s ease-in-out 1}
+.ic-enter svg[data-icon="heart"]{animation:ic-beat .8s ease-in-out 2}
+.ic-enter svg[data-icon="lightbulb"]{animation:ic-glow .9s ease-in-out 2}
+.ic-enter svg[data-icon="right-left"]{animation:ic-swap .6s cubic-bezier(.3,1.4,.5,1) 1}
+.ic-enter svg[data-icon="ruler"]{animation:ic-measure-h .9s ease-in-out 1}
+.ic-enter svg[data-icon="seedling"]{animation:ic-grow .8s cubic-bezier(.3,1.5,.5,1) 1}
+.ic-enter svg[data-icon="star"]{animation:ic-twinkle .7s ease-in-out 1}
 @media (prefers-reduced-motion: reduce){ svg[data-icon]{animation:none!important} }

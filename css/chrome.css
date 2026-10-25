@@ -1,0 +1,18 @@
+/* Shared page chrome: the size range under each logo, the folding categories in the left sidebar, and the "stable release" tag. */
+
+/* the size range under a tool's logo reads "0–12″ / 0–300 MM": the millimeter part has its own color */
+.logo-range .u-mm{color:#5b93ea}
+
+/* the categories in the left sidebar fold: js/collapse.js */
+aside > section > h2.sec-toggle{cursor:pointer;user-select:none;padding-right:22px;transition:filter .2s ease}
+aside > section > h2.sec-toggle:hover{filter:brightness(1.25)}
+aside > section > h2.sec-toggle:focus-visible{outline:2px solid var(--sc,#5b93ea);outline-offset:3px;border-radius:4px}
+aside > section > h2.sec-toggle::before{content:"";position:absolute;right:3px;top:calc(50% - 7px);width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);opacity:.6;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .2s ease}
+aside > section > h2.sec-toggle:hover::before,aside > section > h2.sec-toggle:focus-visible::before{opacity:1;animation:sec-nudge .7s ease-in-out infinite}
+aside > section.folded > h2.sec-toggle::before{transform:rotate(-45deg)}
+aside > section.folded > h2.sec-toggle:hover::before,aside > section.folded > h2.sec-toggle:focus-visible::before{animation:sec-nudge-side .7s ease-in-out infinite}
+aside > section.folded > *:not(h2){display:none!important}
+aside > section.folded > h2.sec-toggle{margin-bottom:0}
+@keyframes sec-nudge{0%,100%{translate:0 0}50%{translate:0 2px}}
+@keyframes sec-nudge-side{0%,100%{translate:0 0}50%{translate:2px 0}}
+@media (prefers-reduced-motion: reduce){aside > section > h2.sec-toggle::before{animation:none!important;transition:none}}

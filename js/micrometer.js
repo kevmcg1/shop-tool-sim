@@ -2652,7 +2652,7 @@ function swapRange(nb, then){
 function setRange(nb){
   B = nb; stopAnim(); endCoach(); state.seq = null; state.coachArmed = true;
   document.querySelectorAll('[data-range]').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.range === B)));
-  $('brand').textContent = `${B}–${B + 1}″`;
+  $('brand').innerHTML = `${B}–${B + 1}″ / ${B*25}–${(B + 1)*25} <span class="u-mm">MM</span>`;
   $('setTo').placeholder = goHint();
   document.title = `Vernier Micrometer ${B}–${B + 1}″ · 3D`;
   // a part still on its way in comes in with the rebuilt micrometer instead
@@ -3040,6 +3040,7 @@ function bindUI(){
   $('labelsBtn').addEventListener('click', () => setLabels(!examLabels));
   bindSplit(); applyRH();
   $('randomBtn').addEventListener('click', loadPractice);
+  $('resetZeroBtn').addEventListener('click', () => $('closeQuick').click());   // (the frame's zero: spindle wound back)
   $('flatMaxBtn').addEventListener('click', () => setFlatMax(!flatMax));
   if (flatMax) setTimeout(() => setFlatMax(true), 0);
   $('flatBtn').addEventListener('click', () => {

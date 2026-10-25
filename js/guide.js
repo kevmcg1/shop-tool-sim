@@ -593,6 +593,7 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (!e) return;
     const b = document.body;
     if (e.closest('aside') && b.classList.contains('side-off') && $('sideBtn')) $('sideBtn').click();
+    if (window.__expandFor) window.__expandFor(e);   // (a category folded away in the sidebar opens for what a step points at)
     if (e.closest('#reading') && b.classList.contains('panel-off') && $('panelBtn')) $('panelBtn').click();
     if (e.closest('aside')) e.scrollIntoView({ block: 'center', behavior: 'auto' });
   }

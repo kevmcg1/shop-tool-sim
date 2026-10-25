@@ -19,6 +19,7 @@ if (location.protocol === 'file:'){
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
 <link rel="stylesheet" href="css/shell.css?v=53">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -48,6 +49,7 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/caliper.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -60,7 +62,7 @@ if (location.protocol === 'file:'){
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range">0–6″ · .001″</span></div>
+      <div class="logo-foot"><span class="logo-range">0–6″ / 0–150 <span class="u-mm">MM</span></span></div>
     </header>
 
     <section>
@@ -95,8 +97,14 @@ if (location.protocol === 'file:'){
         <button id="zeroBtn">Zero bezel</button>
         <button id="skewBtn">Random offset</button>
       </div>
-      <button id="bezelResetBtn" class="bezel-reset" data-tip="Reset bezel&#10;Turns the bezel back to zero, even while it is locked."><i class="fa-solid fa-rotate-left"></i> Reset bezel</button>
+      <button id="bezelResetBtn" class="bezel-reset" data-tip="Reset to zero&#10;Turns the bezel back to zero, even while it is locked."><i class="fa-solid fa-rotate-left"></i> Reset to zero</button>
       <p class="note" style="margin:8px 0 0">Close the jaws before measuring. If the needle isn't on 0, turn the bezel until it is, then lock it.</p>
+    </section>
+
+    <section data-inst="vern">
+      <h2>Zero</h2>
+      <button id="resetZeroBtn" class="bezel-reset" data-tip="Reset to zero&#10;Closes the jaws all the way, so the vernier’s 0 line meets the beam’s 0 line."><i class="fa-solid fa-rotate-left"></i> Reset to zero</button>
+      <p class="note" style="margin:8px 0 0">Closes the jaws all the way, so the vernier’s 0 line sits on the beam’s 0 line.</p>
     </section>
 
     <section class="sample-sec">
@@ -322,6 +330,7 @@ if (location.protocol === 'file:'){
 <script src="js/flat-units.js?v=50"><\/script>
 <script src="js/version.js?v=106"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
+<script src="js/collapse.js?v=1"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -340,6 +349,7 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/micrometer.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -352,7 +362,7 @@ if (location.protocol === 'file:'){
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range" id="brand">0–1″</span></div>
+      <div class="logo-foot"><span class="logo-range" id="brand">0–1″ / 0–25 <span class="u-mm">MM</span></span></div>
     </header>
 
 
@@ -390,6 +400,12 @@ if (location.protocol === 'file:'){
         <button id="lockBtn" aria-pressed="false">Lock spindle</button>
       </div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="coachChk" checked> Remind me to use the ratchet</label>
+    </section>
+
+    <section>
+      <h2>Zero</h2>
+      <button id="resetZeroBtn" class="bezel-reset" data-tip="Reset to zero&#10;Winds the spindle all the way back to this frame’s zero."><i class="fa-solid fa-rotate-left"></i> Reset to zero</button>
+      <p class="note" style="margin:8px 0 0">Winds the spindle back to this frame’s zero.</p>
     </section>
 
     <section class="sample-sec">
@@ -571,6 +587,7 @@ if (location.protocol === 'file:'){
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=106"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
+<script src="js/collapse.js?v=1"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -589,6 +606,7 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/depth.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -601,7 +619,7 @@ if (location.protocol === 'file:'){
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range" id="brand">0–1″ rod</span></div>
+      <div class="logo-foot"><span class="logo-range" id="brand">0–1″ / 0–25 <span class="u-mm">MM</span></span></div>
     </header>
 
     <section>
@@ -639,6 +657,12 @@ if (location.protocol === 'file:'){
         <button id="lockBtn" aria-pressed="false">Lock rod</button>
       </div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="coachChk" checked> Remind me to use the ratchet</label>
+    </section>
+
+    <section>
+      <h2>Zero</h2>
+      <button id="resetZeroBtn" class="bezel-reset" data-tip="Reset to zero&#10;Winds the rod all the way back to zero on the sleeve."><i class="fa-solid fa-rotate-left"></i> Reset to zero</button>
+      <p class="note" style="margin:8px 0 0">Winds the rod back to zero on the sleeve.</p>
     </section>
 
     <section class="sample-sec">
@@ -833,6 +857,7 @@ if (location.protocol === 'file:'){
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=106"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
+<script src="js/collapse.js?v=1"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -851,6 +876,7 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/height.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -863,7 +889,7 @@ if (location.protocol === 'file:'){
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <span class="logo-range">0–12″ / 0–300 mm</span>
+      <span class="logo-range">0–12″ / 0–300 <span class="u-mm">MM</span></span>
       <div id="guideSlot"></div>
     </header>
 
@@ -900,6 +926,7 @@ if (location.protocol === 'file:'){
       <input type="range" id="zeroAdj" min="-750" max="750" step="1" value="0" aria-label="Main scale adjustment">
       <div class="row">
         <button id="zeroBtn">Set zero on the plate</button>
+        <button id="resetZeroBtn" data-tip="Reset to zero&#10;Puts the main scale back where it started, with no adjustment."><i class="fa-solid fa-rotate-left"></i> Reset to zero</button>
         <button id="reclampBtn" title="Loosen and re-tighten the scriber clamp: the scriber ends up slightly high or low">Re-clamp scriber</button>
       </div>
       <p class="note" id="zeroNote">The whole main scale slides up to 7.5 mm either way on the knob at the top of the beam, so the gage can be zeroed on the plate.</p>
@@ -1057,6 +1084,7 @@ if (location.protocol === 'file:'){
 
 <script src="js/version.js?v=106"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
+<script src="js/collapse.js?v=1"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -1075,6 +1103,7 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/telescopic.css?v=69">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=52">
+<link rel="stylesheet" href="css/chrome.css?v=1">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -1087,7 +1116,7 @@ if (location.protocol === 'file:'){
         <span class="logo-brk" aria-hidden="true">]</span>
       </h1>
       <div class="logo-rule" aria-hidden="true"></div>
-      <div class="logo-foot"><span class="logo-range">8–150 mm · A–F</span>
+      <div class="logo-foot"><span class="logo-range">5/16–6″ / 8–150 <span class="u-mm">MM</span></span>
         <span class="gd-pair"><button id="guideBtn" type="button" aria-label="How do I use it? A guided walkthrough of measuring a hole" data-tip="How do I use it?&#10;Walks you through measuring a hole, step by step."><span class="gd-q" aria-hidden="true">?</span><span>How do I use it?</span></button></span>
       </div>
     </header>
@@ -1298,6 +1327,7 @@ if (location.protocol === 'file:'){
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=106"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
+<script src="js/collapse.js?v=1"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
