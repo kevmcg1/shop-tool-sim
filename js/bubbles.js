@@ -135,6 +135,22 @@
   // A tool page does not wait for its loading screen (the 3D engine can take a while): its controls and text pop as soon as the page is
   // laid out, round the loading bar, and the 3D picture glides in once the engine is ready. The page around the tools starts as soon as
   // it is read.
-  const start = () => requestAnimationFrame(() => setTimeout(run, 0));
+  // The page's markup comes before its scripts, so the moment the parser reaches the first script after it (any but this one and the loading
+  // bar's) everything to pop is already there: start then, without waiting for the rest of the scripts to download and run.
+  let began = false;
+  const begin = () => { if (began) return; began = true; requestAnimationFrame(() => setTimeout(run, 0)); };
+  const whenStyled = () => {
+    const ready = () => [...document.querySelectorAll('link[rel="stylesheet"]')].every(l => l.sheet);
+    if (ready()) begin(); else { const t = setInterval(() => { if (ready()){ clearInterval(t); begin(); } }, 10); setTimeout(() => { clearInterval(t); begin(); }, 3000); }
+  };
+  const start = () => whenStyled();
+  if (document.readyState === 'loading' && window.MutationObserver){
+    const mo = new MutationObserver(ms => {
+      for (const m of ms) for (const n of m.addedNodes){
+        if (n.nodeType === 1 && n.tagName === 'SCRIPT' && n.getAttribute('src') && !/(^|\/)(bubbles|loading)\.js/.test(n.getAttribute('src')) && document.body && document.body.children.length){ mo.disconnect(); whenStyled(); return; }
+      }
+    });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
