@@ -246,22 +246,22 @@
       let away = false;
       const o = extra => Object.assign({ cells: 64, ms: 800 }, opts, extra);
       const fx = window.__toolFx = {
-        out(){
+        out(extra){
           if (away) return Promise.resolve();
           away = true;
-          return run(root, false, o({ done: () => { if (away) root.visible = false; if (opts.frame) opts.frame(); } }));
+          return run(root, false, o(Object.assign({ done: () => { if (away) root.visible = false; if (opts.frame) opts.frame(); } }, extra)));
         },
         // the look changes by painting over the surface (a finish switched on or off), without the tool leaving the picture
         paint(apply, extra){
           if (away){ apply(); if (extra && extra.show) extra.show.forEach(o => { o.visible = true; }); if (extra && extra.hide) extra.hide.forEach(o => { o.visible = false; }); return Promise.resolve(); }
           return paint(root, apply, Object.assign({ cells: 40, ms: 750 }, opts, extra));
         },
-        in(){
+        in(extra){
           const was = away; away = false;
           if (!root.visible){ root.visible = true; if (opts.frame) opts.frame(); }
           if (!was) return Promise.resolve();
           // (the page's phase tracker, js/bubbles.js, hears when the tool has built in)
-          return run(root, true, o()).then(r => { if (window.__phaseDone) window.__phaseDone(); return r; });
+          return run(root, true, o(extra)).then(r => { if (window.__phaseDone) window.__phaseDone(); return r; });
         }
       };
       away = true;

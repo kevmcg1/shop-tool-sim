@@ -128,6 +128,7 @@ lockDown(window);
   // Switching tools: the open tool dissolves away first (js/dissolve.js), then the new tab's tool shows and builds
   // in. The tab lights up at once; clicking on meanwhile just changes which tool comes next.
   const toolFx = f => { try { return f && f.contentWindow && f.contentWindow.__toolFx; } catch (e) { return null; } };
+  const QUICK_OUT = { ms: 320 }, QUICK_IN = { ms: 480 };   // (a tool changed by its tab dissolves out and in quickly, with no wait for anything to load)
   let pend = null;
   function show(id){
     const a = APPS.find(x => x.id === id) || APPS[0];
@@ -139,8 +140,8 @@ lockDown(window);
     if (fx && !matchMedia('(prefers-reduced-motion: reduce)').matches){
       pend = { id: a.id }; mark(a);
       const go = () => { if (!pend) return; const n = pend.id; pend = null; swap(n); };
-      Promise.resolve(fx.out()).then(go, go);
-      setTimeout(go, 2000);   // never stuck on a tool that doesn't answer
+      Promise.resolve(fx.out(QUICK_OUT)).then(go, go);
+      setTimeout(go, 1000);   // never stuck on a tool that doesn't answer
       return;
     }
     swap(a.id);
@@ -170,7 +171,7 @@ lockDown(window);
     const fx = toolFx(f);
     if (f.dataset.warm){ delete f.dataset.warm; f.classList.remove('warm'); pause(f, false); }
     const settled = () => { if (window.__phase === 'switch' && window.__setPhase) window.__setPhase('ready'); };
-    if (fx) Promise.resolve(fx.in()).then(settled, settled); else settled();
+    if (fx) Promise.resolve(fx.in(QUICK_IN)).then(settled, settled); else settled();
     setTimeout(() => { try { f.focus(); } catch (e) {} }, 50);
     dockSync();
   }
@@ -396,7 +397,7 @@ lockDown(window);
       const f = frameFor(a, true), t0 = Date.now();
       const done = () => {
         if (f.dataset.warm){ delete f.dataset.warm; f.classList.remove('warm'); if (current !== a.id) pause(f, true); }
-        setTimeout(next, 400);
+        setTimeout(next, 50);
       };
       const poll = () => {
         if (!f.dataset.warm) return done();   // (opened by its tab meanwhile: it carries on as the tool on show)
@@ -405,10 +406,10 @@ lockDown(window);
         if (w && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading') && w.__phase === 'ready' && fx){
           if (calm) return done();
           const go = () => { if (f.dataset.warm) Promise.resolve(fx.out()).then(done, done); else done(); };
-          return setTimeout(go, 300);
+          return setTimeout(go, 50);
         }
         if (Date.now() - t0 > 90000) return done();
-        setTimeout(poll, 250);
+        setTimeout(poll, 60);
       };
       poll();
     };
@@ -418,11 +419,11 @@ lockDown(window);
     const t0 = Date.now();
     const tick = () => {
       let w; try { w = frames[current] && frames[current].contentWindow; } catch (e) {}
-      const ready = w && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading') && w.__phase === 'ready';
-      if (ready || Date.now() - t0 > 60000) (window.requestIdleCallback || (g => setTimeout(g, 200)))(warmUp, { timeout: 3000 });
-      else setTimeout(tick, 500);
+      const ready = w && w.document && w.document.readyState === 'complete' && !w.document.getElementById('loading');
+      if (ready || Date.now() - t0 > 60000) warmUp();
+      else setTimeout(tick, 100);
     };
-    setTimeout(tick, 1000);
+    tick();
   })();
   // dev mode (js/devmode.js) drives the tabs through this
   window.__shell = { APPS, show, frameFor, frames, current: () => current,
@@ -494,7 +495,7 @@ lockDown(window);
     JS.forEach(u => { const l = document.createElement('link'); l.rel = 'prefetch'; l.as = 'script'; l.href = u; document.head.appendChild(l); });
     MOD.forEach(u => { const l = document.createElement('link'); l.rel = 'modulepreload'; l.href = u; document.head.appendChild(l); });
   };
-  window.addEventListener('load', () => setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 200)))(go, { timeout: 5000 }), 3500));
+  window.addEventListener('load', () => setTimeout(() => (window.requestIdleCallback || (f => setTimeout(f, 50)))(go, { timeout: 500 }), 0));
   // repeat visits: keep the libraries and files on the device (not while developing on localhost, unless asked with ?sw=1)
   if ('serviceWorker' in navigator && /^https:$/.test(location.protocol) || (/[?&]sw=1/.test(location.search) && 'serviceWorker' in navigator)){
     window.addEventListener('load', () => { try { navigator.serviceWorker.register('sw.js').catch(() => {}); } catch (e) {} });
