@@ -14,7 +14,25 @@
   const SURF = 'aside,aside > section,#reading';                                            // panels: they fade in, what is on them pops
   const ICON = 'svg,img,i[class*="fa-"]';                                                   // loose icons and logos
   const SKIP = '.gd,.gd-card,.cheat-veil,.dev,.toast,.shop-cl,#loading,.tip,.howread,.mn,.coach,[hidden],[aria-hidden="true"]';
-  const STEP = 22, MAX_MS = 1500, DUR = 560, FADE = 420;
+  // two ways of arriving, told apart by the phase the page is in: the page loading (everything pops in, a slow cascade) and a tool being
+  // changed (the tabs, logo and buttons round the tool stay where they are; only the new tool's page pops in, quicker and gentler)
+  const MODES = {
+    load:   { STEP: 6, MAX_MS: 550, DUR: 280, FADE: 200, FROM: '0.25', T0: 20 },
+    switch: { STEP: 3, MAX_MS: 260, DUR: 220, FADE: 140, FROM: '0.5',  T0: 10 }
+  };
+  const root0 = document.documentElement;
+  // The phase tracker: window.__phase and <html data-phase> say which it is: loading (waiting to start), load (page-load cascade running),
+  // switch (a tool is being changed, up to the moment its picture has arrived), ready. window.__phaseLog keeps the last few changes.
+  const setPhase = p => {
+    if (window.__phase === p) return;
+    window.__phase = p; root0.dataset.phase = p;
+    (window.__phaseLog = window.__phaseLog || []).push({ t: Math.round(performance.now()), phase: p }); if (window.__phaseLog.length > 40) window.__phaseLog.shift();
+  };
+  window.__setPhase = setPhase;
+  setPhase('loading');
+  // a tool's page reads the phase of the page round it, to know whether it is loading with the page or being opened by a tab
+  const parentPhase = () => { try { return window.parent !== window ? window.parent.__phase : undefined; } catch (e) { return undefined; } };
+  let nextMode = null;
   const root = document.documentElement;
   let lastAt = 0, token = 0, settled = false, waiting = [];
 
@@ -23,9 +41,13 @@
   const on = !calm() && can();
 
   // the 3D tool waits for everything else (it is let go at once where there are no bubbles)
-  const settle = () => { settled = true; waiting.splice(0).forEach(f => { try { f(); } catch (e) {} }); };
+  const settle = () => {
+    settled = true;
+    if (window.parent === window && window.__phase !== 'switch') setPhase('ready');   // (the page round the tools has nothing more to wait for)
+    waiting.splice(0).forEach(f => { try { f(); } catch (e) {} });
+  };
   window.__afterBubbles = cb => { if (settled || !on) cb(); else { waiting.push(cb); setTimeout(() => { if (waiting.includes(cb)){ waiting.splice(waiting.indexOf(cb), 1); cb(); } }, 20000); } };
-  if (!on){ window.__bubbles = () => {}; return; }
+  if (!on){ window.__bubbles = () => {}; window.__phaseDone = () => {}; setPhase('ready'); return; }
 
   // hidden until their turn: everything but the 3D picture, the loading screen and any note (the class comes off in the same breath
   // as the bubbles are made, so nothing flashes)
@@ -75,19 +97,22 @@
 
   function run(){
     show();                                                       // (the animations below take over before anything is painted)
-    const now = Date.now(); if (now - lastAt < 1500) return false;
+    const now = Date.now(); if (now - lastAt < 1000) return false;
     const { surfs, pieces } = gather();
     if (!pieces.length && !surfs.length){ settle(); return false; }   // (a page that is not showing has nothing to pop)
     lastAt = now; const mine = ++token;
-    const t0 = 90, step = Math.min(STEP, MAX_MS/Math.max(1, pieces.length));
+    const mode = nextMode || (parentPhase() === 'switch' ? 'switch' : 'load'); nextMode = null;
+    const { STEP, MAX_MS, DUR, FADE, FROM, T0 } = MODES[mode];
+    setPhase(mode);
+    const t0 = T0, step = Math.min(STEP, MAX_MS/Math.max(1, pieces.length));
     const made = [];
     surfs.forEach((e, i) => {
-      try { made.push(e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: i*70, easing: 'ease-out', fill: 'backwards' })); } catch (er) {}
+      try { made.push(e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: i*(mode === 'load' ? 40 : 20), easing: 'ease-out', fill: 'backwards' })); } catch (er) {}
     });
     pieces.forEach((e, i) => {
       try {
         made.push(e.animate(
-          [{ opacity: 0, scale: '0.25' }, { opacity: 1, scale: '1.12', offset: 0.62 }, { opacity: 1, scale: '1' }],
+          [{ opacity: 0, scale: FROM }, { opacity: 1, scale: '1.12', offset: 0.62 }, { opacity: 1, scale: '1' }],
           { duration: DUR, delay: t0 + i*step, easing: 'cubic-bezier(.25,.8,.35,1)', fill: 'backwards' }));
       } catch (er) { /* this one just appears */ }
     });
@@ -95,6 +120,7 @@
     const total = t0 + Math.max(0, pieces.length - 1)*step + DUR;
     // the tool glides in once they are all up
     setTimeout(() => { if (token === mine) settle(); }, total + 80);
+    setTimeout(() => { if (token === mine && window.parent !== window && window.__phase === mode) window.__phaseDone(); }, total + 6000);   // (a tool whose picture never says it has arrived)
     // whatever happens (a hidden tab pauses animations), nothing is left see-through
     setTimeout(() => { if (token === mine) made.forEach(a => { try { a.finish(); } catch (e) {} }); }, total + 1500);
     return true;
@@ -102,7 +128,9 @@
 
   // called when a tool is shown again: its text and controls go out of sight at once, then pop in a moment later (so a page that has
   // just been shown has its size)
-  window.__bubbles = () => { settled = false; hide(); setTimeout(run, 60); };
+  window.__bubbles = (m) => { settled = false; nextMode = m || 'switch'; lastAt = 0; hide(); setTimeout(run, 40); };
+  // the tool's picture has arrived: the page is ready again (and so is the page round it, if this was a tool being changed)
+  window.__phaseDone = () => { setPhase('ready'); try { if (window.parent !== window && window.parent.__phase === 'switch' && window.parent.__setPhase) window.parent.__setPhase('ready'); } catch (e) {} };
   // a tool page waits for its loading screen to go; the page around the tools has none and starts as soon as it is read
   const start = () => {
     if (!document.getElementById('loading')){ requestAnimationFrame(() => setTimeout(run, 30)); return; }

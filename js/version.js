@@ -5,7 +5,7 @@
 window.__SHOP = {
   version: '1.3.30',
   changelog: [
-    { v: '1.3.30', date: '2026-10-25', title: 'Bubbles, then the tool', items: ['Everything pops in like bubbles, then the 3D tool glides in smoothly, each time a tool loads.'] },
+    { v: '1.3.30', date: '2026-10-25', title: 'Quick bubbles, tools still dissolve', items: ['Page text and controls pop in fast like bubbles, and tools still dissolve and rebuild as before.'] },
     { v: '1.3.29', date: '2026-10-24', title: 'Friendlier walkthroughs and sturdier knobs', items: ['Walkthroughs are friendlier, the micrometer frame is a U, and opening the inspector shows a no-cheating note.'] },
     { v: '1.3.28', date: '2026-10-23', title: 'Gentler openers and a range check', items: ['The How do I use it? openers are lighter and the micrometer walkthrough checks its range first.'] },
     { v: '1.3.27', date: '2026-10-22', title: 'Crisper walkthrough text', items: ['The How do I use it? card text is now sharper.'] },

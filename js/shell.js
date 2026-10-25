@@ -132,6 +132,8 @@ lockDown(window);
     const a = APPS.find(x => x.id === id) || APPS[0];
     if (pend){ pend.id = a.id; mark(a); return; }
     if (current === a.id) return;
+    // the phase tracker (js/bubbles.js): a tool is being changed, which the tool's page reads to arrive gently rather than as the page loading
+    if (current && window.__setPhase){ window.__setPhase('switch'); setTimeout(() => { if (window.__phase === 'switch') window.__setPhase('ready'); }, 20000); }
     const fx = current && toolFx(frames[current]);
     if (fx && !matchMedia('(prefers-reduced-motion: reduce)').matches){
       pend = { id: a.id }; mark(a);
@@ -162,9 +164,8 @@ lockDown(window);
     const relayout = () => { try { f.contentWindow.dispatchEvent(new Event('resize')); } catch (err) {} };
     requestAnimationFrame(relayout); setTimeout(relayout, 250);
     // a tool opened before builds back in (one opening for the first time builds in as it finishes loading)
-    // the whole page pops in again, the tabs and logo round the tool as well as the tool's own page (js/bubbles.js), and then the tool
-    // itself glides in (a tool opened before builds back in)
-    try { if (window.__bubbles) window.__bubbles(); } catch (e) {}
+    // the new tool's own page pops in (js/bubbles.js; the tabs and logo round it stay as they are), and then its picture glides in (a tool
+    // opened before builds back in)
     const fx = toolFx(f);
     let fw = null; try { fw = f.contentWindow; } catch (e) {}
     if (fw && fw.__bubbles){ fw.__bubbles(); if (fx){ if (fw.__afterBubbles) fw.__afterBubbles(() => fx.in()); else fx.in(); } }
