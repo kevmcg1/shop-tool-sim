@@ -336,13 +336,7 @@ lockDown(window);
     };
     tryIt();
   }
-  // "Hey, no cheating!" (js/seeyou.js): the note for anyone who reaches for the inspector while this page itself has the focus
-  // (a tool page shows it itself when it has the focus): it is shown in the tool that is practising, the one on show or the one beside the gauge
-  window.addEventListener('keydown', e => {
-    if (!window.__seeYouKey || !window.__seeYouKey(e)) return;
-    const fs = [frames[current], dock.tool && dock.frames ? dock.frames[dock.tool] : null];
-    for (const f of fs){ try { const w = f && f.contentWindow; if (w && w.__seeYou) { w.__seeYou(); break; } } catch (err) {} }
-  }, true);
+  // ("Hey, no cheating!" (js/seeyou.js) is shown by whichever page has the focus: this one, or the tool's own page. Only that one, so Escape and Okay close it.)
   window.addEventListener('message', e => {
     const m = e.data && e.data.tgauge;
     if (!m || !frames.telescopic || e.source !== frames.telescopic.contentWindow) return;   // only our own tab sends these
