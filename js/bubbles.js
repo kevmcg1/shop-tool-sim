@@ -17,7 +17,7 @@
   // two ways of arriving, told apart by the phase the page is in: the page loading (everything pops in, a slow cascade) and a tool being
   // changed (the tabs, logo and buttons round the tool stay where they are; only the new tool's page pops in, quicker and gentler)
   const MODES = {
-    load:   { STEP: 6, MAX_MS: 550, DUR: 280, FADE: 200, FROM: '0.25', T0: 20 },
+    load:   { STEP: 5, MAX_MS: 400, DUR: 230, FADE: 150, FROM: '0.25', T0: 0 },
     switch: { STEP: 3, MAX_MS: 260, DUR: 220, FADE: 140, FROM: '0.5',  T0: 10 }
   };
   const root0 = document.documentElement;
@@ -100,14 +100,15 @@
     const now = Date.now(); if (now - lastAt < 1000) return false;
     const { surfs, pieces } = gather();
     if (!pieces.length && !surfs.length){ settle(); return false; }   // (a page that is not showing has nothing to pop)
-    lastAt = now; const mine = ++token;
     const mode = nextMode || (parentPhase() === 'switch' ? 'switch' : 'load'); nextMode = null;
+    if (mode === 'switch'){ settle(); return false; }   // (changing tools only dissolves; the bubbles are for the page loading)
+    lastAt = now; const mine = ++token;
     const { STEP, MAX_MS, DUR, FADE, FROM, T0 } = MODES[mode];
     setPhase(mode);
     const t0 = T0, step = Math.min(STEP, MAX_MS/Math.max(1, pieces.length));
     const made = [];
     surfs.forEach((e, i) => {
-      try { made.push(e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: i*(mode === 'load' ? 40 : 20), easing: 'ease-out', fill: 'backwards' })); } catch (er) {}
+      try { made.push(e.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE, delay: i*(mode === 'load' ? 25 : 20), easing: 'ease-out', fill: 'backwards' })); } catch (er) {}
     });
     pieces.forEach((e, i) => {
       try {
@@ -134,7 +135,7 @@
   // a tool page waits for its loading screen to go; the page around the tools has none and starts as soon as it is read
   const start = () => {
     if (!document.getElementById('loading')){ requestAnimationFrame(() => setTimeout(run, 30)); return; }
-    const t = setInterval(() => { if (!document.getElementById('loading')){ clearInterval(t); setTimeout(run, 380); } }, 100);
+    const t = setInterval(() => { const l = document.getElementById('loading'); if (!l || l.classList.contains('ld-out')){ clearInterval(t); setTimeout(run, 20); } }, 40);
     setTimeout(() => clearInterval(t), 30000);
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
