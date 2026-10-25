@@ -138,10 +138,10 @@
   // The page's markup comes before its scripts, so the moment the parser reaches the first script after it (any but this one and the loading
   // bar's) everything to pop is already there: start then, without waiting for the rest of the scripts to download and run.
   let began = false;
-  const begin = () => { if (began) return; began = true; requestAnimationFrame(() => setTimeout(run, 0)); };
+  const begin = () => { if (began) return; began = true; run(); };
   const whenStyled = () => {
     const ready = () => [...document.querySelectorAll('link[rel="stylesheet"]')].every(l => l.sheet);
-    if (ready()) begin(); else { const t = setInterval(() => { if (ready()){ clearInterval(t); begin(); } }, 10); setTimeout(() => { clearInterval(t); begin(); }, 3000); }
+    if (ready()) begin(); else { const t = setInterval(() => { if (ready()){ clearInterval(t); begin(); } }, 4); setTimeout(() => { clearInterval(t); begin(); }, 3000); }
   };
   const start = () => whenStyled();
   if (document.readyState === 'loading' && window.MutationObserver){
