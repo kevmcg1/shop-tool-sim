@@ -387,6 +387,9 @@ lockDown(window);
   // where the tool's gauge is on screen right now (the lab's gauge is drawn over it), or null
   pose: () => { try { const f = dock.frames[dock.tool]; if (!f || !dockShowing() || (dock.el && dock.el.hidden)) return null; const sp = f.contentWindow.__tgSpot && f.contentWindow.__tgSpot(); if (!sp) return null; const fr = f.getBoundingClientRect(); return { x: fr.left + sp.x, y: fr.top + sp.y, ppm: sp.ppm, ax: sp.ax, hd: sp.hd, sl: sp.sl, lk: sp.lk, fp: sp.fp, clip: sp.box && [fr.left + sp.box[0], fr.top + sp.box[1], fr.left + sp.box[2], fr.top + sp.box[3]], holes: uiHoles(f) }; } catch (err) { return null; } },
   unghost: () => { try { const f = dock.frames[dock.tool]; if (f && f.contentWindow.__tgShow) f.contentWindow.__tgShow(); } catch (err) {} },
+  // Next, in the practice the lab handed to the tool on the right: the lab takes the gauge home, picks a new hole and asks which tool again
+  // (true when the lab took it; false leaves the tool to do its own Next)
+  nextHole: () => { try { const w = labWin(); return !!(dock.open && w && w.__tgNextHole && w.__tgNextHole()); } catch (err) { return false; } },
   // the lab's gauge has landed: the tool draws it itself from here on, in its own scene (true when it can; the lab then lets its own copy go)
   nativeShown: () => { try { frames.telescopic.contentWindow.__lab.nativeShown(); } catch (err) {} },
   native: () => { try { const f = dock.frames[dock.tool]; return !!(f && f.contentWindow.__tgNative && f.contentWindow.__tgNative()); } catch (err) { return false; } },

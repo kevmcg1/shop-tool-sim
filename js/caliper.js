@@ -2710,6 +2710,7 @@ window.__tgLoad = function(p, opts) {
   if (!hold) setTimeout(() => toast(prac ? 'From the gauge lab. Close the jaws gently on its heads and read it.' : 'From the gauge lab, locked at ' + p.mm.toFixed(2) + ' mm. Close the jaws gently on its heads and read it.'), 900);
   else tgNote = p.mm;
 };
+function nextFromLab() { try { return !!window.parent.__shell.nextHole(); } catch (e) { return false; } }
 let tgNote = null, tgSize = 0, tgGaugeIdx = -1, tgPrac = false;   // tgGaugeIdx: which gauge of the set the lab handed over
 
 // Where the gauge is, as this window's camera sees it: where its origin (the middle of the cross-bar) falls on screen, how many pixels a
@@ -2818,6 +2819,7 @@ function togglePTool(t) {
   if (state.practice && !pTools.has(PARTS[lastPracticeKey] ? PARTS[lastPracticeKey].tool : '')) loadPractice();
 }
 function loadPractice() {
+  if (tgPrac && state.practice && nextFromLab()) return;   // (a practice the gauge lab handed over: the lab picks the next hole, not this tool)
   const pool = Object.keys(PARTS).filter(k => pTools.has(PARTS[k].tool));
   const keys = pool.length > 1 ? pool.filter(k => k !== lastPracticeKey) : pool;
   const key = keys[Math.floor(Math.random() * keys.length)];

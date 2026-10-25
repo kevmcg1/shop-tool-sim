@@ -1337,6 +1337,9 @@ function practiceNext(){
  $('guess').value='';$('guess').placeholder=S.unit==='in'?'0.000':'0.00';
  practiceFb('<p>Lock the gauge in the hole, take it out, and measure the gauge with a tool. Then type the hole’s size in '+(S.unit==='in'?'inches':'millimeters')+' and press <b>Check</b>.</p>');
 }
+// Practice, from the tool on the right: its Next does not pick a new part there. It brings the gauge home, a new hole is picked here, and
+// the lab asks again which tool to measure the gauge with (the same question Auto measure asks).
+window.__tgNextHole=()=>{if(!S.practice)return false;autoCancel();ensureHome(()=>{practiceNext();autoMeasure();});return true;};
 function practiceCheck(){
  const li=S.lockInfo,v=parseFloat($('guess').value.replace(/[^0-9.]/g,''));
  if(isNaN(v)||v<=0){practiceFb('<p>Type the hole size you read on the tool first.</p>','warn');return;}

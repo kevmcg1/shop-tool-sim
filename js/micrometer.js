@@ -1200,6 +1200,7 @@ const noMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 let forcedVals = null;   // sizes handed in from the telescopic gauge lab for the next sample
 let guideHands = null, guideHandsOn = false, guideHandsOff = false, handsFree = false;   // "Show me": the hands that show how to hold the micrometer
 let tgGaugeIdx = -1;   // which gauge of the set the lab handed over (its letter), so it is drawn as that one
+let tgPrac = false;   // the lab handed over a practice gauge
 let tgHold = false, tgPend = null, tgVis = null, tgGhost = false, tgLen = 0, tgLab = false, tgNat = false;   // tgLab: the gauge is the lab's; tgNat: this view draws it itself now (not a stand-in)   // the lab's own gauge is drawn over this one (it flies in and stays): this one is then only a stand-in
 function newSample(key, keepSel, swapped){
   if (partWait){ partWait.key = key; partWait.keepSel = keepSel; return; }
@@ -1949,6 +1950,7 @@ function setPractice(on, keepPart){
   if (on && !keepPart) loadPractice();   // (keepPart: the gauge lab handed over its own part, so no random one is picked)
 }
 function loadPractice(){
+  if (tgPrac && state.practice){ try { if (window.parent.__shell.nextHole()) return; } catch (e) {} }   // (a practice the gauge lab handed over: the lab picks the next hole, not this tool)
   // new frame size each time (different from the last one), with a part it can measure: the micrometer on
   // screen dissolves away and the new one builds in with the part already in it
   let nb = Math.floor(Math.random()*6);
@@ -3533,7 +3535,7 @@ window.__tgLoad = (p, opts) => {
   tgGaugeIdx = window.__TG ? window.__TG.GAUGES.findIndex(g => g.name === p.gauge) : -1; tgLen = Math.round(p.mm/25.4*1e4)/1e4;
   const inch = p.mm/25.4, nb = Math.max(0, Math.min(3, Math.floor(inch + 1e-9)));
   // in the lab's practice mode the reading stays hidden here too: practice carries over, with the gauge as the part to read
-  const prac = !!p.practice;
+  const prac = !!p.practice; tgPrac = prac;
   if (state.practice !== prac || prac) setPractice(prac, true);
   if (prac){
     $('guess').value = '';
