@@ -26,15 +26,15 @@ if (location.protocol === 'file:'){
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=53">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/shell.css?v=54">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
 <header class="bar">
-  <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
+  <div class="brand-wrap"><div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div><span class="stable-tag" title="This is the stable release of Shop Tool Sim">Stable release</span></div>
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
   <div class="reset-wrap">
     <button type="button" class="reset-all" id="resetAll" aria-describedby="resetPop"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg><span class="ra-t">Reset all</span></button>
@@ -57,8 +57,9 @@ if (location.protocol === 'file:'){
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
 <link rel="stylesheet" href="css/caliper.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
+<link rel="stylesheet" href="css/hud.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -327,19 +328,19 @@ if (location.protocol === 'file:'){
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
 <script src="js/paper.js?v=5"><\/script>
-<script src="js/caliper.js?v=83"><\/script>
+<script src="js/caliper.js?v=84"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=15"><\/script>
-<script src="js/guide.js?v=99"><\/script>
+<script src="js/guide.js?v=100"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/flat-units.js?v=50"><\/script>
-<script src="js/version.js?v=106"><\/script>
+<script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
-<script src="js/collapse.js?v=1"><\/script>
+<script src="js/collapse.js?v=2"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -357,8 +358,9 @@ if (location.protocol === 'file:'){
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
 <link rel="stylesheet" href="css/micrometer.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
+<link rel="stylesheet" href="css/hud.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -585,18 +587,18 @@ if (location.protocol === 'file:'){
 <script src="js/tgauge.js?v=66"><\/script>
 <!-- js/hands.js?v=72 (the 3D hands, switched off: load it with a script tag here to bring them back) -->
 <script src="js/paper.js?v=5"><\/script>
-<script src="js/micrometer.js?v=116"><\/script>
+<script src="js/micrometer.js?v=117"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=15"><\/script>
-<script src="js/guide.js?v=99"><\/script>
+<script src="js/guide.js?v=100"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=5"><\/script>
-<script src="js/version.js?v=106"><\/script>
+<script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
-<script src="js/collapse.js?v=1"><\/script>
+<script src="js/collapse.js?v=2"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -614,8 +616,9 @@ if (location.protocol === 'file:'){
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
 <link rel="stylesheet" href="css/depth.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
+<link rel="stylesheet" href="css/hud.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -855,18 +858,18 @@ if (location.protocol === 'file:'){
 <script src="js/mouse-settings.js?v=3"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
-<script src="js/depth.js?v=65"><\/script>
+<script src="js/depth.js?v=66"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=15"><\/script>
-<script src="js/guide.js?v=99"><\/script>
+<script src="js/guide.js?v=100"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=5"><\/script>
-<script src="js/version.js?v=106"><\/script>
+<script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
-<script src="js/collapse.js?v=1"><\/script>
+<script src="js/collapse.js?v=2"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -884,8 +887,9 @@ if (location.protocol === 'file:'){
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
 <link rel="stylesheet" href="css/height.css?v=57">
 <link rel="stylesheet" href="css/embeds.css?v=1">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
+<link rel="stylesheet" href="css/hud.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -1081,19 +1085,19 @@ if (location.protocol === 'file:'){
 <script src="js/mouse-settings.js?v=3"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
-<script src="js/height.js?v=68"><\/script>
+<script src="js/height.js?v=69"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=4"><\/script>
 <script src="js/gdrich.js?v=15"><\/script>
-<script src="js/guide.js?v=99"><\/script>
+<script src="js/guide.js?v=100"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 
-<script src="js/version.js?v=106"><\/script>
+<script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
-<script src="js/collapse.js?v=1"><\/script>
+<script src="js/collapse.js?v=2"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
@@ -1109,10 +1113,11 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=69">
+<link rel="stylesheet" href="css/telescopic.css?v=70">
 <link rel="stylesheet" href="css/embeds.css?v=1">
-<link rel="stylesheet" href="css/icons.css?v=52">
-<link rel="stylesheet" href="css/chrome.css?v=1">
+<link rel="stylesheet" href="css/icons.css?v=53">
+<link rel="stylesheet" href="css/chrome.css?v=2">
+<link rel="stylesheet" href="css/hud.css?v=2">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
@@ -1334,14 +1339,14 @@ if (location.protocol === 'file:'){
 <script src="js/telescopic.js?v=102"><\/script>
 <script src="js/tips.js?v=52"><\/script>
 <script src="js/howread.js?v=5"><\/script>
-<script src="js/version.js?v=106"><\/script>
+<script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
-<script src="js/collapse.js?v=1"><\/script>
+<script src="js/collapse.js?v=2"><\/script>
 <script src="js/changelog.js?v=53"><\/script>
 </body>
 </html>
 </script>
-<script src="js/version.js?v=106"></script>
+<script src="js/version.js?v=107"></script>
 <script src="js/seeyou.js?v=2"></script>
 <script src="js/changelog.js?v=53"></script>
 <script src="js/mobile-notice.js?v=1"></script>

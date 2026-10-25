@@ -408,3 +408,13 @@ body.exam .quick{display:none!important}
 .ap-rows .ap-k{color:var(--muted)}
 .ap-rows .ap{justify-self:start;color:var(--ink)}
 .ap .nw{white-space:nowrap}
+
+/* small screens: the 3D view keeps a workable height and the page scrolls to the controls under it, instead of the view being squeezed away */
+main{overflow-y:auto;overflow-x:hidden}
+#view{flex:1 0 auto;min-height:300px}
+@media (max-height:620px){
+  #view{min-height:270px}
+  .hud{width:auto;max-width:220px;padding:10px 12px;gap:6px}
+  .hud .h-sec{display:none}
+  .hud .h-badge{width:32px;height:32px;font-size:17px}
+}
