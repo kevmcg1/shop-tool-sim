@@ -59,8 +59,9 @@
         .replace(new RegExp('<b>(' + KEYNAMES + ')</b>', 'g'), '\u0001$1\u0002')
         .replace(new RegExp('(^|[^\\w>\u0001])(' + KEYNAMES + ')(?![\\w<\u0002])', 'g'), '$1\u0001$2\u0002')
         .replace(/\u0001([^\u0002]+)\u0002/g, (m, k) => cap(k));
+      const up = h.charAt(0) === '\u200b'; if (up) h = h.slice(1);
       const plain = h.replace(/<[^>]+>/g, '').trim();
-      const kind = KEYRE.test(plain) ? 'key' : i === 0 ? 'lead' : TIPRE.test(plain) ? 'tip' : OKRE.test(plain) ? 'ok' : ACTRE.test(plain) ? 'act' : '';
+      const kind = up ? 'up' : KEYRE.test(plain) ? 'key' : i === 0 ? 'lead' : TIPRE.test(plain) ? 'tip' : OKRE.test(plain) ? 'ok' : ACTRE.test(plain) ? 'act' : '';
       return '<span class="gd-l' + (kind ? ' ' + kind : '') + '">' + h + '</span>';
     }).join('');
   }
@@ -80,6 +81,7 @@
 .gd-l{display:block}
 .gd-l+.gd-l{margin-top:0!important}
 .gd-l.lead{color:var(--ink,#ececee);font-size:14.5px;font-weight:550}
+.gd-l.up{margin-top:4px!important;padding:2px 0 2px 11px;border-left:2px solid color-mix(in srgb,var(--ph) 70%,transparent);color:color-mix(in srgb,var(--ph) 45%,#fff);font-weight:600;transition:color .35s ease,border-color .35s ease}
 .gd-l.act{position:relative;padding:6px 10px 6px 30px;border-radius:9px;background:color-mix(in srgb,var(--ph) 11%,transparent);border:1px solid color-mix(in srgb,var(--ph) 30%,transparent);color:var(--ink,#ececee)}
 .gd-l.act::before{content:"";position:absolute;left:11px;top:calc(50% - 5px);width:8px;height:8px;border-radius:50%;background:var(--ph);box-shadow:0 0 0 4px color-mix(in srgb,var(--ph) 25%,transparent)}
 .gd-l.tip{padding:6px 10px 6px 12px;border-radius:9px;border-left:3px solid #e8a547;background:rgba(232,165,71,.1);color:#e8d3a8}

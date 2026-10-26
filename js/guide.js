@@ -886,13 +886,39 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     while (j < STEPS.length - 1 && STEPS[j].part && STEPS[j].done) j++;
     if (j > stepI && j < STEPS.length) go(j);
   }
+  // An uplifting line closes every step's card: warm, specific and sure of you. Which one a step gets depends on what the step is (a check, a read, a
+  // hand move, the sum), it changes to a cheer once the step is done, and it stays the same on a step when you come back to it.
+  const UP = {
+    prep: ['Taking this care is what sets great machinists apart, and you’re doing it right from the start.', 'Habits like this are the secret behind every trusted reading, and now they’re yours.', 'Already working like a pro. This care is the whole game, and you’ve got it.', 'This small step makes every reading after it count. Great instincts.'],
+    zero: ['Starting from a true zero is how the pros do it, and you’re right there with them.', 'A clean zero is the best foundation a reading can have. You’re building it well.', 'You’re setting yourself up for readings you can trust. That’s real craft.'],
+    hand: ['Light and steady is the whole trick, and your hands are going to learn it fast.', 'Take your time. Every smooth motion here builds skill that stays with you.', 'You’ve got this. A gentle touch now means a confident reading in a moment.'],
+    read: ['Look at you, reading marks most people never learn to see.', 'You’re seeing thousandths of an inch. That’s a genuinely impressive skill, and it’s becoming yours.', 'Every mark you read makes the next one easier. You’re on a roll.', 'This is the part that feels like magic at first, and you’re already getting it.'],
+    sum: ['And there it is: a real reading, built by you, one clear step at a time. Well done.', 'You just did something that takes many people weeks to feel sure about. Enjoy that.', 'That’s the whole reading, and it’s yours. You should feel proud.'],
+    done: ['Beautiful work. That’s exactly how it’s done.', 'Spot on. You’re getting a real feel for this.', 'Nailed it. Your confidence is showing, and it’s earned.'],
+    gen: ['You’re doing great, and every step from here builds on what you already know.', 'Right on track. This is going to click for you.', 'Nice and steady. You’re getting better with every step.', 'You’re learning this the way the best machinists do. Keep going.']
+  };
+  const upHash = str => { let h = 0; for (let i = 0; i < str.length; i++) h = (h*31 + str.charCodeAt(i)) | 0; return Math.abs(h); };
+  function lift(s){
+    if (stepI === 0) return '';
+    const t = String(s.title || ''), last = stepI === STEPS.length - 1;
+    if (last) return 'You did it. You can read this tool with real confidence now, and you can be proud of that.';
+    const kind = (waitDone || s.done) && (s.waitFor || s.waitClick || s.byHand || s.drag) && s.drag !== 'look' ? 'done'
+      : /add them up/i.test(t) ? 'sum'
+      : /^(read|count|find|first number|the )/i.test(t) || s.hl ? (/zero/i.test(t) ? 'zero' : 'read')
+      : /zero/i.test(t) ? 'zero'
+      : /clean|check|paper|wipe|prep/i.test(t) || s.paper || s.phase === 'prep' ? 'prep'
+      : s.byHand || (s.drag && s.drag !== 'look') ? 'hand' : 'gen';
+    const pool = UP[kind];
+    return pool[upHash(t + '|' + stepI) % pool.length];
+  }
   function tick(){
     if (!root) return;
     const s = STEPS[stepI];
-    const text = soften(skipNote() + fn(s.text, s));
+    const base = soften(skipNote() + fn(s.text, s)), up = lift(s);
+    const text = base + (up ? '\n\u200b' + up : '');
     if (text !== lastText){
-      card.querySelector('p').innerHTML = window.__gdRich ? window.__gdRich.lines(String(text)) : String(text).split('\n').map(l => '<span class="gd-l">' + l + '</span>').join('');
-      if (window.__gdRich) window.__gdRich.shortcuts(card, tool, text);
+      card.querySelector('p').innerHTML = window.__gdRich ? window.__gdRich.lines(String(text)) : String(text).split('\n').map(l => '<span class="gd-l">' + l.replace(/^\u200b/, '') + '</span>').join('');
+      if (window.__gdRich) window.__gdRich.shortcuts(card, tool, base);
       lastText = text; measureCard();
     }
     syncMax();
