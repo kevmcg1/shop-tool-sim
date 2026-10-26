@@ -5,7 +5,7 @@
 window.__SHOP = {
   version: '1.3.32',
   changelog: [
-    { v: '1.3.31', date: '2026-10-26', title: 'Background gradients', items: ['Settings can change the background gradient in every tool, with a blue and dark gray default; the table now only shows under the depth micrometer and height gage, just where the tool and part stand.'] },
+    { v: '1.3.31', date: '2026-10-26', title: 'Background gradients', items: ['Settings can change the background gradient in every tool, with a blue and dark gray default; the table now only shows under the depth micrometer and height gage, just where the tool and part stand, the background dissolves and rebuilds when its gradient changes, shadows follow the dissolve, and every walkthrough step closes with an uplifting line.'] },
     { v: '1.3.30', date: '2026-10-25', title: 'Ranges, zero reset and small screens', items: ['Every tool shows its size range, has Reset to zero and folding sidebar categories, and fits small laptops.'] },
     { v: '1.3.29', date: '2026-10-24', title: 'Friendlier walkthroughs and sturdier knobs', items: ['Walkthroughs are friendlier, the micrometer frame is a U, and opening the inspector shows a no-cheating note.'] },
     { v: '1.3.28', date: '2026-10-23', title: 'Gentler openers and a range check', items: ['The How do I use it? openers are lighter and the micrometer walkthrough checks its range first.'] },

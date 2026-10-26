@@ -52,6 +52,18 @@
       m.userData = Object.assign({}, m.userData, { dissolve: true });
       return m;
     }
+    // the shadow follows the sweep: a piece's shadow is cast with the same cut as the piece itself (a depth material with the same discard)
+    function depthFor(side, U){
+      const m = new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking });
+      m.side = side;
+      m.onBeforeCompile = sh => {
+        Object.assign(sh.uniforms, U);
+        sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vDzWP;').replace('#include <project_vertex>', '#include <project_vertex>\nvDzWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + FRAG).replace('#include <clipping_planes_fragment>', 'dzCut();\n#include <clipping_planes_fragment>');
+      };
+      m.customProgramCacheKey = () => 'dissolve-depth';
+      return m;
+    }
     // everything dissolving out right now; a piece building in waits for all of it
     let outs = Promise.resolve();
 
@@ -96,9 +108,11 @@
         if (!list.every(mine)) return;
         if (list.some(x => x.isRawShaderMaterial)){ if (o.visible){ o.visible = false; hid.push(o); } return; }
         const patched = Array.isArray(orig) ? orig.map(x => patch(x, U)) : patch(orig, U);
-        swaps.push([o, orig, o.castShadow, patched]);
+        swaps.push([o, orig, o.castShadow, patched, o.customDepthMaterial]);
         o.material = patched;
-        o.castShadow = false;
+        // its shadow is cut the same way, so it dissolves and builds along with it (a piece with a depth material of its own just casts none meanwhile)
+        if (o.isMesh && o.castShadow && !o.customDepthMaterial && !o.isInstancedMesh && !o.isSkinnedMesh) o.customDepthMaterial = depthFor(list[0].side, U);
+        else o.castShadow = false;
       });
       if (opts.shadow) opts.shadow();
       frame();
@@ -109,7 +123,7 @@
       // a lock painted red): that one stays. The copies are left for the garbage collector rather than disposed,
       // so their compiled shaders stay cached and the next sweep (a whole tool has many) starts without a stall
       const restore = () => {
-        for (const [o, orig, cs, patched] of swaps) if (o.material === patched){ o.material = orig; o.castShadow = cs; }
+        for (const [o, orig, cs, patched, cdm] of swaps) if (o.material === patched){ o.material = orig; o.castShadow = cs; o.customDepthMaterial = cdm; }
         hid.forEach(o => { o.visible = true; });
         if (obj.userData.dz === job) delete obj.userData.dz;
       };
@@ -152,6 +166,7 @@
           const e = k*k*(3 - 2*k);
           U.uDzFront.value = -BAND - JITTER + e*(1 + 2*BAND + 2*JITTER);
           U.uDzInv.value.copy(obj.matrixWorld).invert();
+          if (opts.shadow) opts.shadow();
           frame();
           if ((dir > 0 && k >= 1) || (dir < 0 && k <= 0)) { finish(); return; }
           raf = requestAnimationFrame(step);
