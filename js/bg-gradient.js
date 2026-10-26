@@ -1,10 +1,10 @@
-// Settings > Background: the gradient behind the 3D view, the same in every tool. The default is a dark blue.
+// Settings > Background: the gradient behind the 3D view, the same in every tool. The default is a mix of blue and dark gray.
 // Picking one dissolves the tool away, fades the background to the new gradient, and builds the tool back in
 // (the same dissolve as switching tabs, js/dissolve.js). Kept in localStorage and shared by every tool, also while they are open.
 (function(){
   const KEY = 'shop-tool-sim:bg';
   const PRESETS = [
-    { id: 'blue',     name: 'Dark blue', c: ['#1e3150', '#122036', '#080f1c'] },
+    { id: 'blue',     name: 'Blue gray', c: ['#27426e', '#1b2433', '#111214'] },
     { id: 'graphite', name: 'Graphite',  c: ['#25282d', '#18191c', '#101113'] },
     { id: 'black',    name: 'Black',     c: ['#16171a', '#0b0b0d', '#000000'] },
     { id: 'forest',   name: 'Forest',    c: ['#1f3a2f', '#12251d', '#07100c'] },
@@ -14,7 +14,7 @@
   const HEX = /^#[0-9a-f]{6}$/i;
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
   const fromCustom = (a, b) => [a, mix(a, b, .6), b];
-  let state = { id: 'blue', a: '#1e3150', b: '#080f1c' };
+  let state = { id: 'blue', a: '#27426e', b: '#111214' };
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (s && (PRESETS.some(p => p.id === s.id) || (s.id === 'custom' && HEX.test(s.a) && HEX.test(s.b)))) state = Object.assign(state, s);
@@ -22,10 +22,10 @@
   const stops = () => { const p = PRESETS.find(x => x.id === state.id); return p ? p.c : fromCustom(state.a, state.b); };
 
   const CSS = `
-@property --vg0{syntax:"<color>";inherits:true;initial-value:#1e3150}
-@property --vg1{syntax:"<color>";inherits:true;initial-value:#122036}
-@property --vg2{syntax:"<color>";inherits:true;initial-value:#080f1c}
-:root{--vg0:#1e3150;--vg1:#122036;--vg2:#080f1c;transition:--vg0 .7s ease,--vg1 .7s ease,--vg2 .7s ease}
+@property --vg0{syntax:"<color>";inherits:true;initial-value:#27426e}
+@property --vg1{syntax:"<color>";inherits:true;initial-value:#1b2433}
+@property --vg2{syntax:"<color>";inherits:true;initial-value:#111214}
+:root{--vg0:#27426e;--vg1:#1b2433;--vg2:#111214;transition:--vg0 .7s ease,--vg1 .7s ease,--vg2 .7s ease}
 #view,.loading{background:radial-gradient(120% 90% at 50% 38%,var(--vg0) 0%,var(--vg1) 55%,var(--vg2) 100%)!important}
 .bg-set{margin:14px 0 0;font-family:"Inter",system-ui,sans-serif}
 .bg-set .bg-l{display:block;margin:0 0 8px;font-size:12px;font-weight:600;color:#c9ced4}
