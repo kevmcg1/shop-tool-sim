@@ -782,7 +782,7 @@ function build(){
   plateMesh.userData.noFit = true;
   plateMesh.position.y = -0.75; plateMesh.receiveShadow = true;
   plateMesh.visible = !tableOff;
-  root.add(plateMesh);
+  root.add(plateMesh); fitPlate();
 
   micG = new T.Group(); root.add(micG);
 
@@ -1341,7 +1341,7 @@ function newSample(key, keepSel, swapped){
   }
   state.lifted = false;
   state.px = S.halfX + 2.2; state.pz = 0;
-  partG.position.set(state.px, 0, state.pz);
+  partG.position.set(state.px, 0, state.pz); fitPlate();
   refreshEval();
   if (state.cut) updateSection();
   const g = partG, fx = { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; } };
@@ -1623,13 +1623,22 @@ function setLock(v){
   toast(v ? 'Rod clamped' : 'Rod released');
 }
 
+// the table only covers where the micrometer and the part stand, with a little margin; it follows the part as it moves
+function fitPlate(){
+  if (!plateMesh) return;
+  let x0 = -BASE_W/2, x1 = BASE_W/2, z0 = -BASE_D/2, z1 = BASE_D/2;
+  const S = state.sample;
+  if (S){ x0 = Math.min(x0, state.px - S.halfX); x1 = Math.max(x1, state.px + S.halfX); z0 = Math.min(z0, state.pz - S.halfZ); z1 = Math.max(z1, state.pz + S.halfZ); }
+  const m = 0.7; x0 -= m; x1 += m; z0 -= m; z1 += m;
+  plateMesh.scale.set((x1 - x0)/26, 1, (z1 - z0)/16); plateMesh.position.x = (x0 + x1)/2; plateMesh.position.z = (z0 + z1)/2;
+}
 /* ---------- moving the part ---------- */
 function movePartTo(x, z){
   if (!state.sample) return;
   const lx = state.sample.halfX + 3.2, lz = state.sample.halfZ + 2;
   state.px = Math.max(-lx, Math.min(lx, x));
   state.pz = Math.max(-lz, Math.min(lz, z));
-  partG.position.set(state.px, 0, state.pz);
+  partG.position.set(state.px, 0, state.pz); fitPlate();
   refreshEval();
   if (state.cut) updateSection();
   renderer.shadowMap.needsUpdate = true;

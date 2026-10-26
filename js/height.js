@@ -402,7 +402,7 @@ function buildGage(){
     m.map = pm.map; m.roughnessMap = pm.roughnessMap; m.bumpMap = pm.bumpMap; m.bumpScale = pm.bumpScale;
     m.metalness = pm.metalness; m.roughness = pm.roughness; m.envMapIntensity = pm.envMapIntensity; m.color.set(0xffffff); m.needsUpdate = true;
   }
-  const plate = box(GRANITE.x0, GRANITE.x1, -60, 0, GRANITE.z0, GRANITE.z1, M.granite);
+  const plate = box(-0.5, 0.5, -60, 0, -0.5, 0.5, M.granite);   // (sized to the tool and the part by fitPlate())
   plate.castShadow = false; plate.userData.noFit = true;
   root.add(plate); tableMesh = plate;
 
@@ -815,6 +815,15 @@ function partBounds(P){
   return b;
 }
 // where the part can go: on the plate, and never into the base (it slides along the base instead)
+// the table only covers where the tool and the part stand, with a little margin; it follows the part as it moves
+function fitPlate(){
+  if (!tableMesh) return;
+  let x0 = BASE_X0, x1 = BASE_X1, z0 = -BASE_D/2, z1 = BASE_D/2;
+  const P = state.part;
+  if (P && P.solids && P.solids.length){ const b = partBounds(P); x0 = Math.min(x0, state.px + b.x0); x1 = Math.max(x1, state.px + b.x1); z0 = Math.min(z0, state.pz + b.z0); z1 = Math.max(z1, state.pz + b.z1); }
+  const m = 35; x0 -= m; x1 += m; z0 -= m; z1 += m;
+  tableMesh.scale.set(x1 - x0, 1, z1 - z0); tableMesh.position.set((x0 + x1)/2, 0, (z0 + z1)/2);
+}
 function placePart(x, z){
   const P = state.part, from = state.partGoal || { x: state.px, z: state.pz };
   if (!P || !P.solids.length) return from;
@@ -2206,6 +2215,7 @@ function tick(now){
   if (state.hs < minHs() - 1e-9) state.hs = minHs();       // nothing passes through the scriber
   if (state.seq) stepSeq(dt);
   if (partG) partG.position.set(state.px, 0, state.pz);
+  fitPlate();
   sliderG.position.y = state.hs + SCRIBE_DROP;
   scriberG.position.y = state.eps;
   unitG.position.y = state.hs + SCRIBE_DROP + SL_H + state.g;

@@ -427,7 +427,7 @@ ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
 // Shop graphics: a precision-ground surface plate under the tool (js/plate.js) while it is on; plain shadow only when it is off
 // (built the first time it is needed: its textures take a while to paint, and most visits never turn Shop graphics on)
 let shopTable = null;
-function makeShopTable(){ if (shopTable || !window.__plate) return shopTable; shopTable = (() => { const t = window.__plate(T).slab(1150, 680, 40, 2); t.scale.setScalar(1/25.4);  { const top = Array.isArray(t.material) ? t.material[0] : t.material; ['map', 'roughnessMap', 'bumpMap'].forEach(n => { if (top[n]) top[n].repeat.set(1/110, 1/110); }); top.envMapIntensity = 0.3; top.color.setRGB(0.25, 0.25, 0.25); } t.traverse(o => { o.userData.noFit = true; }); t.receiveShadow = true; t.visible = false; scene.add(t); return t; })(); { const c = center(), D = dims(); shopTable.position.set(c.x, D.bottom - 0.335, 0); } return shopTable; }
+function makeShopTable(){ return null; }   // (no surface plate here: it only belongs under the depth micrometer and the height gage)
 try { if (localStorage.getItem('pt-real-finish') === '1') makeShopTable(); } catch (e) {}
 function shopTableOpts(){ if (realFinish) makeShopTable(); return shopTable ? (realFinish ? { show: [shopTable] } : { hide: [shopTable] }) : {}; }
 
