@@ -3,29 +3,34 @@
 // (the same dissolve as switching tabs, js/dissolve.js). Kept in localStorage and shared by every tool, also while they are open.
 (function(){
   const KEY = 'shop-tool-sim:bg';
+  // each theme is a primary color over the dark gray edge (or black); the gradient runs from the primary, blended into the gray, out to the edge
+  const EDGE = '#111214';
   const PRESETS = [
-    { id: 'blue',     name: 'Blue gray', c: ['#27426e', '#1b2433', '#111214'] },
-    { id: 'graphite', name: 'Graphite',  c: ['#25282d', '#18191c', '#101113'] },
-    { id: 'black',    name: 'Black',     c: ['#16171a', '#0b0b0d', '#000000'] },
-    { id: 'forest',   name: 'Forest',    c: ['#1f3a2f', '#12251d', '#07100c'] },
-    { id: 'plum',     name: 'Plum',      c: ['#38244a', '#221530', '#0e0814'] },
-    { id: 'slate',    name: 'Slate',     c: ['#2c3a46', '#1b252d', '#0d1216'] }
+    { id: 'blue',     name: 'Blue',     a: '#3f6bb0', b: EDGE },
+    { id: 'teal',     name: 'Teal',     a: '#2f9c95', b: EDGE },
+    { id: 'green',    name: 'Green',    a: '#3f9a63', b: EDGE },
+    { id: 'amber',    name: 'Amber',    a: '#c58a2c', b: EDGE },
+    { id: 'red',      name: 'Red',      a: '#c0463f', b: EDGE },
+    { id: 'purple',   name: 'Purple',   a: '#7b52b5', b: EDGE },
+    { id: 'pink',     name: 'Pink',     a: '#c24f8f', b: EDGE },
+    { id: 'graphite', name: 'Graphite', a: '#6c727a', b: EDGE },
+    { id: 'black',    name: 'Black',    a: '#3a3d42', b: '#000000' }
   ];
   const HEX = /^#[0-9a-f]{6}$/i;
   const mix = (a, b, t) => '#' + [1, 3, 5].map(i => Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t).toString(16).padStart(2, '0')).join('');
-  const fromCustom = (a, b) => [a, mix(a, b, .6), b];
-  let state = { id: 'blue', a: '#27426e', b: '#111214' };
+  const fromColors = (a, b) => { const c = mix(b, a, .55); return [c, mix(b, c, .5), b]; };
+  let state = { id: 'blue', a: '#3f6bb0', b: EDGE };
   try {
     const s = JSON.parse(localStorage.getItem(KEY) || 'null');
-    if (s && (PRESETS.some(p => p.id === s.id) || (s.id === 'custom' && HEX.test(s.a) && HEX.test(s.b)))) state = Object.assign(state, s);
+    if (s && HEX.test(s.a) && HEX.test(s.b) && (s.id === 'custom' || PRESETS.some(p => p.id === s.id))) state = { id: s.id, a: s.a, b: s.b };
   } catch (e) {}
-  const stops = () => { const p = PRESETS.find(x => x.id === state.id); return p ? p.c : fromCustom(state.a, state.b); };
+  const stops = () => fromColors(state.a, state.b);
 
   const CSS = `
-@property --vg0{syntax:"<color>";inherits:true;initial-value:#27426e}
-@property --vg1{syntax:"<color>";inherits:true;initial-value:#1b2433}
+@property --vg0{syntax:"<color>";inherits:true;initial-value:#2a436a}
+@property --vg1{syntax:"<color>";inherits:true;initial-value:#1e2b3f}
 @property --vg2{syntax:"<color>";inherits:true;initial-value:#111214}
-:root{--vg0:#27426e;--vg1:#1b2433;--vg2:#111214;transition:--vg0 .7s ease,--vg1 .7s ease,--vg2 .7s ease}
+:root{--vg0:#2a436a;--vg1:#1e2b3f;--vg2:#111214;transition:--vg0 .7s ease,--vg1 .7s ease,--vg2 .7s ease}
 #view,.loading{background:radial-gradient(120% 90% at 50% 38%,var(--vg0) 0%,var(--vg1) 55%,var(--vg2) 100%)!important}
 .bg-set{margin:14px 0 0;font-family:"Inter",system-ui,sans-serif}
 .bg-set .bg-l{display:block;margin:0 0 8px;font-size:12px;font-weight:600;color:#c9ced4}
@@ -34,8 +39,7 @@
 .bg-sw button:hover{border-color:#8a8f97}
 .bg-sw button[aria-pressed="true"]{border-color:#fff;background:rgba(255,255,255,.06)}
 .bg-sw i{flex:none;width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:radial-gradient(circle at 50% 38%,var(--a),var(--b))}
-.bg-cu{display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.bg-cu.on{display:grid}
+.bg-cu{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .bg-cu label{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border:1px solid #3d4147;border-radius:8px;font-size:12px;color:#c9ced4}
 .bg-cu input{width:28px;height:20px;padding:0;border:1px solid #3d4147;border-radius:5px;background:none;cursor:pointer}
 @media (prefers-reduced-motion: reduce){:root{transition:none}.bg-sw button{transition:none}}`;
@@ -49,8 +53,7 @@
   function sync(){
     if (!ui) return;
     ui.sw.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === state.id)));
-    ui.cu.classList.toggle('on', state.id === 'custom');
-    ui.ca.value = state.a; ui.cb.value = state.b;
+        ui.ca.value = state.a; ui.cb.value = state.b;
   }
   // dissolve the tool away, change the background while it is gone, build it back in
   function change(){
@@ -70,14 +73,13 @@
     if (!host) return;
     const box = document.createElement('div'); box.className = 'bg-set';
     box.innerHTML = '<span class="bg-l">Background</span><div class="bg-sw" role="group" aria-label="Background gradient">' +
-      PRESETS.map(p => `<button type="button" data-id="${p.id}" style="--a:${p.c[0]};--b:${p.c[2]}"><i></i>${p.name}</button>`).join('') +
-      '<button type="button" data-id="custom" style="--a:#5b93ea;--b:#101113"><i></i>Custom</button></div>' +
-      '<div class="bg-cu"><label>Center<input type="color" class="bg-a"></label><label>Edge<input type="color" class="bg-b"></label></div>';
+      PRESETS.map(p => { const c = fromColors(p.a, p.b); return `<button type="button" data-id="${p.id}" style="--a:${c[0]};--b:${c[2]}"><i></i>${p.name}</button>`; }).join('') + '</div>' +
+      '<div class="bg-cu"><label>Primary color<input type="color" class="bg-a"></label><label>Edge<input type="color" class="bg-b"></label></div>';
     host.appendChild(box);
     ui = { sw: box.querySelector('.bg-sw'), cu: box.querySelector('.bg-cu'), ca: box.querySelector('.bg-a'), cb: box.querySelector('.bg-b') };
     ui.sw.addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b || b.dataset.id === state.id) return;
-      state.id = b.dataset.id;
+      const p = PRESETS.find(x => x.id === b.dataset.id); state = { id: p.id, a: p.a, b: p.b };
             change();
     });
     let t = 0;
@@ -87,7 +89,7 @@
   }
   window.addEventListener('storage', e => {
     if (e.key !== KEY || !e.newValue) return;
-    try { Object.assign(state, JSON.parse(e.newValue)); paintVars(); sync(); } catch (err) {}
+    try { const n = JSON.parse(e.newValue); if (HEX.test(n.a) && HEX.test(n.b)) state = { id: n.id, a: n.a, b: n.b }; paintVars(); sync(); } catch (err) {}
   });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();
