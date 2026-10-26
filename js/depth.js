@@ -757,6 +757,7 @@ function basePath(){
 let tableOff = false;
 try { tableOff = localStorage.getItem('pt-table-off') === '1'; } catch (e) {}
 function setTable(off, instant){
+  return;   // (the table is only under the height gage)
   const was = tableOff; tableOff = off;
   if (plateMesh){
     const fx = { frame: invalidate, shadow: () => { renderer.shadowMap.needsUpdate = true; }, cells: 60 };
@@ -781,7 +782,7 @@ function build(){
   plateMesh = new T.Mesh(new T.BoxGeometry(26, 1.5, 16), M.granite);
   plateMesh.userData.noFit = true;
   plateMesh.position.y = -0.75; plateMesh.receiveShadow = true;
-  plateMesh.visible = !tableOff;
+  plateMesh.visible = false;   // (no table in this tool)
   root.add(plateMesh); fitPlate();
 
   micG = new T.Group(); root.add(micG);
@@ -3328,8 +3329,6 @@ function bindUI(){
   $('closeQuick').addEventListener('click', () => { state.seq = null; goTo(0); });
   $('openQuick').addEventListener('click', () => { state.seq = null; ratchetClose(); });
   $('cutBtn').addEventListener('click', () => { state.cut = !state.cut; applyCut(); });
-  $('tableBtn').addEventListener('click', () => setTable(!tableOff));
-  setTable(tableOff, true);
   $('faceBtn').addEventListener('click', () => setFaceMode(!faceMode));
   el.addEventListener('pointerleave', () => { if (faceHL.visible){ hideFaceHL(); invalidate(); } });
   $('sectionChk').addEventListener('change', e => { state.cut = e.target.checked; applyCut(); });
