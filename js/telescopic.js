@@ -167,7 +167,7 @@ const capMat=new THREE.MeshStandardMaterial({map:hatchTex(),metalness:.1,roughne
 // grinder, a soft sheen, and its grade stamped near the front edge. Its top face is the table the part sits on.
 const bench=window.__plate?window.__plate(THREE).slab(1500,720,48,3):new THREE.Mesh(new THREE.PlaneGeometry(1500,720),new THREE.MeshStandardMaterial({color:0x5b6068,roughness:.5,metalness:.8}));
 if(!window.__plate)bench.rotation.x=-Math.PI/2;
-scene.add(bench);
+scene.add(bench);bench.visible=false;   // (no table in this tool: only the height gage has one)
 
 /* ================= SHOP GRAPHICS ================= */
 // On: the realistic machine-shop look (real metal finishes, the ground surface plate). Off: plain solid colours. The choice is shared with
