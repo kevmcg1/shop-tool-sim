@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="intro-on">
 <head>
 <script src="js/bubbles.js?v=8"></script>
 <script>
@@ -23,6 +23,32 @@ if (location.protocol === 'file:'){
   var g = document.createElement('link'); g.rel = 'stylesheet'; g.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Roboto:ital,wght@1,700&display=swap'; document.head.appendChild(g);
 }
 </script>
+<style id="introCss">
+/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, then flies to the top-left brand and settles into it.
+   The real brand stays hidden until then (html.intro-on); a timer in the script below drops that class if anything goes wrong. */
+html.intro-on .brand{visibility:hidden}
+.intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;cursor:default}
+.intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);transition:opacity .9s cubic-bezier(.45,0,.25,1)}
+.intro.land .intro-bg{opacity:0}
+.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden}
+.intro-on-go .intro-logo{visibility:visible}
+.intro-logo .iw{display:inline-block;opacity:0;transform-origin:50% 60%}
+.intro-logo .ib{display:inline-block;color:#e8c547;opacity:0;--dx:-1}
+.intro-logo .ib.c{--dx:1}
+.intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
+.intro-on-go .iw.w1{animation-delay:.2s}.intro-on-go .iw.w2{animation-delay:.55s}.intro-on-go .iw.w3{animation-delay:.9s}
+@keyframes introBreathe{from{opacity:0;transform:scale(.94);filter:blur(4px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
+.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.34,1.56,.64,1) 1.8s forwards,introBounce .9s cubic-bezier(.45,0,.25,1) 2.5s 2}
+@keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*.2in))}40%{opacity:1}100%{opacity:1;transform:translateX(0)}}
+@keyframes introBounce{0%,100%{transform:translateX(0)}35%{transform:translateX(calc(var(--dx)*.04in))}65%{transform:translateX(calc(var(--dx)*-.015in))}}
+/* flight: animations are frozen at their end state, then the lockup glides to the brand's spot and takes its brackets' color */
+.intro.settle .iw,.intro.settle .ib{animation:none;opacity:1;transform:none;filter:none}
+.intro.settle .ib{opacity:1}
+.intro.settle .intro-logo{transition:transform 1s cubic-bezier(.65,0,.2,1)}
+.intro.settle .ib{transition:opacity 1s ease}
+.intro.land .ib{opacity:.85}
+@media (prefers-reduced-motion:reduce){.intro-on-go .iw{animation:none;opacity:1}.intro-on-go .ib{animation:introBrk .4s linear .3s forwards}.intro.settle .intro-logo,.intro-bg{transition-duration:.01s}}
+</style>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
@@ -32,6 +58,41 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="ib o">[</span><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span><span class="ib c">]</span></div></div>
+<script>
+(function(){
+  var root = document.documentElement, ov = document.getElementById('intro'), logo = document.getElementById('introLogo');
+  var started = false, flying = false, over = false, bounces = 2;
+  function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); }
+  function start(){
+    if (started) return; started = true; root.classList.add('intro-on-go');
+    // the lockup writes itself in (~4.3 s with its two bracket bounces), then flies; a click or key skips ahead to the flight
+    setTimeout(fly, 4300);
+  }
+  function fly(){
+    if (flying || over) return; flying = true;
+    var brand = document.querySelector('.bar .brand'), b = brand && brand.getBoundingClientRect();
+    if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('settle', 'land'); setTimeout(finish, 950); return; }   // no brand on screen (narrow phones): just fade out
+    ov.classList.add('settle');
+    var r = logo.getBoundingClientRect(), s = b.width / r.width;
+    var dx = (b.left + b.width/2) - (r.left + r.width/2), dy = (b.top + b.height/2 + (parseFloat(getComputedStyle(brand).paddingTop) || 0)/2) - (r.top + r.height/2);   // (the brand's text sits half its top padding below the middle of its box)
+    void logo.offsetWidth;
+    logo.style.transform = 'translate(' + dx + 'px,' + dy + 'px) translate(-50%,-50%) scale(' + s + ')';
+    ov.classList.add('land');
+    logo.addEventListener('transitionend', function(e){ if (e.propertyName === 'transform') finish(); });
+    setTimeout(finish, 2500);   // (finish also runs when the glide ends)
+  }
+  function ready(){
+    var f = (document.fonts && document.fonts.load) ? document.fonts.load('1em "Bebas Neue"').catch(function(){}) : Promise.resolve();
+    Promise.race([f, new Promise(function(r){ setTimeout(r, 1500); })]).then(start);
+  }
+  if (document.readyState === 'complete') ready(); else window.addEventListener('load', ready);
+  ov.addEventListener('click', fly);
+  window.addEventListener('keydown', function(){ if (started) fly(); }, { once: true });
+  setTimeout(finish, 12000);   // safety: the real brand always comes back
+  window.__introFly = fly;
+})();
+</script>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
 <header class="bar">
   <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
