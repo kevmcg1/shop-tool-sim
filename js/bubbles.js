@@ -17,7 +17,7 @@
   // two ways of arriving, told apart by the phase the page is in: the page loading (everything pops in, a slow cascade) and a tool being
   // changed (the tabs, logo and buttons round the tool stay where they are; only the new tool's page pops in, quicker and gentler)
   const MODES = {
-    load:   { STEP: 5, MAX_MS: 400, DUR: 230, FADE: 150, FROM: '0.25', T0: 0 },
+    load:   { STEP: 14, MAX_MS: 1300, DUR: 280, FADE: 150, FROM: '0.25', T0: 0 },
     switch: { STEP: 3, MAX_MS: 260, DUR: 220, FADE: 140, FROM: '0.5',  T0: 10 }
   };
   const root0 = document.documentElement;
