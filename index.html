@@ -38,7 +38,7 @@ html.intro-on .brand{visibility:hidden}
 .intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
 .intro-on-go .iw.w1{animation-delay:.2s}.intro-on-go .iw.w2{animation-delay:.55s}.intro-on-go .iw.w3{animation-delay:.9s}
 @keyframes introBreathe{from{opacity:0;transform:scale(.94);filter:blur(4px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
-.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.34,1.56,.64,1) 1.8s forwards,introBounce .9s cubic-bezier(.45,0,.25,1) 2.5s 2}
+.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.34,1.56,.64,1) 1.8s forwards,introBounce .9s cubic-bezier(.45,0,.25,1) 2.5s 1}
 @keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*.2in))}40%{opacity:1}100%{opacity:1;transform:translateX(0)}}
 @keyframes introBounce{0%,100%{transform:translateX(0)}35%{transform:translateX(calc(var(--dx)*.04in))}65%{transform:translateX(calc(var(--dx)*-.015in))}}
 /* flight: animations are frozen at their end state, then the lockup glides to the brand's spot and takes its brackets' color */
@@ -62,12 +62,12 @@ html.intro-on .brand{visibility:hidden}
 <script>
 (function(){
   var root = document.documentElement, ov = document.getElementById('intro'), logo = document.getElementById('introLogo');
-  var started = false, flying = false, over = false, bounces = 2;
+  var started = false, flying = false, over = false;
   function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); }
   function start(){
     if (started) return; started = true; root.classList.add('intro-on-go');
-    // the lockup writes itself in (~4.3 s with its two bracket bounces), then flies; a click or key skips ahead to the flight
-    setTimeout(fly, 4300);
+    // the lockup writes itself in (~3.5 s with its one bracket bounce), then flies; a click or key skips ahead to the flight
+    setTimeout(fly, 3500);
   }
   function fly(){
     if (flying || over) return; flying = true;
