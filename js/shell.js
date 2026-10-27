@@ -440,7 +440,9 @@ lockDown(window);
   reveal: () => { try { const f = dock.frames[dock.tool]; if (f && f.contentWindow.__tgReveal) f.contentWindow.__tgReveal(); } catch (err) {} } };
   let start = location.hash.slice(1);
   if (!APPS.some(a => a.id === start)){ try { start = localStorage.getItem('precision-tools-last'); } catch (e) {} }
-  show(APPS.some(a => a.id === start) ? start : APPS[0].id);
+  // the first tool's heavy start-up (its 3D scene) waits for the opening animation to finish, so nothing busy shares the page with it and it stays at 60 fps
+  const first = () => show(APPS.some(a => a.id === start) ? start : APPS[0].id);
+  if (window.__afterIntro) window.__afterIntro(first); else first();
 })();
 // "Reset all", for when someone is stuck with no way out. It has to be held for 3 seconds, so it never happens by
 // accident, and a note under it says what it does while it is hovered or held. It clears everything the tools

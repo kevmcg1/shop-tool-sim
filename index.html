@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="intro-on">
 <head>
 <script src="js/bubbles.js?v=8"></script>
 <script>
@@ -23,6 +23,39 @@ if (location.protocol === 'file:'){
   var g = document.createElement('link'); g.rel = 'stylesheet'; g.href = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Roboto:ital,wght@1,700&display=swap'; document.head.appendChild(g);
 }
 </script>
+<style id="introCss">
+/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, then flies to the top-left brand and settles into it.
+   Everything here moves with transform and opacity only (no blur, no layout), and the whole timeline, flight included, is CSS,
+   so the browser's compositor runs it and the page loading underneath cannot make it stutter.
+   The real brand stays hidden until then (html.intro-on); a timer in the script below drops that class if anything goes wrong. */
+html.intro-on .brand{visibility:hidden}
+.intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
+.intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
+.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
+.intro-logo .iw{display:inline-block;opacity:0;transform-origin:50% 60%;will-change:transform,opacity}
+.intro-logo .ib{display:inline-block;color:#e8c547;opacity:0;--dx:-1;will-change:transform,opacity}
+.intro-logo .ib.c{--dx:1}
+.intro-on-go .intro-logo{visibility:visible}
+.intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
+.intro-on-go .iw.w1{animation-delay:.2s}.intro-on-go .iw.w2{animation-delay:.55s}.intro-on-go .iw.w3{animation-delay:.9s}
+@keyframes introBreathe{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.22,1,.36,1) 1.8s forwards,introBounce .7s ease-in-out 2.5s 1,introDim 1s ease 3.5s forwards}
+@keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*.2in))}40%{opacity:1}100%{opacity:1;transform:translateX(0)}}
+@keyframes introBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--dx)*.06in))}}
+@keyframes introDim{from{opacity:1}to{opacity:.85}}
+/* flight at 3.5 s: --fx/--fy/--fs (set by the script from the brand's real position) carry the lockup there; the background fades with it */
+.intro-on-go .intro-logo{animation:introFly 1s cubic-bezier(.65,0,.2,1) 3.5s forwards}
+.intro-on-go .intro-bg{animation:introFade .9s cubic-bezier(.45,0,.25,1) 3.5s forwards}
+@keyframes introFly{from{transform:translate(-50%,-50%)}to{transform:translate(var(--fx,0px),var(--fy,0px)) translate(-50%,-50%) scale(var(--fs,1))}}
+@keyframes introFade{to{opacity:0}}
+.intro.nobrand .intro-logo{animation-name:introOut}
+@keyframes introOut{to{opacity:0}}
+/* a click or key press skips to the flight */
+.intro.now .intro-logo,.intro.now .intro-bg{animation-delay:0s}
+.intro.now .iw{animation:none;opacity:1;transform:none}
+.intro.now .ib{animation:introDim 1s ease 0s forwards;transform:none}
+@media (prefers-reduced-motion:reduce){.intro-on-go .iw{animation:none;opacity:1}.intro-on-go .ib{animation:introBrk .4s linear .3s forwards,introDim 1s ease 2.5s forwards}.intro-on-go .intro-logo{animation-delay:2.5s}.intro-on-go .intro-bg{animation-delay:2.5s}}
+</style>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
@@ -32,6 +65,41 @@ if (location.protocol === 'file:'){
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="ib o">[</span><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span><span class="ib c">]</span></div></div>
+<script>
+(function(){
+  var root = document.documentElement, ov = document.getElementById('intro'), logo = document.getElementById('introLogo');
+  var started = false, over = false, after = [];
+  function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); after.splice(0).forEach(function(f){ f(); }); }
+  window.__afterIntro = function(f){ if (over) f(); else after.push(f); };   // the page's own start-up waits here
+  // where the flight ends: the lockup is scaled to the brand's width and centered on it (all from layout, which no transform changes)
+  function aim(){
+    var brand = document.querySelector('.bar .brand'), b = brand && brand.getBoundingClientRect();
+    if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('nobrand'); return; }   // no brand on screen (narrow phones): just fade out
+    ov.classList.remove('nobrand');
+    var pad = parseFloat(getComputedStyle(brand).paddingTop) || 0;   // (the brand's text sits half its top padding below the middle of its box)
+    logo.style.setProperty('--fs', b.width / logo.offsetWidth);
+    logo.style.setProperty('--fx', (b.left + b.width/2 - ov.clientWidth/2) + 'px');
+    logo.style.setProperty('--fy', (b.top + b.height/2 + pad/2 - ov.clientHeight/2) + 'px');
+  }
+  function start(){
+    if (started) return; started = true; aim(); root.classList.add('intro-on-go');
+    setTimeout(aim, 2500);   // once more after the page around it has settled; the flight reads these values as it runs
+    window.addEventListener('resize', aim);
+  }
+  function ready(){
+    var f = (document.fonts && document.fonts.load) ? document.fonts.load('1em "Bebas Neue"').catch(function(){}) : Promise.resolve();
+    Promise.race([f, new Promise(function(r){ setTimeout(r, 1500); })]).then(start);
+  }
+  if (document.readyState === 'complete') ready(); else window.addEventListener('load', ready);
+  logo.addEventListener('animationend', function(e){ if (e.target === logo && (e.animationName === 'introFly' || e.animationName === 'introOut')) finish(); });
+  function skip(){ if (started) ov.classList.add('now'); }
+  ov.addEventListener('click', skip);
+  window.addEventListener('keydown', skip, { once: true });
+  setTimeout(finish, 12000);   // safety: the real brand always comes back
+  window.__introFly = skip;
+})();
+</script>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
 <header class="bar">
   <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
@@ -1359,7 +1427,7 @@ if (location.protocol === 'file:'){
 <script src="js/seeyou.js?v=2"></script>
 <script src="js/changelog.js?v=54"></script>
 <script src="js/mobile-notice.js?v=1"></script>
-<script src="js/shell.js?v=69"></script>
+<script src="js/shell.js?v=70"></script>
 <script src="js/devmode.js?v=73"></script>
 </body>
 </html>
