@@ -39,9 +39,9 @@ html.intro-on .brand{visibility:hidden}
 .intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
 .intro-on-go .iw.w1{animation-delay:.2s}.intro-on-go .iw.w2{animation-delay:.55s}.intro-on-go .iw.w3{animation-delay:.9s}
 @keyframes introBreathe{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
-.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.34,1.56,.64,1) 1.8s forwards,introBounce .9s cubic-bezier(.45,0,.25,1) 2.5s 1,introDim 1s ease 3.5s forwards}
+.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.22,1,.36,1) 1.8s forwards,introBounce .7s ease-in-out 2.5s 1,introDim 1s ease 3.5s forwards}
 @keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*.2in))}40%{opacity:1}100%{opacity:1;transform:translateX(0)}}
-@keyframes introBounce{0%,100%{transform:translateX(0)}35%{transform:translateX(calc(var(--dx)*.04in))}65%{transform:translateX(calc(var(--dx)*-.015in))}}
+@keyframes introBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--dx)*.06in))}}
 @keyframes introDim{from{opacity:1}to{opacity:.85}}
 /* flight at 3.5 s: --fx/--fy/--fs (set by the script from the brand's real position) carry the lockup there; the background fades with it */
 .intro-on-go .intro-logo{animation:introFly 1s cubic-bezier(.65,0,.2,1) 3.5s forwards}
