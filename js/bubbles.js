@@ -17,7 +17,7 @@
   // two ways of arriving, told apart by the phase the page is in: the page loading (everything pops in, a slow cascade) and a tool being
   // changed (the tabs, logo and buttons round the tool stay where they are; only the new tool's page pops in, quicker and gentler)
   const MODES = {
-    load:   { STEP: 14, MAX_MS: 1300, DUR: 280, FADE: 150, FROM: '0.25', T0: 0 },
+    load:   { STEP: 20, MAX_MS: 1900, DUR: 380, FADE: 220, FROM: '0.35', T0: 0 },
     switch: { STEP: 3, MAX_MS: 260, DUR: 220, FADE: 140, FROM: '0.5',  T0: 10 }
   };
   const root0 = document.documentElement;
@@ -113,8 +113,8 @@
     pieces.forEach((e, i) => {
       try {
         made.push(e.animate(
-          [{ opacity: 0, scale: FROM }, { opacity: 1, scale: '1.12', offset: 0.62 }, { opacity: 1, scale: '1' }],
-          { duration: DUR, delay: t0 + i*step, easing: 'cubic-bezier(.25,.8,.35,1)', fill: 'backwards' }));
+          [{ opacity: 0, scale: FROM }, { opacity: 1, scale: '1.07', offset: 0.66 }, { opacity: 1, scale: '1' }],
+          { duration: DUR, delay: t0 + i*step, easing: 'cubic-bezier(.33,.9,.4,1)', fill: 'backwards' }));
       } catch (er) { /* this one just appears */ }
     });
     made.forEach(a => { a.onfinish = a.oncancel = () => { try { a.cancel(); } catch (e) {} }; });
