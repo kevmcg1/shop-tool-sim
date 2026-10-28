@@ -3165,6 +3165,23 @@ function vizMMVern(A, Y) {
   if (Y && !yVisible) v.text(`Yours: line ${Y.vern}`, W - 8, H - 9, { anchor: 'end', size: 10, col: VZ.bad, alts: [[0, -12]] });
   return v.render();
 }
+// what each section of a right reading means, in words (a wrong answer gets ex.why instead)
+function rightWhy(k, A) {
+  if (k === 'inch') return `Look left along the beam from the ${isVern() ? 'vernier zero' : 'slider edge'}. The last whole-inch number is “${A.inch}”, so the reading starts at ${A.inch}.000″.`;
+  if (k === 'tenth') return isVern()
+    ? `Each small digit on the beam is a hundred thou (0.100″). The vernier zero has passed ${A.tenth} of them after “${A.inch}”, adding ${A.tenth * 100} thou.`
+    : `Every line after “${A.inch}” is a hundred thou (0.100″). The slider edge has passed ${A.tenth} of them: ${A.tenth * 100} thou.`;
+  if (k === 'sub') return A.sub
+    ? `Each short beam line is 25 thou (0.025″). Past digit ${A.tenth} the vernier zero has passed ${A.sub} of them, adding ${A.sub * 25} thou.`
+    : `No short beam line has been passed after digit ${A.tenth}, so this adds nothing.`;
+  if (k === 'vern') return `Run your eye along the vernier and find the one line that meets a beam line exactly. It's line ${A.vern}, which adds ${A.vern} thou.`;
+  return `The needle points at mark ${A.dial}. Each small mark is one thou (0.001″), so this adds ${A.dial} thou.`;
+}
+function rightWhyMM(k, A) {
+  if (k === 'inch') return `Look left along the top scale from the vernier zero. The last centimeter number is “${A.cm}”, so the reading starts at ${A.cm * 10} mm.`;
+  if (k === 'tenth') return `Each small line on the top scale is 1 mm. After “${A.cm}” the vernier zero has passed ${plural(A.mm, 'line')}, adding ${A.mm} mm.`;
+  return `Run your eye along the top vernier and find the one line that meets a millimeter line exactly. It's line ${A.vern}: each line is 0.05 mm, so it adds ${(A.vern * 0.05).toFixed(2)} mm.`;
+}
 function checkPracticeMM() {
   const fb = $('feedback'), g = parseFloat(String($('guess').value).replace(/mm|[\s,]/gi, m => m === ',' ? '.' : ''));
   if (isNaN(g)) { fb.innerHTML = `<div class="fb-empty"><i class="fa-solid fa-keyboard"></i> Whenever you’re ready, type your reading in millimeters — for example 33.95.</div>`; return; }
@@ -3220,12 +3237,13 @@ function checkPracticeMM() {
   const eq = `<div class="fx-sec">How the reading adds up</div><div class="fx-eq">${chips}<span class="fx-op">=</span>
     <div class="fx-chip total"><small>Reading</small><b>${(ans / 100).toFixed(2)} mm</b><em>correct total</em></div></div>`;
   const notes = ex.notes.map(nt => `<div class="fx-note"><i class="fa-solid ${nt.icon}"></i><div><b>${nt.title}</b><span>${nt.text}</span></div></div>`).join('');
-  const steps = wrong.length ? `<div class="fx-sec">Let’s look closer</div><div class="fx-steps">${wrong.map((k, i) => {
+  const shown = ok ? keys : wrong;   // a right answer gets every section explained too
+  const steps = shown.length ? `<div class="fx-sec">${ok ? 'Here’s how this reading is made' : 'Let’s look closer'}</div><div class="fx-steps">${shown.map((k, i) => {
     const D = STEP_MM[k];
     return `<article class="fx-step" style="--c:${D.css}">
-      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg"><s>${D.word(Y)}</s><i class="fa-solid fa-arrow-right"></i><strong>${D.word(A)}</strong></span></div>
-      <p>${ex.why[k]}</p>
-      <figure>${vizMM(k, A, Y)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span><span><i style="background:#ff7a6e"></i>yours</span></figcaption></figure>
+      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg">${ok ? '' : `<s>${D.word(Y)}</s><i class="fa-solid fa-arrow-right"></i>`}<strong>${D.word(A)}</strong></span></div>
+      <p>${ok ? rightWhyMM(k, A) : ex.why[k]}</p>
+      <figure>${vizMM(k, A, ok ? null : Y)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span>${ok ? '' : '<span><i style="background:#ff7a6e"></i>yours</span>'}</figcaption></figure>
       <div class="fx-step-f"><span><i class="fa-solid fa-location-arrow"></i>Arrow on the caliper and flat view</span>
       <button class="fx-show" data-show="${k}"><i class="fa-solid fa-crosshairs"></i>Show me</button></div></article>`;
   }).join('')}</div>` : '';
@@ -3280,14 +3298,15 @@ function checkPractice() {
   const eq = `<div class="fx-sec">How the reading adds up</div><div class="fx-eq">${chips}<span class="fx-op">=</span>
     <div class="fx-chip total"><small>Reading</small><b>${(ans / 1000).toFixed(3)}″</b><em>correct total</em></div></div>`;
   const notes = ex.notes.map(nt => `<div class="fx-note"><i class="fa-solid ${nt.icon}"></i><div><b>${nt.title}</b><span>${nt.text}</span></div></div>`).join('');
-  const steps = wrong.length ? `<div class="fx-sec">Let’s look closer</div><div class="fx-steps">${wrong.map((k, i) => {
+  const shown = ok ? stepKeys() : wrong;   // a right answer gets every section explained too
+  const steps = shown.length ? `<div class="fx-sec">${ok ? 'Here’s how this reading is made' : 'Let’s look closer'}</div><div class="fx-steps">${shown.map((k, i) => {
     const D = STEP_DEF[k];
-    const yd = stepWord(k, Y);
+    const yd = ok ? '' : stepWord(k, Y);
     const ad = stepWord(k, A);
     return `<article class="fx-step" style="--c:${D.css}">
-      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg"><s>${yd}</s><i class="fa-solid fa-arrow-right"></i><strong>${ad}</strong></span></div>
-      <p>${ex.why[k]}</p>
-      <figure>${vizFor(k, A, Y)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span><span><i style="background:#ff7a6e"></i>yours</span></figcaption></figure>
+      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg">${ok ? '' : `<s>${yd}</s><i class="fa-solid fa-arrow-right"></i>`}<strong>${ad}</strong></span></div>
+      <p>${ok ? rightWhy(k, A) : ex.why[k]}</p>
+      <figure>${vizFor(k, A, ok ? null : Y)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span>${ok ? '' : '<span><i style="background:#ff7a6e"></i>yours</span>'}</figcaption></figure>
       <div class="fx-step-f"><span><i class="fa-solid fa-location-arrow"></i>Arrow on the caliper and flat view</span>
       <button class="fx-show" data-show="${k}"><i class="fa-solid fa-crosshairs"></i>Show me</button></div></article>`;
   }).join('')}</div>` : '';
