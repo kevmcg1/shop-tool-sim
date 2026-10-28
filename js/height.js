@@ -1162,6 +1162,12 @@ function vizHG(k, u, A, Y){
   v.text('Lines meet here', 8, yk, { anchor: 'start', col: VZ.ok, size: 9.5, weight: 600, within: { x: 0, y: 0, w: 100, h: H } });
   return v.render();
 }
+// what each section of a right reading means, in words (a wrong answer gets ex.why instead)
+function rightWhyHG(k, u, A){
+  const U = UNIT[u];
+  if (k === 'main') return 'Look straight across from the vernier’s 0 line to the ' + U.side + '-hand main scale: the last line at or below it is worth <b>' + fmtU(u, A.main) + U.sym + '</b>' + (u === 'in' ? ' (each line is 0.050″, numbered every inch).' : ' (each line is 1 mm, numbered every centimeter).');
+  return 'Run your eye up the vernier until one of its lines meets a main-scale line exactly. That’s line <b>' + A.k + '</b>, and each line is worth ' + U.vstep + (u === 'in' ? '″' : ' mm') + ', so it adds ' + fmtU(u, A.k*U.vstep) + U.sym + '.';
+}
 function checkPractice(){
   const u = $('pUnit').value, U = UNIT[u], fb = $('pfb');
   const g = parseFloat(String($('guess').value).replace(/[″"a-z\s]/gi, ''));
@@ -1225,11 +1231,12 @@ function checkPractice(){
   const eq = '<div class="fx-sec">How the reading adds up</div><div class="fx-eq">' + chips + '<span class="fx-op">=</span>' +
     '<div class="fx-chip total"><small>Reading</small><b>' + fmtU(u, aVal) + U.sym + '</b><em>correct total</em>' + (ok ? '' : '<span class="yv" style="color:#ff9d94"><i class="fa-solid fa-xmark"></i>You answered ' + esc(String(g)) + U.sym + '</span>') + '</div></div>';
   const notes = ex.notes.map(nt => '<div class="fx-note"><i class="fa-solid ' + nt.icon + '"></i><div><b>' + nt.title + '</b><span>' + nt.text + '</span></div></div>').join('');
-  const steps = wrong.length ? '<div class="fx-sec">Let’s look closer</div><div class="fx-steps">' + wrong.map((k, i) => {
+  const shown = ok ? KEYS : wrong;   // a right answer gets every section explained too
+  const steps = shown.length ? '<div class="fx-sec">' + (ok ? 'Here’s how this reading is made' : 'Let’s look closer') + '</div><div class="fx-steps">' + shown.map((k, i) => {
     const D = STEPS[k], mk = miss && miss.keys.includes(k);
     const yd = Y ? (k === 'main' ? fmtU(u, Y.main) + U.sym : 'line ' + Y.k) : '—', ad = k === 'main' ? fmtU(u, A.main) + U.sym : 'line ' + A.k;
-    return '<article class="fx-step" style="--c:' + D.css + '"><div class="fx-step-h"><span class="num">' + (i + 1) + '</span><b>' + D.name + '</b><span class="chg"><s>' + (mk ? 'not added' : yd) + '</s><i class="fa-solid fa-arrow-right"></i><strong>' + ad + '</strong></span></div>' +
-      '<p>' + ex.why[k] + '</p><figure>' + vizHG(k, u, A, Y || A) + '<figcaption><span><i style="background:#5fcf8a"></i>correct</span><span><i style="background:#ff7a6e"></i>yours</span></figcaption></figure>' +
+    return '<article class="fx-step" style="--c:' + D.css + '"><div class="fx-step-h"><span class="num">' + (i + 1) + '</span><b>' + D.name + '</b><span class="chg">' + (ok ? '' : '<s>' + (mk ? 'not added' : yd) + '</s><i class="fa-solid fa-arrow-right"></i>') + '<strong>' + ad + '</strong></span></div>' +
+      '<p>' + (ok ? rightWhyHG(k, u, A) : ex.why[k]) + '</p><figure>' + vizHG(k, u, A, Y || A) + '<figcaption><span><i style="background:#5fcf8a"></i>correct</span>' + (ok ? '' : '<span><i style="background:#ff7a6e"></i>yours</span>') + '</figcaption></figure>' +
       '<div class="fx-step-f"><span><i class="fa-solid fa-location-arrow"></i>Highlighted on the gage</span><button class="fx-show" data-show="' + u + ':' + k + '"><i class="fa-solid fa-crosshairs"></i>Show me</button></div></article>';
   }).join('') + '</div>' : '';
   const good = !ok && Y ? KEYS.filter(k => !wrong.includes(k)) : [];

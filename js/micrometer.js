@@ -2205,6 +2205,14 @@ function findMissing(you, ans, A, Y){
 }
 const listWords = ks => ks.length === 1 ? ks[0] : ks.slice(0, -1).join(', ') + ' and ' + ks[ks.length - 1];
 
+// what each section of a right reading means, in words (a wrong answer gets ex.why instead)
+function rightWhy(k, A){
+  if (k === 'inch') return `On this ${B}–${B + 1}″ micrometer every reading starts at ${A.inch}.0000″, the frame size. The scales below are added on top of it.`;
+  if (k === 'a') return `Look just left of the thimble edge: the last number you can fully see is “${A.a}”, and each number is worth 0.100″, so this adds ${(A.a*0.1).toFixed(3)}″.`;
+  if (k === 'b') return A.b ? `Every line after that number is 0.025″. The thimble edge has uncovered ${A.b} of them, so this adds ${(A.b*0.025).toFixed(3)}″.` : 'No line after the number is uncovered yet, so this adds nothing.';
+  if (k === 'c') return `Follow the sleeve’s index line across onto the thimble. It lands on line ${A.c}, and each thimble line is 0.001″, so this adds ${(A.c*0.001).toFixed(3)}″.`;
+  return A.d ? `On the vernier, line ${A.d} is the one that makes a perfectly straight line with a thimble line. Each vernier line is 0.0001″, so this adds 0.000${A.d}″.` : 'The vernier’s 0 line is the one that lines up, so it adds nothing.';
+}
 function checkPractice(){
   const fb = $('feedback'), raw = $('guess').value;
   const g = parseIn(raw);
@@ -2304,15 +2312,16 @@ function checkPractice(){
     <div class="fx-eq">${chips}<span class="fx-op">=</span>
       <div class="fx-chip total"><small>Reading</small><b>${fmt(ans/1e4)}″</b><em>correct total</em>${ok ? '' : `<span class="yv" style="color:#ff9d94"><i class="fa-solid fa-xmark"></i>You answered ${esc(fmt(you/1e4))}″</span>`}</div></div>`;
   const notes = ex.notes.map(nt => `<div class="fx-note"><i class="fa-solid ${nt.icon}"></i><div><b>${nt.title}</b><span>${nt.text}</span></div></div>`).join('');
-  const steps = wrong.length ? `<div class="fx-sec">Let’s look closer</div><div class="fx-steps">${wrong.map((k, i) => {
+  const shown = ok ? STEP_KEYS : wrong;   // a right answer gets every section explained too
+  const steps = shown.length ? `<div class="fx-sec">${ok ? 'Here’s how this reading is made' : 'Let’s look closer'}</div><div class="fx-steps">${shown.map((k, i) => {
     const D = STEP_DEF[k];
-    const yd = k === 'inch' ? `${Y.inch}.0000″` : k === 'a' ? `“${Y.a}”` : k === 'b' ? `${Y.b} line${Y.b === 1 ? '' : 's'}` : `line ${Y[k]}`;
+    const yd = ok ? '' : k === 'inch' ? `${Y.inch}.0000″` : k === 'a' ? `“${Y.a}”` : k === 'b' ? `${Y.b} line${Y.b === 1 ? '' : 's'}` : `line ${Y[k]}`;
     const ad = k === 'inch' ? `${A.inch}.0000″` : k === 'a' ? `“${A.a}”` : k === 'b' ? `${A.b} line${A.b === 1 ? '' : 's'}` : `line ${A[k]}`;
     const mk = miss && miss.keys.includes(k);
     return `<article class="fx-step" style="--c:${D.css}">
-      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg">${mk && miss.type === 'missing' ? '<s>not added</s>' : `<s>${yd}</s>`}<i class="fa-solid fa-arrow-right"></i><strong>${mk && miss.type === 'extra' ? 'not needed' : ad}</strong></span></div>
-      <p>${ex.why[k]}</p>
-      <figure>${vizFor(k, A, Y, ans)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span><span><i style="background:#ff7a6e"></i>yours</span></figcaption></figure>
+      <div class="fx-step-h"><span class="num">${i + 1}</span><b>${D.name}</b><span class="chg">${ok ? '' : `${mk && miss.type === 'missing' ? '<s>not added</s>' : `<s>${yd}</s>`}<i class="fa-solid fa-arrow-right"></i>`}<strong>${mk && miss.type === 'extra' ? 'not needed' : ad}</strong></span></div>
+      <p>${ok ? rightWhy(k, A) : ex.why[k]}</p>
+      <figure>${vizFor(k, A, ok ? A : Y, ans)}<figcaption><span><i style="background:#5fcf8a"></i>correct</span>${ok ? '' : '<span><i style="background:#ff7a6e"></i>yours</span>'}</figcaption></figure>
       <div class="fx-step-f"><span><i class="fa-solid fa-location-arrow"></i>${k === 'inch' ? 'Arrow on the nameplate' : 'Arrow on the micrometer and flat view'}</span>
       <button class="fx-show" data-show="${k}"><i class="fa-solid fa-crosshairs"></i>Show me</button></div></article>`;
   }).join('')}</div>` : '';

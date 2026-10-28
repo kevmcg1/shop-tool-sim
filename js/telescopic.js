@@ -1354,7 +1354,9 @@ function practiceCheck(){
   msg=err>0?(deg>1.2?'You read long, and the gauge was locked '+deg.toFixed(1)+'° off square, which makes it read long. Lock it at the shortest point.':'You read long. Check the lock was square, and that the tool read right.')
    :'You read short. Closing the tool too hard squeezes the heads in, or the gauge slipped when it came out.';
  }
- practiceFb('<p><b>'+msg+'</b></p><p>The hole is Ø'+sz(li.D)+'. You read '+sz(mm)+' ('+diff+').</p>',cls);
+ // a right reading is explained too: how the gauge measures a hole
+ const how=cls==='ok'?'<p>Here’s why it works: the gauge’s heads spring apart until they touch both sides of the hole, and the lock freezes that width. Measuring the locked gauge with a tool then gives the hole’s size.'+(deg>1.2?' It was locked '+deg.toFixed(1)+'° off square here, which reads a little long, so lock it at the shortest point.':' It was locked square (only '+deg.toFixed(1)+'° off), which is why it reads true.')+'</p>':'';
+ practiceFb('<p><b>'+msg+'</b></p><p>The hole is Ø'+sz(li.D)+'. You read '+sz(mm)+' ('+diff+').</p>'+how,cls);
 }
 
 /* ================= WIRING ================= */
