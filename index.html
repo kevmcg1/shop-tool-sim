@@ -28,7 +28,7 @@ if (location.protocol === 'file:'){
    Everything here moves with transform and opacity only (no blur, no layout), and the whole timeline, flight included, is CSS,
    so the browser's compositor runs it and the page loading underneath cannot make it stutter.
    The real brand stays hidden until then (html.intro-on); a timer in the script below drops that class if anything goes wrong. */
-html.intro-on .brand{visibility:hidden}
+html.intro-on .title-tab span{visibility:hidden}
 .intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
 .intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
 .intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
@@ -59,7 +59,7 @@ html.intro-on .brand{visibility:hidden}
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=58">
+<link rel="stylesheet" href="css/shell.css?v=59">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
@@ -74,7 +74,7 @@ html.intro-on .brand{visibility:hidden}
   window.__afterIntro = function(f){ if (over) f(); else after.push(f); };   // the page's own start-up waits here
   // where the flight ends: the lockup is scaled to the brand's width and centered on it (all from layout, which no transform changes)
   function aim(){
-    var brand = document.querySelector('.bar .brand'), b = brand && brand.getBoundingClientRect();
+    var brand = document.querySelector('.title-tab span'), b = brand && brand.getBoundingClientRect();
     if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('nobrand'); return; }   // no brand on screen (narrow phones): just fade out
     ov.classList.remove('nobrand');
     var pad = parseFloat(getComputedStyle(brand).paddingTop) || 0;   // (the brand's text sits half its top padding below the middle of its box)
@@ -103,7 +103,6 @@ html.intro-on .brand{visibility:hidden}
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
 <div class="title-strip" role="presentation"><h1 class="title-tab"><span><i>[</i> SHOP TOOL SIM <i>]</i></span></h1></div>
 <header class="bar">
-  <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
   <div class="reset-wrap">
     <button type="button" class="reset-all" id="resetAll" aria-describedby="resetPop"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg><span class="ra-t">Reset all</span></button>
