@@ -1,12 +1,12 @@
 // the tools: each one's page is a text/html block in index.html (id "tool-<page>");
 // the vernier caliper is the caliper page opened as the vernier
 const APPS = [
-  { id: 'caliper', name: 'Dial caliper', page: 'caliper' },
-  { id: 'vernier', name: 'Vernier caliper', page: 'caliper', inst: 'vern' },
-  { id: 'micrometer', name: 'Outside micrometer', page: 'micrometer' },
-  { id: 'depth', name: 'Depth micrometer', page: 'depth' },
-  { id: 'height', name: 'Height gage', page: 'height' },
-  { id: 'telescopic', name: 'Telescopic gauge', page: 'telescopic' }
+  { id: 'caliper', ic: '<rect x="3" y="14" width="34" height="5" rx="1"/><path d="M3 14V8h3v6M3 19v4h3v-4"/><path d="M10 14V8h3v6M10 19v4h3v-4"/><circle cx="24" cy="9" r="6.5"/><path d="M24 9l3-3.2"/><circle cx="24" cy="9" r=".8"/>', name: 'Dial caliper', page: 'caliper' },
+  { id: 'vernier', ic: '<rect x="3" y="14" width="34" height="5" rx="1"/><path d="M3 14V8h3v6M3 19v4h3v-4"/><path d="M10 14V8h3v6M10 19v4h3v-4"/><rect x="10" y="9" width="12" height="5"/><path d="M16 14v2M20 14v2M24 14v2M28 14v2M32 14v2" stroke-width="1"/>', name: 'Vernier caliper', page: 'caliper', inst: 'vern' },
+  { id: 'micrometer', ic: '<path d="M6 10v10h16v-9"/><rect x="6" y="6" width="4" height="4"/><path d="M12 8h4"/><rect x="16" y="5" width="12" height="6"/><rect x="26" y="3" width="10" height="10" rx="1"/><path d="M29 3v10M32 3v10" stroke-width="1"/>', name: 'Outside micrometer', page: 'micrometer' },
+  { id: 'depth', ic: '<rect x="3" y="15" width="24" height="3" rx="1"/><rect x="9" y="1.5" width="12" height="5" rx="1"/><rect x="11" y="6.5" width="8" height="8.5"/><path d="M15 18v5"/><path d="M13 9h4M13 12h4" stroke-width="1"/>', name: 'Depth micrometer', page: 'depth' },
+  { id: 'height', ic: '<rect x="3" y="19" width="16" height="4" rx="1"/><rect x="8" y="2" width="5" height="17"/><rect x="6" y="7" width="9" height="6"/><path d="M15 9.5h18v5"/><path d="M8 5h2M8 8h2M8 11h2M8 14h2" stroke-width="1"/>', name: 'Height gage', page: 'height' },
+  { id: 'telescopic', ic: '<circle cx="7" cy="7" r="2.8"/><circle cx="33" cy="7" r="2.8"/><path d="M9.8 7h20.4"/><rect x="18" y="7" width="4" height="11"/><rect x="16" y="18" width="8" height="5" rx="1"/>', name: 'Telescopic gauge', page: 'telescopic' }
 ];
 // links inside a tool that open another tool switch tabs instead
 const LINKS = { 'depth-micrometer.html': 'depth', 'depth-micrometer-trainer.html': 'depth', 'height-gage.html': 'height', 'micrometer.html': 'micrometer', 'dial-caliper-trainer.html': 'caliper' };
@@ -82,7 +82,8 @@ lockDown(window);
     b.className = 'tab'; b.href = '#' + a.id; b.setAttribute('role', 'tab'); b.id = 'tab-' + a.id;
     b.setAttribute('aria-label', a.name);
     if (a.badge){ const n = document.createElement('span'); n.className = 'tab-new'; n.textContent = a.badge; n.setAttribute('aria-hidden', 'true'); b.appendChild(n); }   // (a small label on the left of the name)
-    b.appendChild(document.createTextNode(a.name)); b.setAttribute('aria-selected', 'false'); b.setAttribute('aria-controls', 'app-' + a.id);
+    if (a.ic){ const ic = document.createElement('span'); ic.className = 'tab-ic'; ic.setAttribute('aria-hidden', 'true'); ic.innerHTML = '<svg viewBox="0 0 40 25" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + a.ic + '</svg>'; b.appendChild(ic); }   // (a small line drawing of the tool above its name)
+    const tx = document.createElement('span'); tx.textContent = a.name; b.appendChild(tx); b.setAttribute('aria-selected', 'false'); b.setAttribute('aria-controls', 'app-' + a.id);
     b.addEventListener('click', e => { if (e.ctrlKey || e.metaKey || e.shiftKey || e.button) return; e.preventDefault(); show(a.id); });
     tabs.appendChild(b);
   });
