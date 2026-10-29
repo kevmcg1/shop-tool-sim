@@ -52,7 +52,7 @@
 .ms-cog:hover,.ms-cog:focus-visible,.ms-cog[aria-expanded="true"]{background:#fff;color:#000;border-color:#fff}
 .ms-cog svg{width:17px;height:17px;display:block;transition:transform .45s cubic-bezier(.22,.8,.25,1)}
 .ms-cog:hover svg,.ms-cog[aria-expanded="true"] svg{transform:rotate(60deg)}
-.ms-panel{position:absolute;left:0;top:calc(100% + 8px);width:292px;padding:12px 14px 12px;background:#16181b;color:#ececee;border:1px solid #3a3e44;border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.55);z-index:50;font:500 13px/1.4 "Inter",system-ui,sans-serif;opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s ease,transform .22s cubic-bezier(.22,.8,.25,1),visibility 0s linear .22s}
+.ms-panel{position:absolute;left:calc(100% + 10px);top:0;width:292px;padding:12px 14px 12px;background:#16181b;color:#ececee;border:1px solid #3a3e44;border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.55);z-index:50;font:500 13px/1.4 "Inter",system-ui,sans-serif;opacity:0;visibility:hidden;transform:translateY(-6px);transition:opacity .18s ease,transform .22s cubic-bezier(.22,.8,.25,1),visibility 0s linear .22s}
 .ms-panel.open{opacity:1;visibility:visible;transform:none;transition:opacity .18s ease,transform .22s cubic-bezier(.22,.8,.25,1),visibility 0s}
 .legend.ms-open{z-index:30!important}
 .ms-panel h5{margin:0 0 2px;font-size:14px;font-weight:600}
