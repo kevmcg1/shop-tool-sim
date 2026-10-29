@@ -24,11 +24,10 @@ if (location.protocol === 'file:'){
 }
 </script>
 <style id="introCss">
-/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, then flies to the top-left brand and settles into it.
+/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, holds, then fades out where it is, revealing the page and the title in its top bar.
    Everything here moves with transform and opacity only (no blur, no layout), and the whole timeline, flight included, is CSS,
    so the browser's compositor runs it and the page loading underneath cannot make it stutter.
    The real brand stays hidden until then (html.intro-on); a timer in the script below drops that class if anything goes wrong. */
-html.intro-on .title-tab span{visibility:hidden}
 .intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
 .intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
 .intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;padding-top:.06em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c3c7ce;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
@@ -45,9 +44,8 @@ html.intro-on .title-tab span{visibility:hidden}
 @keyframes introBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--dx)*.06in))}}
 @keyframes introDim{from{opacity:1}to{opacity:.85}}
 /* flight at 3.5 s: --fx/--fy/--fs (set by the script from the brand's real position) carry the lockup there; the background fades with it */
-.intro-on-go .intro-logo{animation:introFly 1s cubic-bezier(.65,0,.2,1) 3.5s forwards}
+.intro-on-go .intro-logo{animation:introOut .9s ease 3.5s forwards}
 .intro-on-go .intro-bg{animation:introFade .9s cubic-bezier(.45,0,.25,1) 3.5s forwards}
-@keyframes introFly{from{transform:translate(-50%,-50%)}to{transform:translate(var(--fx,0px),var(--fy,0px)) translate(-50%,-50%) scale(var(--fs,1))}}
 @keyframes introFade{to{opacity:0}}
 .intro.nobrand .intro-logo{animation-name:introOut}
 @keyframes introOut{to{opacity:0}}
@@ -60,7 +58,7 @@ html.intro-on .title-tab span{visibility:hidden}
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=68">
+<link rel="stylesheet" href="css/shell.css?v=69">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
@@ -73,22 +71,8 @@ html.intro-on .title-tab span{visibility:hidden}
   var started = false, over = false, after = [];
   function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); after.splice(0).forEach(function(f){ f(); }); }
   window.__afterIntro = function(f){ if (over) f(); else after.push(f); };   // the page's own start-up waits here
-  // where the flight ends: the lockup is scaled to the brand's width and centered on it (all from layout, which no transform changes)
-  function aim(){
-    var brand = document.querySelector('.title-tab span'), b = brand && brand.getBoundingClientRect();
-    if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('nobrand'); return; }   // no brand on screen (narrow phones): just fade out
-    ov.classList.remove('nobrand');
-    // the lockup is built exactly like the title's text (same words, spacing, italics, gradient), so scaling its width to the title's and
-    // centering it on the title's box puts every letter where the title's letter will be: the hand-off is invisible
-    var lr = logo.getBoundingClientRect(), k = new DOMMatrix(getComputedStyle(logo).transform).a || 1;   // (offsetWidth is rounded to whole pixels, which would be a visible jump)
-    logo.style.setProperty('--fs', b.width / (lr.width / k));
-    logo.style.setProperty('--fx', (b.left + b.width/2 - ov.clientWidth/2) + 'px');
-    logo.style.setProperty('--fy', (b.top + b.height/2 - ov.clientHeight/2) + 'px');
-  }
   function start(){
-    if (started) return; started = true; aim(); root.classList.add('intro-on-go');
-    setTimeout(aim, 2500);   // once more after the page around it has settled; the flight reads these values as it runs
-    window.addEventListener('resize', aim);
+    if (started) return; started = true; root.classList.add('intro-on-go');
   }
   function ready(){
     var f = (document.fonts && document.fonts.load) ? document.fonts.load('1em "Bebas Neue"').catch(function(){}) : Promise.resolve();
