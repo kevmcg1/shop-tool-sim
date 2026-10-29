@@ -148,7 +148,7 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .title-tab::before{content:"";position:absolute;inset:0 1px 1px;background:var(--bar);clip-path:polygon(0 0,100% 0,calc(100% - var(--cut) + .5px) 100%,calc(var(--cut) - .5px) 100%);transition:background-color .25s ease}
 .title-tab span{position:relative;display:flex;gap:.3em;padding-top:2px}
 .title-tab i{font-style:normal}
-.title-tab .tt{font-weight:400;padding-right:.08em;background:linear-gradient(180deg,#ffffff 0%,#e4e7ed 28%,#8a919d 50%,#c4c9d2 68%,#f4f6f9 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.title-tab .tt{font-weight:400;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 /* the side mark: a long rule over a short one tucked to the outer edge (mirrored on the right) */
 .sym{display:inline-block;position:relative;width:.95em;height:.5em;color:inherit;transform:skewX(-14deg)}
 .sym::before,.sym::after{content:"";position:absolute;height:max(2px,.07em);background:currentColor}
