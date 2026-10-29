@@ -174,8 +174,8 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 @media (max-width:640px){.title-strip .site-link{display:none}}
 
 /* each tool in the ribbon carries a small line drawing of itself above its name */
-.tabs{min-height:76px}
-.tabs .tab{flex-direction:column;justify-content:center;gap:5px;height:60px;padding:0 14px}
+.tabs{min-height:92px}
+.tabs .tab{flex-direction:column;justify-content:center;gap:5px;height:76px;padding:0 14px}
 .tab-ic{display:block;line-height:0}
-.tab-ic svg{display:block;width:46px;height:29px;overflow:visible}
-@media (max-height:700px){.tabs{min-height:58px}.tabs .tab{height:46px;gap:3px}.tab-ic svg{width:32px;height:20px}}
+.tab-ic svg{display:block;width:74px;height:42px;overflow:visible}
+@media (max-height:700px){.tabs{min-height:58px}.tabs .tab{height:46px;gap:3px}.tab-ic svg{width:50px;height:28px}}

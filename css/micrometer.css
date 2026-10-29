@@ -715,3 +715,10 @@ aside .row>button,aside .grid2>button,aside .grid3>button,aside .stack>button{di
 .toast.show::before{animation:toast-trace 1.2s cubic-bezier(.45,.05,.3,1) 1 forwards}
 @keyframes toast-trace{0%{--toast-a:0deg;opacity:1}85%{opacity:1}100%{--toast-a:360deg;opacity:0}}
 @media (prefers-reduced-motion: reduce){.toast.show::before{animation:none}}
+
+/* mouse legend, settings gear and view buttons: one stack at the left-center of the 3D viewport */
+@media (min-width:861px){
+  .legend,.views{right:auto!important;left:12px!important;flex-wrap:nowrap;justify-content:flex-start;align-items:center}
+  .legend{top:calc(50% - 34px)!important}
+  .views{top:calc(50% + 4px)!important}
+}
