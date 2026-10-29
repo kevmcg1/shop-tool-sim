@@ -6,7 +6,7 @@ const APPS = [
   { id: 'micrometer', name: 'Outside micrometer', page: 'micrometer' },
   { id: 'depth', name: 'Depth micrometer', page: 'depth' },
   { id: 'height', name: 'Height gage', page: 'height' },
-  { id: 'telescopic', name: 'Telescopic gauge', page: 'telescopic', badge: 'NEW' }
+  { id: 'telescopic', name: 'Telescopic gauge', page: 'telescopic' }
 ];
 // links inside a tool that open another tool switch tabs instead
 const LINKS = { 'depth-micrometer.html': 'depth', 'depth-micrometer-trainer.html': 'depth', 'height-gage.html': 'height', 'micrometer.html': 'micrometer', 'dial-caliper-trainer.html': 'caliper' };
