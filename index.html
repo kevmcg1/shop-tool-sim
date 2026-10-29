@@ -31,9 +31,9 @@ if (location.protocol === 'file:'){
 html.intro-on .title-tab span{visibility:hidden}
 .intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
 .intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
-.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
+.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c3c7ce;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
 .intro-logo .iw{display:inline-block;opacity:0;transform-origin:50% 60%;will-change:transform,opacity}
-.intro-logo .ib{display:inline-block;color:#e8c547;opacity:0;--dx:-1;will-change:transform,opacity}
+.intro-logo .ib{display:inline-block;color:#c3c7ce;opacity:0;--dx:-1;will-change:transform,opacity}
 .intro-logo .ib.c{--dx:1}
 .intro-on-go .intro-logo{visibility:visible}
 .intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
@@ -59,13 +59,13 @@ html.intro-on .title-tab span{visibility:hidden}
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=59">
+<link rel="stylesheet" href="css/shell.css?v=60">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
-<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="ib o">[</span><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span><span class="ib c">]</span></div></div>
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="ib o"><span class="sym"></span></span><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span><span class="ib c"><span class="sym r"></span></span></div></div>
 <script>
 (function(){
   var root = document.documentElement, ov = document.getElementById('intro'), logo = document.getElementById('introLogo');
@@ -101,7 +101,7 @@ html.intro-on .title-tab span{visibility:hidden}
 })();
 </script>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
-<div class="title-strip" role="presentation"><h1 class="title-tab"><span><i>[</i> SHOP TOOL SIM <i>]</i></span></h1></div>
+<div class="title-strip" role="presentation"><h1 class="title-tab"><span><i class="sym"></i> SHOP TOOL SIM <i class="sym r"></i></span></h1></div>
 <header class="bar">
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
   <div class="reset-wrap">
