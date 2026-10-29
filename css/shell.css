@@ -144,17 +144,12 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 
 /* the centered title: a trapezoid tab hanging from the top rule, wings running out to either side */
 .title-strip{flex:none;display:flex;justify-content:center;background:var(--bg);border-bottom:1px solid var(--line)}
-.title-tab{--cut:18px;position:relative;flex:none;margin:0;min-width:min(300px,86vw);height:34px;display:flex;align-items:center;justify-content:center;padding:0 40px;background:#3c3f46;clip-path:polygon(0 0,100% 0,calc(100% - var(--cut)) 100%,var(--cut) 100%);font:600 15px/1 "Inter",system-ui,sans-serif;font-style:italic;letter-spacing:.34em;text-transform:uppercase;color:var(--ink);transition:color .25s ease,letter-spacing .35s cubic-bezier(.22,.8,.25,1)}
+.title-tab{--cut:18px;position:relative;flex:none;margin:0;min-width:min(300px,86vw);height:34px;display:flex;align-items:center;justify-content:center;padding:0 40px;background:#3c3f46;clip-path:polygon(0 0,100% 0,calc(100% - var(--cut)) 100%,var(--cut) 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:22px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;transition:color .25s ease}
 .title-tab::before{content:"";position:absolute;inset:0 1px 1px;background:var(--bar);clip-path:polygon(0 0,100% 0,calc(100% - var(--cut) + .5px) 100%,calc(var(--cut) - .5px) 100%);transition:background-color .25s ease}
-.title-tab span{position:relative;padding-left:.34em}
-.title-tab:hover{letter-spacing:.38em;color:#fff}
+.title-tab span{position:relative;display:flex;gap:.3em;padding-top:2px}
+.title-tab i{font-style:normal;color:#e8c547;opacity:.85}
+.title-tab:hover{color:#fff}
 .title-tab:hover::before{background:#0c0d0f}
-@media (max-width:640px){.title-tab{--cut:12px;height:30px;font-size:13px;letter-spacing:.26em;padding:0 28px}}
-@media (max-height:700px){.title-tab{height:28px;font-size:13px}}
+@media (max-width:640px){.title-tab{--cut:12px;height:30px;font-size:19px;padding:0 28px}}
+@media (max-height:700px){.title-tab{height:28px;font-size:19px}}
 @media (prefers-reduced-motion: reduce){.title-tab,.title-tab::before{transition:none}}
-
-/* the same tab, as the logo at the left of the tool bar */
-.brand.title-tab{--cut:14px;align-self:center;min-width:0;height:34px;padding:0 30px;font:600 13px/1 "Inter",system-ui,sans-serif;font-style:italic;letter-spacing:.3em}
-.brand.title-tab:hover{letter-spacing:.34em}
-@media (max-width:1100px){.brand.title-tab{font-size:12px;padding:0 24px}}
-@media (max-width:640px){.brand.title-tab{display:none}}
