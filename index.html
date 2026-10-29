@@ -31,7 +31,8 @@ if (location.protocol === 'file:'){
 html.intro-on .title-tab span{visibility:hidden}
 .intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
 .intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
-.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c3c7ce;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
+.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;padding-top:.06em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c3c7ce;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
+.intro-logo .it{display:flex;align-items:center;gap:.3em}
 .intro-logo .iw{display:inline-block;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:0;transform-origin:50% 60%;will-change:transform,opacity}
 .intro-logo .ib{display:inline-block;color:#c3c7ce;opacity:0;--dx:-1;will-change:transform,opacity}
 .intro-logo .ib.c{--dx:1}
@@ -59,7 +60,7 @@ html.intro-on .title-tab span{visibility:hidden}
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=64">
+<link rel="stylesheet" href="css/shell.css?v=67">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
@@ -77,10 +78,12 @@ html.intro-on .title-tab span{visibility:hidden}
     var brand = document.querySelector('.title-tab span'), b = brand && brand.getBoundingClientRect();
     if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('nobrand'); return; }   // no brand on screen (narrow phones): just fade out
     ov.classList.remove('nobrand');
-    var pad = parseFloat(getComputedStyle(brand).paddingTop) || 0;   // (the brand's text sits half its top padding below the middle of its box)
-    logo.style.setProperty('--fs', b.width / logo.offsetWidth);
+    // the lockup is built exactly like the title's text (same words, spacing, italics, gradient), so scaling its width to the title's and
+    // centering it on the title's box puts every letter where the title's letter will be: the hand-off is invisible
+    var lr = logo.getBoundingClientRect(), k = new DOMMatrix(getComputedStyle(logo).transform).a || 1;   // (offsetWidth is rounded to whole pixels, which would be a visible jump)
+    logo.style.setProperty('--fs', b.width / (lr.width / k));
     logo.style.setProperty('--fx', (b.left + b.width/2 - ov.clientWidth/2) + 'px');
-    logo.style.setProperty('--fy', (b.top + b.height/2 + pad/2 - ov.clientHeight/2) + 'px');
+    logo.style.setProperty('--fy', (b.top + b.height/2 - ov.clientHeight/2) + 'px');
   }
   function start(){
     if (started) return; started = true; aim(); root.classList.add('intro-on-go');
@@ -101,7 +104,7 @@ html.intro-on .title-tab span{visibility:hidden}
 })();
 </script>
 <header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
-<div class="title-strip" role="presentation"><h1 class="title-tab"><span><b class="tt">SHOP TOOL SIM</b></span></h1></div>
+<div class="title-strip" role="presentation"><h1 class="title-tab"><span><b class="tw">SHOP</b> <b class="tw">TOOL</b> <b class="tw">SIM</b></span></h1></div>
 <header class="bar">
   <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
   <div class="reset-wrap">

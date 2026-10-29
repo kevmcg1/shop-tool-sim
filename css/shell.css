@@ -146,16 +146,16 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .title-strip{flex:none;display:flex;justify-content:center;background:var(--bg);border-bottom:1px solid var(--line)}
 .title-tab{--cut:18px;position:relative;flex:none;margin:0;min-width:min(300px,86vw);height:34px;display:flex;align-items:center;justify-content:center;padding:0 40px;background:#3c3f46;clip-path:polygon(0 0,100% 0,calc(100% - var(--cut)) 100%,var(--cut) 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:22px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c9cdd4;transition:color .25s ease}
 .title-tab::before{content:"";position:absolute;inset:0 1px 1px;background:var(--bar);clip-path:polygon(0 0,100% 0,calc(100% - var(--cut) + .5px) 100%,calc(var(--cut) - .5px) 100%);transition:background-color .25s ease}
-.title-tab span{position:relative;display:flex;gap:.3em;padding-top:2px}
+.title-tab span{position:relative;display:flex;align-items:center;gap:.3em;padding-top:.06em;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}
+.title-tab .tw{display:inline-block;font-weight:400;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .title-tab i{font-style:normal}
-.title-tab .tt{font-weight:400;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 /* the side mark: a long rule over a short one tucked to the outer edge (mirrored on the right) */
 .sym{display:inline-block;position:relative;width:.95em;height:.5em;color:inherit;transform:skewX(-14deg)}
 .sym::before,.sym::after{content:"";position:absolute;height:max(2px,.07em);background:currentColor}
 .sym::before{top:.1em;left:0;right:0}
 .sym::after{bottom:.1em;right:0;width:42%}
 .sym.r::after{right:auto;left:0}
-.title-tab:hover .tt{filter:brightness(1.12)}
+
 .title-tab:hover::before{background:#0c0d0f}
 @media (max-width:640px){.title-tab{--cut:12px;height:30px;font-size:19px;padding:0 28px}}
 @media (max-height:700px){.title-tab{height:28px;font-size:19px}}
