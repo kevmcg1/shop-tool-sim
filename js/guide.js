@@ -803,6 +803,9 @@ body.guiding .flat.gd-away{opacity:0;visibility:hidden;pointer-events:none;trans
     if (clickOff) { clickOff(); clickOff = null; }
     hideBezArrow(); waitDone = false; lastText = ''; lastR = null; lastSide = -1; lastCard = null;
     if (s.enter) s.enter(s);
+    // a "by hand" step says the part slides in for you: so it always does, whatever happened since the part was picked (the tool moved, the
+    // frame changed, the part wiped off, or the part step skipped), and the spindle stops just short of it, ready to be closed by hand
+    if (s.byHand && window.__guidePlacePart){ const at = i; setTimeout(() => { if (root && stepI === at){ try { window.__guidePlacePart(); } catch (e) {} } }, 150); }
     if (/^Zero on /.test(s.title)) ensureClosed();   // (a person who skipped ahead early would otherwise find the tool still open, and every "zero" reading wrong)
     if (window.__guideArrow) window.__guideArrow(!!s.arrow3d);   // the 3D arrow around the ratchet, where a step asks for it
     if (window.__guideHands) window.__guideHands(!!s.hands);     // the 3D hands that show how to hold the tool, where a step asks for them

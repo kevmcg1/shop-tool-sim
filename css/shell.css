@@ -243,3 +243,10 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 @keyframes ic-turn{to{transform:translateY(2.5px)}}
 @keyframes ic-roll{to{transform:translateX(3px)}}
 @media (prefers-reduced-motion: reduce){.tab-ic *{transition:none!important;animation:none!important}}
+
+/* more room around the coffee and reset buttons: a wider gap between them, more space from the page edge, and clear space above and below */
+.title-strip .reset-wrap{gap:20px;right:56px}
+.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{height:26px;font-size:14px;margin:4px 0}
+.title-strip .site-link{left:56px}
+@media (max-width:1100px){.title-strip .reset-wrap{gap:14px;right:46px}.title-strip .site-link{left:46px}}
+@media (max-width:640px){.title-strip .reset-wrap{gap:10px;right:40px}}

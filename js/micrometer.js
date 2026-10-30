@@ -3495,6 +3495,8 @@ function guideRatchetCenter(){
 // "Show me" has the tool put the part in place by itself (the first feature slid between the faces, the
 // spindle run down to just short of it), so the person only has to finish closing it by hand
 window.__guidePlacePart = () => {
+  // with no part picked (the walkthrough was skipped past the part step, or the micrometer opened empty), one is put on first
+  if (!state.sample && state.sampleKey === 'none'){ const keys = CORE.available(B); if (keys.length){ $('sampleSel').value = keys[0]; newSample(keys[0]); } }
   // once the new part is in (the old one gone and the spindle opened clear first)
   partReady.then(() => {
     const S = state.sample, f = S && S.feats.find(x => x.valid);
