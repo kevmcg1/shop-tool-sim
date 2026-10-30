@@ -12,6 +12,10 @@
     box.appendChild(views);
     // the mouse controls (settings gear and the three mouse buttons) sit in the bottom row, just right of the Go button
     if (go) go.after(legend); else if (quick) quick.appendChild(legend);
+    // a clean mouse drawing in each .mouse (its class l / m / r says which button is lit; js/mouse-settings.js keeps that class up to date)
+    const MS = '<svg viewBox="0 0 24 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1.5" width="18" height="29" rx="9"/><path d="M3 12.5h18M12 1.5v11" stroke-width="1.5"/>' +
+      '<path class="hl hl-l" d="M3 12.5v-2A9 9 0 0 1 12 1.5v11z" fill="currentColor" stroke="none"/><path class="hl hl-r" d="M21 12.5v-2A9 9 0 0 0 12 1.5v11z" fill="currentColor" stroke="none"/><rect class="hl hl-m" x="10" y="4.5" width="4" height="6.5" rx="2" fill="currentColor" stroke="none"/></svg>';
+    legend.querySelectorAll('.mouse').forEach(m => { m.innerHTML = MS; });
     // each mouse button is a small white tile with its name written beside it, plain and without a box (the name is also its tooltip)
     legend.querySelectorAll('.mk').forEach(mk => {
       const tn = [...mk.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
@@ -43,11 +47,17 @@
     const st = document.createElement('style');
     st.textContent = '@media (min-width:861px){' +
       '.quick .legend{position:relative!important;right:auto!important;top:auto!important;left:auto!important;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:12px;margin-left:8px}' +
-      '.quick .legend .ms-cog{align-self:center}' +
-      '.quick .legend .mk{position:relative;background:none;padding:0;gap:9px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
+            '.quick .legend .mk{position:relative;background:none;padding:0;gap:10px;height:36px;color:#e6e9ef;font-size:12.5px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
       '.quick .legend .mk:hover{color:#fff}' +
-      '.quick .legend .mk::before{content:"";position:absolute;left:0;top:0;width:30px;height:30px;background:#fff;border-radius:8px}' +
-      '.quick .legend .mk .mouse{position:relative;margin:5.5px 8px}' +
+      '.quick .legend .mk::before{content:"";position:absolute;left:0;top:0;width:36px;height:36px;box-sizing:border-box;background:rgba(10,11,13,.55);border:1px solid rgba(255,255,255,.34);border-radius:8px;transition:border-color .2s ease}' +
+      '.quick .legend .mk:hover::before{border-color:#fff}' +
+      '.quick .legend .mk .mouse{position:relative;display:block;width:20px;height:27px;margin:4.5px 8px;color:#fff;flex:none}' +
+      '.quick .legend .mk .mouse svg{display:block;width:20px!important;height:27px!important;color:#fff}' +
+      '.quick .legend .mk .mouse b,.quick .legend .mk .mouse i{display:none}' +
+      '.quick .legend .mouse .hl{opacity:0;transition:opacity .2s ease}.quick .legend .mouse.l .hl-l,.quick .legend .mouse.r .hl-r,.quick .legend .mouse.m .hl-m{opacity:1}' +
+      '.quick .legend .ms-cog{width:36px;height:36px;border-radius:8px;background:rgba(10,11,13,.55)!important;color:#fff!important;border:1px solid rgba(255,255,255,.34)!important}' +
+      '.quick .legend .ms-cog:hover,.quick .legend .ms-cog[aria-expanded="true"]{border-color:#fff!important}' +
+      '.quick .legend .ms-cog svg{width:21px;height:21px}' +
       '.quick .legend .ms-panel{left:0;top:auto;bottom:calc(100% + 10px)}' +
       '.vstack .ib.shop-gfx{width:36px;height:36px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
     document.head.appendChild(st);

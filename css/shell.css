@@ -198,3 +198,25 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .title-strip .site-link{left:40px}
 .title-strip .reset-wrap{right:40px}
 @media (max-width:640px){.title-strip .reset-wrap{right:38px}}
+
+/* the coffee and reset buttons: slanted plates that echo the title tab: a thin outline, dark inside, Bebas italic labels.
+   The outline is the button's own colour (its background, cut to the slanted shape); ::after is the dark inside. */
+.title-strip .reset-wrap{gap:10px}
+.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{--c:9px;position:relative;display:flex;align-items:center;justify-content:center;gap:8px;height:30px;padding:0 24px 0 22px;margin:0;border:0;border-radius:0;overflow:hidden;
+  clip-path:polygon(var(--c) 0,100% 0,calc(100% - var(--c)) 100%,0 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:15px;font-weight:400;font-style:italic;letter-spacing:.1em;text-transform:uppercase;line-height:1;white-space:nowrap;text-decoration:none;cursor:pointer;
+  transition:background-color .25s ease,color .25s ease}
+.title-strip .reset-wrap > .bmc::after,.title-strip .reset-wrap > .reset-all::after{content:"";position:absolute;inset:1px;z-index:0;background:#0a0b0d;clip-path:polygon(calc(var(--c) - .4px) 0,100% 0,calc(100% - var(--c) + .4px) 100%,0 100%)}
+.title-strip .reset-wrap > .bmc > *,.title-strip .reset-wrap > .reset-all > *{position:relative;z-index:2}
+.title-strip .reset-wrap > .bmc svg{width:16px;height:16px}
+.title-strip .reset-wrap > .reset-all svg{width:14px;height:14px}
+/* coffee: warm gold */
+.title-strip .reset-wrap > .bmc{background:#6e5d2b;color:#f1d57f}
+.title-strip .reset-wrap > .bmc:hover,.title-strip .reset-wrap > .bmc:focus-visible{background:#ffd558;color:#fff0bd;outline:none}
+/* reset: red; holding it fills the plate from the left (the --p progress set by js/shell.js) */
+.title-strip .reset-wrap > .reset-all{background:#6a2f2d;color:#f2b3b0}
+.title-strip .reset-wrap > .reset-all::before{inset:1px;z-index:1;opacity:.45;clip-path:polygon(calc(var(--c) - .4px) 0,100% 0,calc(100% - var(--c) + .4px) 100%,0 100%)}
+.title-strip .reset-wrap > .reset-all:hover,.title-strip .reset-wrap > .reset-all:focus-visible{background:var(--danger);color:#fff;outline:none}
+.title-strip .reset-wrap > .reset-all.done{background:var(--danger);color:#fff}
+.title-strip .reset-wrap > .reset-all.done::after{background:#2a1110}
+@media (max-width:1280px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 18px 0 16px}}
+@media (max-width:640px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 16px 0 14px}}
