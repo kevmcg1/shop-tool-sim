@@ -491,9 +491,9 @@ body.fold-panel .split{display:none}
 ::-webkit-scrollbar-thumb:active{background-color:#555a62}
 ::-webkit-scrollbar-corner{background:transparent}
 @supports not selector(::-webkit-scrollbar){ *{scrollbar-width:thin;scrollbar-color:#2c2f34 transparent} }
-/* Front / Side section buttons stacked under the scissors */
+/* Front / Side section buttons sit to the right of the scissors */
 .views{align-items:flex-start}
-.cut-col{display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.cut-col{display:flex;flex-direction:row;align-items:center;gap:6px}
 .cut-col .cutdir{width:auto;height:24px;padding:0 6px;font-size:11px;font-weight:600;border-radius:6px}
 .cut-side{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:6px 0 4px}
 /* click face to measure: the toggle shows it is on the same way Practice does */

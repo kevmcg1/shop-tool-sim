@@ -6,7 +6,7 @@
 // the tool that opens first has its stylesheets asked for now, alongside this page's own, so its frame (made a moment later) finds them
 // already on the way and its bubbles can start straight away. (Keep these in step with the css/ links in the tools' pages below.)
 (function(){
-  var CSS = { caliper: 'caliper.css?v=57', vernier: 'caliper.css?v=57', micrometer: 'micrometer.css?v=57', depth: 'depth.css?v=57', height: 'height.css?v=57', telescopic: 'telescopic.css?v=69' };
+  var CSS = { caliper: 'caliper.css?v=57', vernier: 'caliper.css?v=57', micrometer: 'micrometer.css?v=57', depth: 'depth.css?v=58', height: 'height.css?v=57', telescopic: 'telescopic.css?v=69' };
   var id = location.hash.slice(1); if (!CSS[id]){ try { id = localStorage.getItem('precision-tools-last'); } catch (e) {} } if (!CSS[id]) id = 'caliper';
   ['css/' + CSS[id], 'css/embeds.css?v=1'].forEach(function(u){ var l = document.createElement('link'); l.rel = 'preload'; l.as = 'style'; l.href = u; document.head.appendChild(l); });
 })();
@@ -686,7 +686,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/depth.css?v=57">
+<link rel="stylesheet" href="css/depth.css?v=58">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
