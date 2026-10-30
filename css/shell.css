@@ -220,3 +220,25 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .title-strip .reset-wrap > .reset-all.done::after{background:#2a1110}
 @media (max-width:1280px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 18px 0 16px}}
 @media (max-width:640px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 16px 0 14px}}
+
+/* the tool drawings in the ribbon move the way the tool works when the tab is hovered (or focused): they ease out and, on leaving, ease back */
+.tab-ic .cal-sl,.tab-ic .ver-sl,.tab-ic .hg-sl,.tab-ic .mic-th,.tab-ic .tel-l,.tab-ic .tel-r,.tab-ic .nd,.tab-ic .dep-rod{transition:transform .8s cubic-bezier(.4,0,.2,1)}
+/* calipers: the slider runs out along the beam; the dial's needle sweeps round with it */
+.tab:hover .tab-ic .cal-sl,.tab:focus-visible .tab-ic .cal-sl{transform:translateX(9px)}
+.tab:hover .tab-ic .nd,.tab:focus-visible .tab-ic .nd{transform:rotate(250deg)}
+.tab:hover .tab-ic .ver-sl,.tab:focus-visible .tab-ic .ver-sl{transform:translateX(9px)}
+/* outside micrometer: the thimble turns (its lines run round) and winds the spindle in toward the anvil */
+.tab:hover .tab-ic .mic-th,.tab:focus-visible .tab-ic .mic-th{transform:translateX(-5px)}
+.tab:hover .tab-ic .mic-kn,.tab:focus-visible .tab-ic .mic-kn{stroke-dasharray:3 2;animation:ic-turn .7s linear infinite}
+/* depth micrometer: the thimble turns and the rod runs out below the base */
+.tab-ic .dep-rod{transform-origin:32px 30px}
+.tab:hover .tab-ic .dep-rod,.tab:focus-visible .tab-ic .dep-rod{transform:scaleY(1.6)}
+.tab:hover .tab-ic .dep-kn,.tab:focus-visible .tab-ic .dep-kn{animation:ic-roll .6s linear infinite}
+/* height gage: the slider, with its scriber, runs up the column */
+.tab:hover .tab-ic .hg-sl,.tab:focus-visible .tab-ic .hg-sl{transform:translateY(-7px)}
+/* telescopic gauge: the two arms telescope out toward the wall of the hole */
+.tab-ic .tel-l{transform-origin:15px 28px}.tab-ic .tel-r{transform-origin:29px 28px}
+.tab:hover .tab-ic .tel-l,.tab:focus-visible .tab-ic .tel-l,.tab:hover .tab-ic .tel-r,.tab:focus-visible .tab-ic .tel-r{transform:scaleX(1.45)}
+@keyframes ic-turn{to{stroke-dashoffset:-5}}
+@keyframes ic-roll{to{transform:translateX(3px)}}
+@media (prefers-reduced-motion: reduce){.tab-ic *{transition:none!important;animation:none!important}}

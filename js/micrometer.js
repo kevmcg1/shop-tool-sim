@@ -278,7 +278,7 @@ const dims = () => CORE.dims(B);
 let B = 0, S0 = 2.1;
 const state = {
   reading: 0.25, locked: false,
-  sampleKey: 'shaft', sample: null, setup: 'A', side: -1,
+  sampleKey: 'none', sample: null, setup: 'A', side: -1,   // (opens with nothing between the faces; a part is picked from the Sample list)
   partZ: 0, partTarget: null, sxT: 0, sxV: 0, ev: null, seq: null,
   practice: false, pRevealed: false, pErr: [], exam: false, pScore: { right: 0, total: 0, streak: 0 }, hl: { num: false, line: false, thimble: false, vernier: false, outline: false },
   ratchetExtra: 0, slipAcc: 0, clicks: 0, anim: null,
