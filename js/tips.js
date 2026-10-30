@@ -31,6 +31,7 @@ body.js-tips [data-tip]::after{content:none!important}
 .tipl-a{position:absolute;left:var(--ax,50%);width:9px;height:9px;margin-left:-4.5px;background:#15171d;border:1px solid rgba(255,255,255,.15);transform:rotate(45deg)}
 .tipl[data-side=top] .tipl-a{bottom:-5px;border-top:0;border-left:0}
 .tipl[data-side=bottom] .tipl-a{top:-5px;border-bottom:0;border-right:0}
+.tipl[data-side=right] .tipl-a{left:-5px;top:var(--ay,50%);margin:-4.5px 0 0;border-top:0;border-right:0}
 @media (prefers-reduced-motion: reduce){ .tipl,.tipl.on,.tipl-in,.tipl.on .tipl-in{transition:none;transform:none} }`;
   document.head.appendChild(css);
   document.body.classList.add('js-tips');
@@ -75,6 +76,15 @@ body.js-tips [data-tip]::after{content:none!important}
     const r = el.getBoundingClientRect(), W = document.documentElement.clientWidth, H = document.documentElement.clientHeight;
     const w = tip.offsetWidth, h = tip.offsetHeight, gap = 10, m = 6;
     // above if it fits, else below if that fits, else whichever side has more room
+    // the vertical stack of view buttons at the left of the 3D view: its tooltips come out on the right, level with the button
+    if (el.closest && el.closest('.vstack') && r.right + gap + w <= W - m){
+      const x = r.right + gap, cy = r.top + r.height / 2, y = Math.max(m, Math.min(H - h - m, cy - h / 2));
+      tip.style.transform = `translate(${Math.round(x)}px,${Math.round(y)}px)`;
+      tip.dataset.side = 'right';
+      tip.style.setProperty('--ay', Math.round(Math.max(14, Math.min(h - 14, cy - y))) + 'px');
+      tip.style.setProperty('--dy', '0px'); tip.style.setProperty('--oy', '50%'); tip.style.setProperty('--ax', '0%');
+      return;
+    }
     const above = r.top - gap - h, below = r.bottom + gap;
     const top = above >= m ? true : below + h <= H - m ? false : r.top > H - r.bottom;
     let y = top ? above : below;

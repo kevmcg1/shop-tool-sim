@@ -44,11 +44,12 @@
     st.textContent = '@media (min-width:861px){' +
       '.quick .legend{position:relative!important;right:auto!important;top:auto!important;left:auto!important;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:12px;margin-left:8px}' +
       '.quick .legend .ms-cog{align-self:center}' +
-      '.quick .legend .mk{background:none;padding:0;gap:8px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
+      '.quick .legend .mk{position:relative;background:none;padding:0;gap:9px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
       '.quick .legend .mk:hover{color:#fff}' +
-      '.quick .legend .mk .mouse{box-sizing:content-box;padding:5.5px 8px;background:#fff;border-radius:8px}' +
+      '.quick .legend .mk::before{content:"";position:absolute;left:0;top:0;width:30px;height:30px;background:#fff;border-radius:8px}' +
+      '.quick .legend .mk .mouse{position:relative;margin:5.5px 8px}' +
       '.quick .legend .ms-panel{left:0;top:auto;bottom:calc(100% + 10px)}' +
-      '.vstack .ib.shop-gfx{width:30px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
+      '.vstack .ib.shop-gfx{width:36px;height:36px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
     document.head.appendChild(st);
   }
   function guard(){
