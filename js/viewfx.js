@@ -3,12 +3,15 @@
 //  2. the outline that runs around the message pill moves at a steady speed, so a long message takes longer to go round instead of rushing
 (function(){
   function stack(){
-    const legend = document.querySelector('.legend'), views = document.querySelector('.views');
-    if (!legend || !views || legend.parentNode !== views.parentNode || document.querySelector('.vstack')) return;
+    const legend = document.querySelector('.legend'), views = document.querySelector('.views'), quick = document.querySelector('.quick'), go = quick && quick.querySelector('.goto');
+    if (!legend || !views || document.querySelector('.vstack')) return;
+    // the view buttons make a vertical stack, centered at the left of the 3D view
     const box = document.createElement('div');
     box.className = 'vstack';
-    legend.parentNode.insertBefore(box, legend);
-    box.appendChild(legend); box.appendChild(views);
+    views.parentNode.insertBefore(box, views);
+    box.appendChild(views);
+    // the mouse controls (settings gear and the three mouse buttons) sit in the bottom row, just right of the Go button
+    if (go) go.after(legend); else if (quick) quick.appendChild(legend);
     // each mouse button is a small white tile with its name written beside it, plain and without a box (the name is also its tooltip)
     legend.querySelectorAll('.mk').forEach(mk => {
       const tn = [...mk.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
@@ -39,10 +42,12 @@
   function iconsOnly(){
     const st = document.createElement('style');
     st.textContent = '@media (min-width:861px){' +
-      '.vstack .ms-cog{align-self:flex-start}' +
-      '.vstack .mk{background:none;padding:0;gap:9px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
-      '.vstack .mk:hover{color:#fff}' +
-      '.vstack .mk .mouse{box-sizing:content-box;padding:5.5px 8px;background:#fff;border-radius:8px}' +
+      '.quick .legend{position:relative!important;right:auto!important;top:auto!important;left:auto!important;display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:12px;margin-left:8px}' +
+      '.quick .legend .ms-cog{align-self:center}' +
+      '.quick .legend .mk{background:none;padding:0;gap:8px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
+      '.quick .legend .mk:hover{color:#fff}' +
+      '.quick .legend .mk .mouse{box-sizing:content-box;padding:5.5px 8px;background:#fff;border-radius:8px}' +
+      '.quick .legend .ms-panel{left:0;top:auto;bottom:calc(100% + 10px)}' +
       '.vstack .ib.shop-gfx{width:30px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
     document.head.appendChild(st);
   }
