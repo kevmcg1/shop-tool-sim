@@ -143,7 +143,7 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 }
 
 /* the page title: a trapezoid tab hanging from the top rule, always there, holding the silver italic title; nothing about it moves */
-.title-strip{flex:none;display:flex;justify-content:center;background:var(--bg);border-bottom:1px solid var(--line)}
+.title-strip{flex:none;display:flex;justify-content:center;background:var(--bar);border-bottom:1px solid var(--line)}
 .title-tab{--cut:18px;position:relative;flex:none;margin:0;min-width:min(270px,86vw);height:34px;display:flex;align-items:center;justify-content:center;padding:0 30px;background:#3c3f46;clip-path:polygon(0 0,100% 0,calc(100% - var(--cut)) 100%,var(--cut) 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:22px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c9cdd4}
 .title-tab::before{content:"";position:absolute;inset:0 1px 1px;background:var(--bar);clip-path:polygon(0 0,100% 0,calc(100% - var(--cut) + .5px) 100%,calc(var(--cut) - .5px) 100%)}
 .title-tab span{position:relative;display:flex;align-items:center;gap:.3em;padding-top:.06em;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}
@@ -182,10 +182,10 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 
 /* the lines run out to the sides of the page and stop there: a rule at the top of the title tab, and the same rule mirrored in the footer.
    Nothing runs down the sides, and nothing runs under the tab. */
-.title-strip{padding-top:12px;border-bottom:0;background:linear-gradient(var(--bar) 0 12px,var(--bg) 12px)}
+.title-strip{padding-top:12px;border-bottom:0;background:var(--bar)}
 .title-strip::before{content:"";position:absolute;left:0;right:0;top:12px;height:1px;background:#3c3f46;pointer-events:none}
 .title-strip .site-link,.title-strip .reset-wrap{top:12px}
-.foot-strip{flex:none;position:relative;display:flex;justify-content:center;padding-bottom:12px;background:linear-gradient(var(--bg) calc(100% - 12px),var(--bar) 0)}
+.foot-strip{flex:none;position:relative;display:flex;justify-content:center;padding-bottom:12px;background:var(--bar)}
 .foot-strip::before{content:"";position:absolute;left:0;right:0;bottom:12px;height:1px;background:#3c3f46;pointer-events:none}
 .foot-strip .foot{--cut:16px;position:relative;flex:0 1 auto;max-width:100%;padding:10px 28px 3px;border:0;background:#3c3f46;clip-path:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% 100%,0 100%)}
 .foot-strip .foot::before{content:"";position:absolute;inset:1px 1px 0;z-index:-1;background:var(--bar);clip-path:polygon(calc(var(--cut) - .5px) 0,calc(100% - var(--cut) + .5px) 0,100% 100%,0 100%)}
