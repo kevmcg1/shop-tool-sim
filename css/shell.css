@@ -141,3 +141,119 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
   .brand{font-size:20px}
   .foot{padding:4px 12px;font-size:11px}
 }
+
+/* the page title: a trapezoid tab hanging from the top rule, always there, holding the silver italic title; nothing about it moves */
+.title-strip{flex:none;display:flex;justify-content:center;background:var(--bar);border-bottom:1px solid var(--line)}
+.title-tab{--cut:18px;position:relative;flex:none;margin:0;min-width:min(270px,86vw);height:34px;display:flex;align-items:center;justify-content:center;padding:0 30px;background:#3c3f46;clip-path:polygon(0 0,100% 0,calc(100% - var(--cut)) 100%,var(--cut) 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:22px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c9cdd4}
+.title-tab::before{content:"";position:absolute;inset:0 1px 1px;background:var(--bar);clip-path:polygon(0 0,100% 0,calc(100% - var(--cut) + .5px) 100%,calc(var(--cut) - .5px) 100%)}
+.title-tab span{position:relative;display:flex;align-items:center;gap:.3em;padding-top:.06em;text-rendering:geometricPrecision;-webkit-font-smoothing:antialiased}
+.title-tab .tw{display:inline-block;font-weight:400;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+@media (max-width:640px){.title-tab{--cut:12px;height:30px;font-size:19px;padding:0 28px}}
+@media (max-height:700px){.title-tab{height:28px;font-size:19px}}
+
+/* the tools sit centered just under the tab; the coffee and reset buttons live in the top-right of the title strip */
+.title-strip{position:relative;z-index:30}
+.bar{justify-content:center}
+.tabs{justify-content:center}
+.title-strip .reset-wrap{position:absolute;right:12px;top:0;bottom:0;margin:0;padding:0;width:auto;flex-wrap:nowrap;justify-content:flex-end}
+.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .shop-vchip,.title-strip .reset-wrap > .dev-chip,.title-strip .reset-wrap > .reset-all{height:26px}
+@media (max-width:640px){.title-strip .reset-wrap{right:6px;gap:6px}.title-strip .reset-wrap > .bmc > span,.title-strip .reset-wrap > .bmc > .bmc-t,.title-strip .reset-wrap .reset-all .ra-t{display:none}.title-tab{min-width:0;padding:0 24px}}
+
+/* the tool names: uppercase italics */
+.tabs .tab{text-transform:uppercase;font-style:italic;letter-spacing:.06em;font-size:12px}
+@media (max-width:1100px){.tabs .tab{letter-spacing:.03em;font-size:11.5px}}
+
+/* the portfolio link sits in the top-left corner */
+.site-head{justify-content:flex-start}
+.site-head a{width:auto}
+
+/* the portfolio link: top-left of the title row, level with the coffee and reset buttons */
+.title-strip .site-link{position:absolute;left:14px;top:0;bottom:0;display:flex;align-items:center;color:#fff;font-size:12.5px;font-weight:600;letter-spacing:.02em;text-decoration:none;white-space:nowrap;transition:color .2s ease,opacity .2s ease}
+.title-strip .site-link:hover,.title-strip .site-link:focus-visible{color:#fff;opacity:.75;text-decoration:underline;text-underline-offset:3px;outline:none}
+@media (max-width:860px){.title-strip .site-link{font-size:10.5px;left:8px}}
+@media (max-width:640px){.title-strip .site-link{display:none}}
+
+/* each tool in the ribbon carries a small line drawing of itself above its name */
+.tabs{min-height:92px}
+.tabs .tab{flex-direction:column;justify-content:center;gap:5px;height:76px;padding:0 14px}
+.tab-ic{display:block;line-height:0}
+.tab-ic svg{display:block;width:74px;height:42px;overflow:visible}
+@media (max-height:700px){.tabs{min-height:58px}.tabs .tab{height:46px;gap:3px}.tab-ic svg{width:50px;height:28px}}
+
+/* the lines run out to the sides of the page and stop there: a rule at the top of the title tab, and the same rule mirrored in the footer.
+   Nothing runs down the sides, and nothing runs under the tab. */
+.title-strip{padding-top:12px;border-bottom:0;background:var(--bar)}
+.title-strip::before{content:"";position:absolute;left:0;right:0;top:12px;height:1px;background:#3c3f46;pointer-events:none}
+.title-strip .site-link,.title-strip .reset-wrap{top:12px}
+.foot-strip{flex:none;position:relative;display:flex;justify-content:center;padding-bottom:12px;background:var(--bar)}
+.foot-strip::before{content:"";position:absolute;left:0;right:0;bottom:12px;height:1px;background:#3c3f46;pointer-events:none}
+.foot-strip .foot{--cut:16px;position:relative;flex:0 1 auto;max-width:100%;padding:10px 28px 3px;border:0;background:#3c3f46;clip-path:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% 100%,0 100%)}
+.foot-strip .foot::before{content:"";position:absolute;inset:1px 1px 0;z-index:-1;background:var(--bar);clip-path:polygon(calc(var(--cut) - .5px) 0,calc(100% - var(--cut) + .5px) 0,100% 100%,0 100%)}
+@media (max-width:640px){.foot-strip .foot{--cut:12px;padding:9px 18px 3px}}
+@media (max-height:700px){.foot-strip .foot{padding:8px 24px 2px}}
+
+/* dips near both ends of the header and footer rules: just before the line reaches the page edge it steps toward the middle of the bar (down in the header, up in the footer) */
+.title-strip::before{left:0;right:0;top:0;bottom:auto;height:24px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='24' viewBox='0 0 34 24'%3E%3Cpath d='M0 0H34V12H24L16 22H0Z' fill='%2308090a'/%3E%3Cpath d='M34 12.5H24L16 22.5H0' fill='none' stroke='%233c3f46' stroke-width='1'/%3E%3C/svg%3E") left top/34px 24px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='24' viewBox='0 0 34 24'%3E%3Cpath d='M0 0H34V22H18L10 12H0Z' fill='%2308090a'/%3E%3Cpath d='M0 12.5H10L18 22.5H34' fill='none' stroke='%233c3f46' stroke-width='1'/%3E%3C/svg%3E") right top/34px 24px no-repeat,linear-gradient(#3c3f46,#3c3f46) left 34px top 12px/calc(100% - 68px) 1px no-repeat}
+.foot-strip::before{left:0;right:0;bottom:0;top:auto;height:24px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='24' viewBox='0 0 34 24'%3E%3Cpath d='M0 24H34V12H24L16 2H0Z' fill='%2308090a'/%3E%3Cpath d='M34 11.5H24L16 1.5H0' fill='none' stroke='%233c3f46' stroke-width='1'/%3E%3C/svg%3E") left bottom/34px 24px no-repeat,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='34' height='24' viewBox='0 0 34 24'%3E%3Cpath d='M0 24H34V2H18L10 12H0Z' fill='%2308090a'/%3E%3Cpath d='M0 11.5H10L18 1.5H34' fill='none' stroke='%233c3f46' stroke-width='1'/%3E%3C/svg%3E") right bottom/34px 24px no-repeat,linear-gradient(#3c3f46,#3c3f46) left 34px bottom 12px/calc(100% - 68px) 1px no-repeat}
+.title-strip .site-link{left:40px}
+.title-strip .reset-wrap{right:40px}
+@media (max-width:640px){.title-strip .reset-wrap{right:38px}}
+
+/* the coffee and reset buttons: slanted plates that echo the title tab: a thin outline, dark inside, Bebas italic labels.
+   The outline is the button's own colour (its background, cut to the slanted shape); ::after is the dark inside. */
+.title-strip .reset-wrap{gap:10px}
+.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{--c:9px;position:relative;display:flex;align-items:center;justify-content:center;gap:8px;height:30px;padding:0 24px 0 22px;margin:0;border:0;border-radius:0;overflow:hidden;
+  clip-path:polygon(var(--c) 0,100% 0,calc(100% - var(--c)) 100%,0 100%);font-family:"Bebas Neue","Inter",sans-serif;font-size:15px;font-weight:400;font-style:italic;letter-spacing:.1em;text-transform:uppercase;line-height:1;white-space:nowrap;text-decoration:none;cursor:pointer;
+  transition:background-color .25s ease,color .25s ease}
+.title-strip .reset-wrap > .bmc::after,.title-strip .reset-wrap > .reset-all::after{content:"";position:absolute;inset:1px;z-index:0;background:#0a0b0d;clip-path:polygon(calc(var(--c) - .4px) 0,100% 0,calc(100% - var(--c) + .4px) 100%,0 100%)}
+.title-strip .reset-wrap > .bmc > *,.title-strip .reset-wrap > .reset-all > *{position:relative;z-index:2}
+.title-strip .reset-wrap > .bmc svg{width:16px;height:16px}
+.title-strip .reset-wrap > .reset-all svg{width:14px;height:14px}
+/* coffee: warm gold */
+.title-strip .reset-wrap > .bmc{background:#6e5d2b;color:#f1d57f}
+.title-strip .reset-wrap > .bmc:hover,.title-strip .reset-wrap > .bmc:focus-visible{background:#ffd558;color:#fff0bd;outline:none}
+/* reset: red; holding it fills the plate from the left (the --p progress set by js/shell.js) */
+.title-strip .reset-wrap > .reset-all{background:#6a2f2d;color:#f2b3b0}
+.title-strip .reset-wrap > .reset-all::before{inset:1px;z-index:1;opacity:.45;clip-path:polygon(calc(var(--c) - .4px) 0,100% 0,calc(100% - var(--c) + .4px) 100%,0 100%)}
+.title-strip .reset-wrap > .reset-all:hover,.title-strip .reset-wrap > .reset-all:focus-visible{background:var(--danger);color:#fff;outline:none}
+.title-strip .reset-wrap > .reset-all.done{background:var(--danger);color:#fff}
+.title-strip .reset-wrap > .reset-all.done::after{background:#2a1110}
+@media (max-width:1280px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 18px 0 16px}}
+@media (max-width:640px){.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{padding:0 16px 0 14px}}
+
+/* the tool drawings in the ribbon move the way the tool works when the tab is hovered (or focused): they ease out and, on leaving, ease back */
+.tab-ic .cal-sl,.tab-ic .ver-sl,.tab-ic .hg-sl,.tab-ic .mic-th,.tab-ic .tel-l,.tab-ic .tel-r,.tab-ic .nd,.tab-ic .dep-rod{transition:transform .8s cubic-bezier(.4,0,.2,1)}
+/* calipers: the slider runs out along the beam; the dial's needle sweeps round with it */
+.tab:hover .tab-ic .cal-sl,.tab:focus-visible .tab-ic .cal-sl{transform:translateX(9px)}
+.tab:hover .tab-ic .nd,.tab:focus-visible .tab-ic .nd{transform:rotate(250deg)}
+.tab:hover .tab-ic .ver-sl,.tab:focus-visible .tab-ic .ver-sl{transform:translateX(9px)}
+/* outside micrometer: the thimble turns (its lines run round) and winds the spindle in toward the anvil */
+.tab:hover .tab-ic .mic-th,.tab:focus-visible .tab-ic .mic-th{transform:translateX(-5px)}
+.tab-ic .mic-tk{opacity:0;transition:opacity .4s ease}
+.tab:hover .tab-ic .mic-tk,.tab:focus-visible .tab-ic .mic-tk{opacity:1;animation:ic-turn .6s linear infinite}
+/* depth micrometer: the thimble turns and the rod runs out below the base */
+.tab-ic .dep-rod{transform-origin:32px 30px}
+.tab:hover .tab-ic .dep-rod,.tab:focus-visible .tab-ic .dep-rod{transform:scaleY(1.6)}
+.tab:hover .tab-ic .dep-kn,.tab:focus-visible .tab-ic .dep-kn{animation:ic-roll .6s linear infinite}
+/* height gage: the slider, with its scriber, runs up the column */
+.tab:hover .tab-ic .hg-sl,.tab:focus-visible .tab-ic .hg-sl{transform:translateY(-7px)}
+/* telescopic gauge: the two arms telescope out toward the wall of the hole */
+.tab-ic .tel-l{transform-origin:15px 28px}.tab-ic .tel-r{transform-origin:29px 28px}
+.tab:hover .tab-ic .tel-l,.tab:focus-visible .tab-ic .tel-l,.tab:hover .tab-ic .tel-r,.tab:focus-visible .tab-ic .tel-r{transform:scaleX(1.45)}
+@keyframes ic-turn{to{transform:translateY(2.5px)}}
+@keyframes ic-roll{to{transform:translateX(3px)}}
+@media (prefers-reduced-motion: reduce){.tab-ic *{transition:none!important;animation:none!important}}
+
+/* more room around the coffee and reset buttons: a wider gap between them, more space from the page edge, and clear space above and below */
+.title-strip .reset-wrap{gap:20px;right:56px}
+.title-strip .reset-wrap > .bmc,.title-strip .reset-wrap > .reset-all{height:26px;font-size:14px;margin:4px 0}
+.title-strip .site-link{left:56px}
+@media (max-width:1100px){.title-strip .reset-wrap{gap:14px;right:46px}.title-strip .site-link{left:46px}}
+@media (max-width:640px){.title-strip .reset-wrap{gap:10px;right:40px}}
+
+/* the footer: the page content runs straight down to the footer's line, with no black block beside the tab above it; only the tab and the band under the line are black */
+.foot-strip{background:linear-gradient(#131416 calc(100% - 12px),var(--bar) 0)}
+
+/* the footer plate lies over the bottom of the page: the tool shows through on both sides of the tab, and only the tab and the band under the line are solid */
+.foot-strip{position:absolute;left:0;right:0;bottom:0;z-index:40;pointer-events:none;background:linear-gradient(transparent calc(100% - 12px),var(--bar) 0)}
+.foot-strip .foot{pointer-events:auto}

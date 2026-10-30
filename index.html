@@ -24,29 +24,28 @@ if (location.protocol === 'file:'){
 }
 </script>
 <style id="introCss">
-/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, then flies to the top-left brand and settles into it.
+/* opening screen: the Shop Tool Sim lockup writes itself in the middle of the page, holds, then fades out where it is, revealing the page and the title in its top bar.
    Everything here moves with transform and opacity only (no blur, no layout), and the whole timeline, flight included, is CSS,
    so the browser's compositor runs it and the page loading underneath cannot make it stutter.
    The real brand stays hidden until then (html.intro-on); a timer in the script below drops that class if anything goes wrong. */
-html.intro-on .brand{visibility:hidden}
 .intro{position:fixed;inset:0;z-index:99999;overflow:hidden;pointer-events:auto;contain:strict}
 .intro-bg{position:absolute;inset:0;background:#030814 linear-gradient(160deg,#0d2247 0%,#081532 45%,#030814 100%);will-change:opacity}
-.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;color:#e4e6ea;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
-.intro-logo .iw{display:inline-block;opacity:0;transform-origin:50% 60%;will-change:transform,opacity}
-.intro-logo .ib{display:inline-block;color:#e8c547;opacity:0;--dx:-1;will-change:transform,opacity}
+.intro-logo{position:absolute;left:50%;top:50%;margin:0;display:flex;align-items:center;gap:.3em;padding-top:.06em;font-family:"Bebas Neue","Inter",sans-serif;font-size:34px;font-weight:400;line-height:1;letter-spacing:.08em;white-space:nowrap;font-style:italic;color:#c3c7ce;text-transform:uppercase;transform:translate(-50%,-50%);transform-origin:50% 50%;visibility:hidden;will-change:transform;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision;backface-visibility:hidden}
+.intro-logo .it{display:flex;align-items:center;gap:.3em}
+.intro-logo .iw{display:inline-block;padding-right:.08em;background:linear-gradient(180deg,#fbfcfd 0%,#e2e5eb 28%,#acb2bb 50%,#c0c5ce 68%,#d2d6dd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;opacity:0;transform-origin:50% 60%;will-change:transform,opacity}
+.intro-logo .ib{display:inline-block;color:#c3c7ce;opacity:0;--dx:-1;will-change:transform,opacity}
 .intro-logo .ib.c{--dx:1}
 .intro-on-go .intro-logo{visibility:visible}
-.intro-on-go .iw{animation:introBreathe .8s cubic-bezier(.37,0,.25,1) forwards}
-.intro-on-go .iw.w1{animation-delay:.2s}.intro-on-go .iw.w2{animation-delay:.55s}.intro-on-go .iw.w3{animation-delay:.9s}
+.intro-on-go .iw{animation:introBreathe .5s cubic-bezier(.37,0,.25,1) forwards}
+.intro-on-go .iw.w1{animation-delay:.1s}.intro-on-go .iw.w2{animation-delay:.3s}.intro-on-go .iw.w3{animation-delay:.5s}
 @keyframes introBreathe{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
-.intro-on-go .ib{animation:introBrk .55s cubic-bezier(.22,1,.36,1) 1.8s forwards,introBounce .7s ease-in-out 2.5s 1,introDim 1s ease 3.5s forwards}
-@keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*.2in))}40%{opacity:1}100%{opacity:1;transform:translateX(0)}}
+.intro-on-go .ib{animation:introBrk .6s linear 1.8s forwards,introBounce .7s ease-in-out 2.5s 1,introDim 1s ease 3.5s forwards}
+@keyframes introBrk{0%{opacity:0;transform:translateX(calc(var(--dx)*-.12in))}8%{opacity:1;transform:translateX(calc(var(--dx)*.09in)) translateY(-.02in)}16%{opacity:0;transform:translateX(calc(var(--dx)*.02in))}24%{opacity:.9;transform:translateX(calc(var(--dx)*-.07in)) translateY(.03in)}33%{opacity:.15;transform:translateX(calc(var(--dx)*.05in))}42%{opacity:1;transform:translateX(calc(var(--dx)*.1in)) translateY(0)}52%{opacity:.4;transform:translateX(calc(var(--dx)*-.03in)) translateY(-.015in)}62%{opacity:1;transform:translateX(calc(var(--dx)*.03in))}74%{opacity:.7;transform:translateX(calc(var(--dx)*-.015in)) translateY(.01in)}86%{opacity:1;transform:translateX(0)}100%{opacity:1;transform:translateX(0)}}
 @keyframes introBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--dx)*.06in))}}
 @keyframes introDim{from{opacity:1}to{opacity:.85}}
 /* flight at 3.5 s: --fx/--fy/--fs (set by the script from the brand's real position) carry the lockup there; the background fades with it */
-.intro-on-go .intro-logo{animation:introFly 1s cubic-bezier(.65,0,.2,1) 3.5s forwards}
-.intro-on-go .intro-bg{animation:introFade .9s cubic-bezier(.45,0,.25,1) 3.5s forwards}
-@keyframes introFly{from{transform:translate(-50%,-50%)}to{transform:translate(var(--fx,0px),var(--fy,0px)) translate(-50%,-50%) scale(var(--fs,1))}}
+.intro-on-go .intro-logo{animation:introOut .5s ease 3.2s forwards}
+.intro-on-go .intro-bg{animation:introFade .5s cubic-bezier(.45,0,.25,1) 3.2s forwards}
 @keyframes introFade{to{opacity:0}}
 .intro.nobrand .intro-logo{animation-name:introOut}
 @keyframes introOut{to{opacity:0}}
@@ -54,38 +53,61 @@ html.intro-on .brand{visibility:hidden}
 .intro.now .intro-logo,.intro.now .intro-bg{animation-delay:0s}
 .intro.now .iw{animation:none;opacity:1;transform:none}
 .intro.now .ib{animation:introDim 1s ease 0s forwards;transform:none}
-@media (prefers-reduced-motion:reduce){.intro-on-go .iw{animation:none;opacity:1}.intro-on-go .ib{animation:introBrk .4s linear .3s forwards,introDim 1s ease 2.5s forwards}.intro-on-go .intro-logo{animation-delay:2.5s}.intro-on-go .intro-bg{animation-delay:2.5s}}
+@media (prefers-reduced-motion:reduce){.intro-on-go .iw{animation:none;opacity:1}.intro-on-go .ib{animation:introBrk .4s linear .3s forwards,introDim 1s ease 2.5s forwards}.intro-on-go .intro-logo{animation-delay:1.2s}.intro-on-go .intro-bg{animation-delay:1.2s}}
+
+/* broken brackets glitch in beside the text, join up into an outline, a bright arc runs once round the text, the outline fades, the intro ends */
+.intro-logo .ibx{position:absolute;pointer-events:none;overflow:visible;fill:none;stroke:#c3c7ce;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.intro-logo .ibx .brk path{opacity:0}
+.intro-logo .ibx .ol{stroke-dasharray:100;stroke-dashoffset:100;stroke-width:1.2;opacity:.85}
+.intro-logo .ibx .arc{stroke:#fff;stroke-width:2;stroke-dasharray:12 88;stroke-dashoffset:0;opacity:0}
+.intro-on-go .ibx .brk path{animation:ibxFlick .6s linear var(--d,.8s) forwards,ibxGone .25s ease 1.55s forwards}
+.intro-on-go .ibx .ol{animation:ibxDraw .5s cubic-bezier(.4,0,.2,1) 1.5s forwards,ibxGone .3s ease 2.95s forwards}
+.intro-on-go .ibx .arc{animation:ibxLap .95s cubic-bezier(.45,.05,.3,1) 2.0s forwards}
+@keyframes ibxFlick{0%{opacity:0;transform:translateX(-4px)}9%{opacity:1;transform:translateX(3px)}17%{opacity:0}27%{opacity:.9;transform:translateX(-2px)}35%{opacity:.15}46%{opacity:1;transform:translateX(2px)}58%{opacity:.5}72%{opacity:1;transform:none}100%{opacity:1;transform:none}}
+@keyframes ibxGone{to{opacity:0}}
+@keyframes ibxDraw{to{stroke-dashoffset:0}}
+@keyframes ibxLap{0%{opacity:1;stroke-dashoffset:0}93%{opacity:1}100%{opacity:0;stroke-dashoffset:-100}}
+.intro.now .ibx{display:none}
+@media (prefers-reduced-motion:reduce){.intro-on-go .ibx .brk path,.intro-on-go .ibx .ol,.intro-on-go .ibx .arc{animation:none}.intro-logo .ibx{display:none}.intro-on-go .intro-logo{animation-delay:1.2s}.intro-on-go .intro-bg{animation-delay:1.2s}}
 </style>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=55">
+<link rel="stylesheet" href="css/shell.css?v=90">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
 </head>
 <body>
-<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="ib o">[</span><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span><span class="ib c">]</span></div></div>
+<div class="intro" id="intro" aria-hidden="true"><div class="intro-bg"></div><div class="intro-logo" id="introLogo"><span class="it"><span class="iw w1">Shop</span> <span class="iw w2">tool</span> <span class="iw w3">sim</span></span></div></div>
 <script>
 (function(){
   var root = document.documentElement, ov = document.getElementById('intro'), logo = document.getElementById('introLogo');
   var started = false, over = false, after = [];
   function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); after.splice(0).forEach(function(f){ f(); }); }
   window.__afterIntro = function(f){ if (over) f(); else after.push(f); };   // the page's own start-up waits here
-  // where the flight ends: the lockup is scaled to the brand's width and centered on it (all from layout, which no transform changes)
-  function aim(){
-    var brand = document.querySelector('.bar .brand'), b = brand && brand.getBoundingClientRect();
-    if (!b || !b.width || getComputedStyle(brand).display === 'none'){ ov.classList.add('nobrand'); return; }   // no brand on screen (narrow phones): just fade out
-    ov.classList.remove('nobrand');
-    var pad = parseFloat(getComputedStyle(brand).paddingTop) || 0;   // (the brand's text sits half its top padding below the middle of its box)
-    logo.style.setProperty('--fs', b.width / logo.offsetWidth);
-    logo.style.setProperty('--fx', (b.left + b.width/2 - ov.clientWidth/2) + 'px');
-    logo.style.setProperty('--fy', (b.top + b.height/2 + pad/2 - ov.clientHeight/2) + 'px');
+  // the broken brackets and the outline round the lockup, drawn to its measured size
+  function frame(){
+    var W0 = logo.offsetWidth, H0 = logo.offsetHeight; if (!W0 || !H0) return;
+    var px = 30, py = 16, W = W0 + 2*px, H = H0 + 2*py, r = 9, a = 14, N = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(N, 'svg'); svg.setAttribute('class', 'ibx'); svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.style.cssText = 'left:' + (-px) + 'px;top:' + (-py) + 'px;width:' + W + 'px;height:' + H + 'px';
+    var x1 = 1, y1 = 1, x2 = W - 1, y2 = H - 1, m1 = y1 + 20, m2 = y2 - 20;
+    var pieces = [   // each bracket in three pieces with gaps between them: the "broken" look
+      ['M' + (x1 + a) + ' ' + y1 + 'H' + x1 + 'V' + (y1 + 9), '.78s'], ['M' + x1 + ' ' + (y1 + 15) + 'V' + (y2 - 15), '.9s'], ['M' + x1 + ' ' + (y2 - 9) + 'V' + y2 + 'H' + (x1 + a), '1.02s'],
+      ['M' + (x2 - a) + ' ' + y1 + 'H' + x2 + 'V' + (y1 + 9), '.84s'], ['M' + x2 + ' ' + (y1 + 15) + 'V' + (y2 - 15), '.96s'], ['M' + x2 + ' ' + (y2 - 9) + 'V' + y2 + 'H' + (x2 - a), '1.08s']
+    ];
+    var g = document.createElementNS(N, 'g'); g.setAttribute('class', 'brk');
+    pieces.forEach(function(p){ var e = document.createElementNS(N, 'path'); e.setAttribute('d', p[0]); e.style.setProperty('--d', p[1]); g.appendChild(e); });
+    var box = 'M' + (x1 + r) + ' ' + y1 + 'H' + (x2 - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + x2 + ' ' + (y1 + r) + 'V' + (y2 - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x2 - r) + ' ' + y2 + 'H' + (x1 + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + x1 + ' ' + (y2 - r) + 'V' + (y1 + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x1 + r) + ' ' + y1 + 'Z';
+    var ol = document.createElementNS(N, 'path'); ol.setAttribute('class', 'ol'); ol.setAttribute('d', box); ol.setAttribute('pathLength', '100');
+    var arc = document.createElementNS(N, 'path'); arc.setAttribute('class', 'arc'); arc.setAttribute('d', box); arc.setAttribute('pathLength', '100');
+    svg.appendChild(g); svg.appendChild(ol); svg.appendChild(arc);
+    logo.appendChild(svg);
   }
   function start(){
-    if (started) return; started = true; aim(); root.classList.add('intro-on-go');
-    setTimeout(aim, 2500);   // once more after the page around it has settled; the flight reads these values as it runs
-    window.addEventListener('resize', aim);
+    if (started) return; started = true; frame(); root.classList.add('intro-on-go');
   }
   function ready(){
     var f = (document.fonts && document.fonts.load) ? document.fonts.load('1em "Bebas Neue"').catch(function(){}) : Promise.resolve();
@@ -100,17 +122,17 @@ html.intro-on .brand{visibility:hidden}
   window.__introFly = skip;
 })();
 </script>
-<header class="site-head" role="banner"><a href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a></header>
-<header class="bar">
-  <div class="brand" aria-hidden="true"><i>[</i> SHOP TOOL SIM <i>]</i></div>
-  <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
+<div class="title-strip" role="presentation"><a class="site-link" href="https://kevmcg1.github.io/portfolio" target="_top" aria-label="Back to the portfolio at kevmcg1.github.io">KEVMCG1.GITHUB.IO</a><h1 class="title-tab"><span><b class="tw">SHOP</b> <b class="tw">TOOL</b> <b class="tw">SIM</b></span></h1>
   <div class="reset-wrap">
     <button type="button" class="reset-all" id="resetAll" aria-describedby="resetPop"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg><span class="ra-t">Reset all</span></button>
     <div class="reset-pop" id="resetPop" role="tooltip"><b>Hold for 3 seconds to reset everything.</b> Every tool, part and setting goes back to how it started. Use it if you’re stuck and there’s no way out.</div>
   </div>
+</div>
+<header class="bar">
+  <nav class="tabs" role="tablist" aria-label="Instruments" id="tabs"></nav>
 </header>
 <main class="stage" id="stage"></main>
-<footer class="foot"><span>Shop Tool Sim is released under GitHub’s <a href="https://github.com/github/choosealicense.com/blob/gh-pages/_licenses/cc0-1.0.txt" target="_blank" rel="license noopener noreferrer">Creative Commons Zero v1.0 Universal</a> license. All rights reserved.</span></footer>
+<div class="foot-strip"><footer class="foot"><span>Shop Tool Sim is released under GitHub’s <a href="https://github.com/github/choosealicense.com/blob/gh-pages/_licenses/cc0-1.0.txt" target="_blank" rel="license noopener noreferrer">Creative Commons Zero v1.0 Universal</a> license. All rights reserved.</span></footer></div>
 <!-- each tool's page; its styles are in css/ and its code in js/ -->
 <script type="text/html" id="tool-caliper">
 <!DOCTYPE html>
@@ -123,7 +145,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/caliper.css?v=57">
+<link rel="stylesheet" href="css/caliper.css?v=60">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
@@ -393,7 +415,8 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/holo.js?v=52"><\/script>
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=4"><\/script>
-<script src="js/mouse-settings.js?v=3"><\/script>
+<script src="js/mouse-settings.js?v=8"><\/script>
+<script src="js/viewfx.js?v=11"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
@@ -404,8 +427,8 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
-<script src="js/guide.js?v=102"><\/script>
-<script src="js/tips.js?v=52"><\/script>
+<script src="js/guide.js?v=104"><\/script>
+<script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/flat-units.js?v=50"><\/script>
 <script src="js/version.js?v=107"><\/script>
@@ -426,7 +449,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/micrometer.css?v=57">
+<link rel="stylesheet" href="css/micrometer.css?v=60">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
@@ -653,20 +676,21 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/holo.js?v=52"><\/script>
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=4"><\/script>
-<script src="js/mouse-settings.js?v=3"><\/script>
+<script src="js/mouse-settings.js?v=8"><\/script>
+<script src="js/viewfx.js?v=11"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
 <!-- js/hands.js?v=72 (the 3D hands, switched off: load it with a script tag here to bring them back) -->
 <script src="js/paper.js?v=5"><\/script>
-<script src="js/micrometer.js?v=119"><\/script>
+<script src="js/micrometer.js?v=123"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
-<script src="js/guide.js?v=102"><\/script>
-<script src="js/tips.js?v=52"><\/script>
+<script src="js/guide.js?v=104"><\/script>
+<script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
@@ -686,7 +710,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/depth.css?v=57">
+<link rel="stylesheet" href="css/depth.css?v=60">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
@@ -928,7 +952,8 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/holo.js?v=52"><\/script>
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=4"><\/script>
-<script src="js/mouse-settings.js?v=3"><\/script>
+<script src="js/mouse-settings.js?v=8"><\/script>
+<script src="js/viewfx.js?v=11"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/depth.js?v=69"><\/script>
@@ -937,8 +962,8 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
-<script src="js/guide.js?v=102"><\/script>
-<script src="js/tips.js?v=52"><\/script>
+<script src="js/guide.js?v=104"><\/script>
+<script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
@@ -958,7 +983,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/height.css?v=57">
+<link rel="stylesheet" href="css/height.css?v=60">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
@@ -1157,17 +1182,18 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/holo.js?v=52"><\/script>
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=4"><\/script>
-<script src="js/mouse-settings.js?v=3"><\/script>
+<script src="js/mouse-settings.js?v=8"><\/script>
+<script src="js/viewfx.js?v=11"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
-<script src="js/height.js?v=71"><\/script>
+<script src="js/height.js?v=72"><\/script>
 <script src="js/color-dots.js?v=50"><\/script>
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
-<script src="js/guide.js?v=102"><\/script>
-<script src="js/tips.js?v=52"><\/script>
+<script src="js/guide.js?v=104"><\/script>
+<script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 
 <script src="js/version.js?v=107"><\/script>
@@ -1188,7 +1214,7 @@ html.intro-on .brand{visibility:hidden}
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=70">
+<link rel="stylesheet" href="css/telescopic.css?v=73">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
@@ -1410,11 +1436,12 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
+<script src="js/viewfx.js?v=11"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
 <script src="js/paper.js?v=5"><\/script>
 <script src="js/telescopic.js?v=104"><\/script>
-<script src="js/tips.js?v=52"><\/script>
+<script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=107"><\/script>
 <script src="js/seeyou.js?v=2"><\/script>
@@ -1426,8 +1453,8 @@ html.intro-on .brand{visibility:hidden}
 <script src="js/version.js?v=107"></script>
 <script src="js/seeyou.js?v=2"></script>
 <script src="js/changelog.js?v=54"></script>
-<script src="js/mobile-notice.js?v=1"></script>
-<script src="js/shell.js?v=70"></script>
+<script src="js/mobile-notice.js?v=2"></script>
+<script src="js/shell.js?v=78"></script>
 <script src="js/devmode.js?v=73"></script>
 </body>
 </html>

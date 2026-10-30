@@ -12,7 +12,7 @@
   var css = document.createElement('style');
   css.textContent =
     '.mn{position:fixed;inset:0;z-index:100000;display:grid;place-items:center;padding:20px;background:rgba(5,6,8,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;animation:mn-in .22s ease}' +
-    '.mn-card{box-sizing:border-box;width:min(380px,100%);padding:24px 22px 20px;border-radius:14px;background:#15171d;color:#ececee;border:1px solid rgba(255,255,255,.18);box-shadow:0 18px 50px rgba(0,0,0,.6);text-align:center}' +
+    '.mn-card{max-height:calc(100vh - 40px);overflow-y:auto;box-sizing:border-box;width:min(380px,100%);padding:24px 22px 20px;border-radius:14px;background:#15171d;color:#ececee;border:1px solid rgba(255,255,255,.18);box-shadow:0 18px 50px rgba(0,0,0,.6);text-align:center}' +
     '.mn-ic{display:block;margin:0 auto 12px;width:44px;height:44px;color:#5b93ea}' +
     '.mn-card h2{margin:0 0 8px;font-size:18px;line-height:1.3;font-weight:700}' +
     '.mn-card p{margin:0 0 18px;font-size:13.5px;line-height:1.5;color:#8a8f97}' +

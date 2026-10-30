@@ -418,3 +418,19 @@ main{overflow-y:auto;overflow-x:hidden}
   .hud .h-sec{display:none}
   .hud .h-badge{width:32px;height:32px;font-size:17px}
 }
+
+/* the little message pill: dark, with a thin outline and a bright arc that runs once around it as it appears */
+@property --toast-a{syntax:"<angle>";inherits:false;initial-value:0deg}
+.toast{background:#0b0c0e;color:#ececee;border:1px solid rgba(255,255,255,.16);border-radius:9px;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.toast::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--toast-a),transparent 0deg,rgba(255,255,255,.95) 45deg,transparent 95deg);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);pointer-events:none;opacity:0}
+.toast.show.trace::before{animation:toast-trace var(--trace-dur,1.2s) linear 1 forwards}
+@keyframes toast-trace{0%{--toast-a:0deg;opacity:1}85%{opacity:1}100%{--toast-a:360deg;opacity:0}}
+@media (prefers-reduced-motion: reduce){.toast.show.trace::before{animation:none}}
+
+/* mouse legend, settings gear and view buttons: one vertical stack, centered at the left of the 3D viewport (js/viewfx.js builds .vstack) */
+.vstack{display:contents}
+@media (min-width:861px){
+  .vstack{display:flex;flex-direction:column;align-items:flex-start;gap:8px;position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:4}
+  .vstack:has(.ms-open){z-index:30}
+  .vstack .legend,.vstack .views{position:static!important;flex-direction:column;align-items:flex-start;flex-wrap:nowrap;gap:6px;right:auto!important;left:auto!important;top:auto!important}
+}

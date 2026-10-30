@@ -23,7 +23,7 @@ const CORE = (function(){
     // `st.deep` below the half-way depth, so the parts have room to sit in it; the outside is a concentric circle, so the metal round
     // it is the same thickness all the way. (yc, below the axis, is where the circle's middle is.)
     const yc = -st.deep, R = r, Ro = r + armT;   // a U: straight walls down to yc, then a half circle (radius r, centred at yc) round the bottom
-    const rd = 0.36*zs, cd = rd*st.web;   // the rim's and the web's thickness
+    const rd = 0.36*zs, cd = Math.max(rd*st.web, 2*(RHO + 0.005));   // the rim's and the web's thickness (the web is never thinner than the spindle that passes through it, so the spindle can't show on the frame's face)
     return { g, armL, armR, hx, hubR, cx, cy: yc, rxi: R, ryi: R, rxo: Ro, ryo: Ro, zs, ar, st, pw: 2, rd, cd, rimW: st.rimW, r, armT,
       bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
   }
@@ -278,7 +278,7 @@ const dims = () => CORE.dims(B);
 let B = 0, S0 = 2.1;
 const state = {
   reading: 0.25, locked: false,
-  sampleKey: 'shaft', sample: null, setup: 'A', side: -1,
+  sampleKey: 'none', sample: null, setup: 'A', side: -1,   // (opens with nothing between the faces; a part is picked from the Sample list)
   partZ: 0, partTarget: null, sxT: 0, sxV: 0, ev: null, seq: null,
   practice: false, pRevealed: false, pErr: [], exam: false, pScore: { right: 0, total: 0, streak: 0 }, hl: { num: false, line: false, thimble: false, vernier: false, outline: false },
   ratchetExtra: 0, slipAcc: 0, clicks: 0, anim: null,
@@ -863,6 +863,9 @@ function arcSE(p, cx, cy, rx, ry, a0, a1, cw, pw){
   for (let i = 0; i <= n; i++){ const a = a0 + da*i/n, c = Math.cos(a), s = Math.sin(a); p.lineTo(cx + rx*Math.sign(c)*Math.pow(Math.abs(c), e), cy + ry*Math.sign(s)*Math.pow(Math.abs(s), e)); }
   return p;
 }
+// where the spindle lock sits on the hub: on the thin web where the rim is narrow, but on the rim's raised face once the rim is wide enough
+// to run under the lock (every size from 1–2″ up), so it never sinks into the frame
+const lockBaseZ = D => D.rimW > 0.07 ? D.rimFront : D.coreFront;
 function cPath(p, d, D){
   // outer circle from the left arm round the bottom to the hub, the hub's shoulders, then the throat's circle back round to the arm
   const Ro = D.rxo - d, Ri = D.rxi + d, cx = D.cx, yc = D.cy, yA = 0.08, yH = 0.14;
@@ -967,7 +970,7 @@ function build(){
   root.add(pickable(latheX([[SLV_R, D.hubR - 0.01], [0.325, D.hubR], [0.328, D.hubR + 0.02], [0.328, D.hubR + 0.07], [0.31, D.hubR + 0.09], [SLV_R, D.hubR + 0.09]], M.chrome, 96), 'none'));
 
   // spindle lock
-  const lg = new T.Group(); lg.position.set(D.hx + 0.2, 0.13, D.coreFront - 0.003); root.add(lg);
+  const lg = new T.Group(); lg.position.set(D.hx + 0.2, 0.13, lockBaseZ(D) - 0.003); root.add(lg);
   const seat = new T.Mesh(new T.CylinderGeometry(0.1, 0.105, 0.04, 40), M.chrome);
   seat.rotation.x = Math.PI/2; seat.position.z = 0.02; lg.add(pickable(seat, 'lever'));
   const ball = new T.Mesh(new T.SphereGeometry(0.085, 32, 20), M.chrome);
@@ -1621,7 +1624,7 @@ const EXAM = [
   ['Anvil', 'Fixed measuring face', () => ({ p: new T.Vector3(-0.06, SP_R, 0), n: new T.Vector3(-0.3, 1, 0.2).normalize() })],
   ['Measuring faces', '0.256″ carbide tips', () => ({ p: new T.Vector3((B + state.reading)/2, 0, 0), n: new T.Vector3(0, -0.6, 1).normalize() })],
   ['Spindle', 'Moves 0.025″ per turn (40 TPI)', () => ({ p: new T.Vector3(B + state.reading + Math.max(0.02, Math.min(0.5, (1.03 - state.reading)/2)), SP_R, 0), n: new T.Vector3(0, 1, 0.25).normalize() })],
-  ['Spindle lock', 'Flip to hold the reading', () => { const D = dims(); return { p: new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + 0.1), n: new T.Vector3(-0.2, 0.8, 0.6).normalize() }; }],
+  ['Spindle lock', 'Flip to hold the reading', () => { const D = dims(); return { p: new T.Vector3(D.hx + 0.2, 0.13, lockBaseZ(D) + 0.1), n: new T.Vector3(-0.2, 0.8, 0.6).normalize() }; }],
   ['Frame size', '', nameplateAnchor],
   ['Sleeve (barrel)', 'Fixed; carries the main scale', () => cylAnchor((dims().hubR + S0)/2 + 0.02, SLV_R, -0.9)],
   ['Index line', 'Reference line for the thimble', () => cylAnchor(S0 - 0.04, SLV_R, 0)],
@@ -3274,7 +3277,7 @@ function toolSDF(){
     return s*Math.sqrt(d);
   };
   const cyl = (p, x0, x1, r) => { const a = Math.abs(p.x - (x0 + x1)/2) - (x1 - x0)/2, b = Math.hypot(p.y, p.z) - r; return Math.min(Math.max(a, b), 0) + Math.hypot(Math.max(a, 0), Math.max(b, 0)); };
-  const lever = new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + 0.05);
+  const lever = new T.Vector3(D.hx + 0.2, 0.13, lockBaseZ(D) + 0.05);
   const frame = p => { const q = sdPoly(p.x, p.y), c = Math.abs(p.z) - zh; return Math.min(Math.max(q, c), 0) + Math.hypot(Math.max(q, 0), Math.max(c, 0)); };   // the frame
   const rest = p => {
     let d = cyl(p, -0.32, 0, 0.15);                                                          // the anvil
@@ -3492,6 +3495,8 @@ function guideRatchetCenter(){
 // "Show me" has the tool put the part in place by itself (the first feature slid between the faces, the
 // spindle run down to just short of it), so the person only has to finish closing it by hand
 window.__guidePlacePart = () => {
+  // with no part picked (the walkthrough was skipped past the part step, or the micrometer opened empty), one is put on first
+  if (!state.sample && state.sampleKey === 'none'){ const keys = CORE.available(B); if (keys.length){ $('sampleSel').value = keys[0]; newSample(keys[0]); } }
   // once the new part is in (the old one gone and the spindle opened clear first)
   partReady.then(() => {
     const S = state.sample, f = S && S.feats.find(x => x.valid);
