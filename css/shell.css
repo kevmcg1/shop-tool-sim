@@ -179,3 +179,15 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .tab-ic{display:block;line-height:0}
 .tab-ic svg{display:block;width:74px;height:42px;overflow:visible}
 @media (max-height:700px){.tabs{min-height:58px}.tabs .tab{height:46px;gap:3px}.tab-ic svg{width:50px;height:28px}}
+
+/* the lines run out to the sides of the page and stop there: a rule at the top of the title tab, and the same rule mirrored in the footer.
+   Nothing runs down the sides, and nothing runs under the tab. */
+.title-strip{padding-top:12px;border-bottom:0;background:linear-gradient(var(--bar) 0 12px,var(--bg) 12px)}
+.title-strip::before{content:"";position:absolute;left:0;right:0;top:12px;height:1px;background:#3c3f46;pointer-events:none}
+.title-strip .site-link,.title-strip .reset-wrap{top:12px}
+.foot-strip{flex:none;position:relative;display:flex;justify-content:center;padding-bottom:12px;background:linear-gradient(var(--bg) calc(100% - 12px),var(--bar) 0)}
+.foot-strip::before{content:"";position:absolute;left:0;right:0;bottom:12px;height:1px;background:#3c3f46;pointer-events:none}
+.foot-strip .foot{--cut:18px;position:relative;flex:0 1 auto;max-width:100%;padding:9px 44px;border:0;background:#3c3f46;clip-path:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% 100%,0 100%)}
+.foot-strip .foot::before{content:"";position:absolute;inset:1px 1px 0;z-index:-1;background:var(--bar);clip-path:polygon(calc(var(--cut) - .5px) 0,calc(100% - var(--cut) + .5px) 0,100% 100%,0 100%)}
+@media (max-width:640px){.foot-strip .foot{--cut:12px;padding:8px 26px}}
+@media (max-height:700px){.foot-strip .foot{padding:5px 38px}}

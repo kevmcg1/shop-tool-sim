@@ -9,7 +9,7 @@
     box.className = 'vstack';
     legend.parentNode.insertBefore(box, legend);
     box.appendChild(legend); box.appendChild(views);
-    // the stack is icons only: each mouse button keeps just its drawing, and its name moves to the tooltip
+    // each mouse button is a small white tile with its name written beside it, plain and without a box (the name is also its tooltip)
     legend.querySelectorAll('.mk').forEach(mk => {
       const tn = [...mk.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
       if (!tn) return;
@@ -38,7 +38,12 @@
   // when they would run past an edge, and the settings panel scrolls inside itself when the window is too short for it.
   function iconsOnly(){
     const st = document.createElement('style');
-    st.textContent = '@media (min-width:861px){.vstack .mk-t{display:none}.vstack .mk{padding:5px;gap:0;height:30px;width:30px;justify-content:center}.vstack .ib.shop-gfx{width:30px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
+    st.textContent = '@media (min-width:861px){' +
+      '.vstack .ms-cog{align-self:flex-start}' +
+      '.vstack .mk{background:none;padding:0;gap:9px;height:30px;color:#e6e9ef;font-size:12px;font-weight:600;letter-spacing:.03em;text-shadow:0 1px 5px rgba(0,0,0,.75);transition:color .2s ease}' +
+      '.vstack .mk:hover{color:#fff}' +
+      '.vstack .mk .mouse{box-sizing:content-box;padding:5.5px 8px;background:#fff;border-radius:8px}' +
+      '.vstack .ib.shop-gfx{width:30px;padding:0;gap:0}.vstack .ib.shop-gfx span{display:none}}';
     document.head.appendChild(st);
   }
   function guard(){
