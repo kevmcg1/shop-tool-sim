@@ -44,8 +44,8 @@ if (location.protocol === 'file:'){
 @keyframes introBounce{0%,100%{transform:translateX(0)}50%{transform:translateX(calc(var(--dx)*.06in))}}
 @keyframes introDim{from{opacity:1}to{opacity:.85}}
 /* flight at 3.5 s: --fx/--fy/--fs (set by the script from the brand's real position) carry the lockup there; the background fades with it */
-.intro-on-go .intro-logo{animation:introOut .5s ease 1.6s forwards}
-.intro-on-go .intro-bg{animation:introFade .5s cubic-bezier(.45,0,.25,1) 1.6s forwards}
+.intro-on-go .intro-logo{animation:introOut .5s ease 3.2s forwards}
+.intro-on-go .intro-bg{animation:introFade .5s cubic-bezier(.45,0,.25,1) 3.2s forwards}
 @keyframes introFade{to{opacity:0}}
 .intro.nobrand .intro-logo{animation-name:introOut}
 @keyframes introOut{to{opacity:0}}
@@ -54,11 +54,26 @@ if (location.protocol === 'file:'){
 .intro.now .iw{animation:none;opacity:1;transform:none}
 .intro.now .ib{animation:introDim 1s ease 0s forwards;transform:none}
 @media (prefers-reduced-motion:reduce){.intro-on-go .iw{animation:none;opacity:1}.intro-on-go .ib{animation:introBrk .4s linear .3s forwards,introDim 1s ease 2.5s forwards}.intro-on-go .intro-logo{animation-delay:1.2s}.intro-on-go .intro-bg{animation-delay:1.2s}}
+
+/* broken brackets glitch in beside the text, join up into an outline, a bright arc runs once round the text, the outline fades, the intro ends */
+.intro-logo .ibx{position:absolute;pointer-events:none;overflow:visible;fill:none;stroke:#c3c7ce;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.intro-logo .ibx .brk path{opacity:0}
+.intro-logo .ibx .ol{stroke-dasharray:100;stroke-dashoffset:100;stroke-width:1.2;opacity:.85}
+.intro-logo .ibx .arc{stroke:#fff;stroke-width:2;stroke-dasharray:12 88;stroke-dashoffset:0;opacity:0}
+.intro-on-go .ibx .brk path{animation:ibxFlick .6s linear var(--d,.8s) forwards,ibxGone .25s ease 1.55s forwards}
+.intro-on-go .ibx .ol{animation:ibxDraw .5s cubic-bezier(.4,0,.2,1) 1.5s forwards,ibxGone .3s ease 2.95s forwards}
+.intro-on-go .ibx .arc{animation:ibxLap .95s cubic-bezier(.45,.05,.3,1) 2.0s forwards}
+@keyframes ibxFlick{0%{opacity:0;transform:translateX(-4px)}9%{opacity:1;transform:translateX(3px)}17%{opacity:0}27%{opacity:.9;transform:translateX(-2px)}35%{opacity:.15}46%{opacity:1;transform:translateX(2px)}58%{opacity:.5}72%{opacity:1;transform:none}100%{opacity:1;transform:none}}
+@keyframes ibxGone{to{opacity:0}}
+@keyframes ibxDraw{to{stroke-dashoffset:0}}
+@keyframes ibxLap{0%{opacity:1;stroke-dashoffset:0}93%{opacity:1}100%{opacity:0;stroke-dashoffset:-100}}
+.intro.now .ibx{display:none}
+@media (prefers-reduced-motion:reduce){.intro-on-go .ibx .brk path,.intro-on-go .ibx .ol,.intro-on-go .ibx .arc{animation:none}.intro-logo .ibx{display:none}.intro-on-go .intro-logo{animation-delay:1.2s}.intro-on-go .intro-bg{animation-delay:1.2s}}
 </style>
 <!-- every css/ and js/ link on this page (the tools' pages below included) carries ?v=N. Browsers keep their
      old copies of these files for a while after a change goes live, which mixes new pages with old code;
      raise N everywhere (find and replace "?v=50") whenever anything in css/ or js/ changes -->
-<link rel="stylesheet" href="css/shell.css?v=81">
+<link rel="stylesheet" href="css/shell.css?v=82">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=3">
 <link rel="stylesheet" href="css/checkbox.css?v=1">
@@ -71,8 +86,28 @@ if (location.protocol === 'file:'){
   var started = false, over = false, after = [];
   function finish(){ if (over) return; over = true; root.classList.remove('intro-on'); if (ov.parentNode) ov.remove(); after.splice(0).forEach(function(f){ f(); }); }
   window.__afterIntro = function(f){ if (over) f(); else after.push(f); };   // the page's own start-up waits here
+  // the broken brackets and the outline round the lockup, drawn to its measured size
+  function frame(){
+    var W0 = logo.offsetWidth, H0 = logo.offsetHeight; if (!W0 || !H0) return;
+    var px = 30, py = 16, W = W0 + 2*px, H = H0 + 2*py, r = 9, a = 14, N = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(N, 'svg'); svg.setAttribute('class', 'ibx'); svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.style.cssText = 'left:' + (-px) + 'px;top:' + (-py) + 'px;width:' + W + 'px;height:' + H + 'px';
+    var x1 = 1, y1 = 1, x2 = W - 1, y2 = H - 1, m1 = y1 + 20, m2 = y2 - 20;
+    var pieces = [   // each bracket in three pieces with gaps between them: the "broken" look
+      ['M' + (x1 + a) + ' ' + y1 + 'H' + x1 + 'V' + (y1 + 9), '.78s'], ['M' + x1 + ' ' + (y1 + 15) + 'V' + (y2 - 15), '.9s'], ['M' + x1 + ' ' + (y2 - 9) + 'V' + y2 + 'H' + (x1 + a), '1.02s'],
+      ['M' + (x2 - a) + ' ' + y1 + 'H' + x2 + 'V' + (y1 + 9), '.84s'], ['M' + x2 + ' ' + (y1 + 15) + 'V' + (y2 - 15), '.96s'], ['M' + x2 + ' ' + (y2 - 9) + 'V' + y2 + 'H' + (x2 - a), '1.08s']
+    ];
+    var g = document.createElementNS(N, 'g'); g.setAttribute('class', 'brk');
+    pieces.forEach(function(p){ var e = document.createElementNS(N, 'path'); e.setAttribute('d', p[0]); e.style.setProperty('--d', p[1]); g.appendChild(e); });
+    var box = 'M' + (x1 + r) + ' ' + y1 + 'H' + (x2 - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + x2 + ' ' + (y1 + r) + 'V' + (y2 - r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x2 - r) + ' ' + y2 + 'H' + (x1 + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + x1 + ' ' + (y2 - r) + 'V' + (y1 + r) + 'A' + r + ' ' + r + ' 0 0 1 ' + (x1 + r) + ' ' + y1 + 'Z';
+    var ol = document.createElementNS(N, 'path'); ol.setAttribute('class', 'ol'); ol.setAttribute('d', box); ol.setAttribute('pathLength', '100');
+    var arc = document.createElementNS(N, 'path'); arc.setAttribute('class', 'arc'); arc.setAttribute('d', box); arc.setAttribute('pathLength', '100');
+    svg.appendChild(g); svg.appendChild(ol); svg.appendChild(arc);
+    logo.appendChild(svg);
+  }
   function start(){
-    if (started) return; started = true; root.classList.add('intro-on-go');
+    if (started) return; started = true; frame(); root.classList.add('intro-on-go');
   }
   function ready(){
     var f = (document.fonts && document.fonts.load) ? document.fonts.load('1em "Bebas Neue"').catch(function(){}) : Promise.resolve();
