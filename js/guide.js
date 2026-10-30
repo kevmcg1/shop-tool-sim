@@ -474,7 +474,7 @@
 .gd-hand svg,.gd-hand i{width:40px;height:40px}
 .gd-lbl{position:fixed;left:0;top:0;pointer-events:none;white-space:nowrap;will-change:transform;font-size:13.5px;font-weight:700;letter-spacing:.02em;color:#0b0c0e;background:var(--accent);padding:5px 10px 5px 8px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.55);display:flex;gap:6px;align-items:center}
 .gd-track{position:absolute;pointer-events:none;visibility:hidden}
-.gd-card{position:fixed;left:0;top:0;width:min(330px,calc(100vw - 24px));pointer-events:auto;background:var(--panel,#16181b);color:var(--ink,#ececee);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.55);font-size:13.5px;line-height:20px}
+.gd-card{position:fixed;left:0;top:0;width:min(330px,calc(100vw - 24px));max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;pointer-events:auto;background:var(--panel,#16181b);color:var(--ink,#ececee);border:1px solid color-mix(in srgb,var(--accent) 55%,transparent);border-radius:12px;padding:14px 16px 12px;box-shadow:0 14px 40px rgba(0,0,0,.55);font-size:13.5px;line-height:20px}
 .gd-card h4{margin:0 26px 6px 0;font-size:15px;font-weight:600}
 .gd-card p{margin:0;color:var(--muted,#8a8f97)}
 .gd-card p b{color:var(--ink,#ececee)}
@@ -500,7 +500,7 @@
 .gd-max .ic-shrink{display:none}
 .gd-max.on .ic-grow{display:none}
 .gd-max.on .ic-shrink{display:inline-block}
-.gd-foot{display:flex;align-items:center;gap:6px;margin-top:12px}
+.gd-foot{display:flex;align-items:center;gap:6px;margin-top:12px;position:sticky;bottom:-12px;margin-bottom:-12px;padding:8px 0 12px;background:var(--panel,#16181b)}
 .gd-count{flex:1;font-size:11.5px;color:var(--muted,#8a8f97);font-variant-numeric:tabular-nums}
 .gd-card button{padding:5px 12px;font-size:12.5px;border-radius:7px}
 .gd-x{position:absolute;top:8px;right:8px;width:26px;height:26px;padding:0!important;display:grid;place-items:center;border-radius:50%!important}
