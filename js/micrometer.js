@@ -23,7 +23,7 @@ const CORE = (function(){
     // `st.deep` below the half-way depth, so the parts have room to sit in it; the outside is a concentric circle, so the metal round
     // it is the same thickness all the way. (yc, below the axis, is where the circle's middle is.)
     const yc = -st.deep, R = r, Ro = r + armT;   // a U: straight walls down to yc, then a half circle (radius r, centred at yc) round the bottom
-    const rd = 0.36*zs, cd = rd*st.web;   // the rim's and the web's thickness
+    const rd = 0.36*zs, cd = Math.max(rd*st.web, 2*(RHO + 0.005));   // the rim's and the web's thickness (the web is never thinner than the spindle that passes through it, so the spindle can't show on the frame's face)
     return { g, armL, armR, hx, hubR, cx, cy: yc, rxi: R, ryi: R, rxo: Ro, ryo: Ro, zs, ar, st, pw: 2, rd, cd, rimW: st.rimW, r, armT,
       bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
   }
