@@ -51,7 +51,7 @@
       '.quick .legend .mk:hover{color:#fff}' +
       '.quick .legend .mk .mouse{position:relative;display:grid;place-items:center;width:36px;height:36px;margin:0;padding:0;box-sizing:border-box;flex:none;color:#fff;background:rgba(10,11,13,.55);border:1px solid rgba(255,255,255,.34);border-radius:8px;transition:border-color .2s ease}' +
       '.quick .legend .mk:hover .mouse{border-color:#fff}' +
-      '.quick .legend .mk .mouse svg{display:block;width:21px!important;height:28px!important;color:#fff}' +
+      '.quick .legend .mk .mouse svg{display:block;width:16px!important;height:21px!important;color:#fff}' +
       '.quick .legend .mk .mouse b,.quick .legend .mk .mouse i{display:none}' +
       '.quick .legend .mouse .hl{opacity:0;transition:opacity .2s ease}.quick .legend .mouse.l .hl-l,.quick .legend .mouse.r .hl-r,.quick .legend .mouse.m .hl-m{opacity:1}' +
       '.quick .legend .ms-cog{width:36px;height:36px;border-radius:8px;background:rgba(10,11,13,.55)!important;color:#fff!important;border:1px solid rgba(255,255,255,.34)!important}' +
