@@ -229,7 +229,8 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .tab:hover .tab-ic .ver-sl,.tab:focus-visible .tab-ic .ver-sl{transform:translateX(9px)}
 /* outside micrometer: the thimble turns (its lines run round) and winds the spindle in toward the anvil */
 .tab:hover .tab-ic .mic-th,.tab:focus-visible .tab-ic .mic-th{transform:translateX(-5px)}
-.tab:hover .tab-ic .mic-kn,.tab:focus-visible .tab-ic .mic-kn{stroke-dasharray:3 2;animation:ic-turn .7s linear infinite}
+.tab-ic .mic-tk{opacity:0;transition:opacity .4s ease}
+.tab:hover .tab-ic .mic-tk,.tab:focus-visible .tab-ic .mic-tk{opacity:1;animation:ic-turn .6s linear infinite}
 /* depth micrometer: the thimble turns and the rod runs out below the base */
 .tab-ic .dep-rod{transform-origin:32px 30px}
 .tab:hover .tab-ic .dep-rod,.tab:focus-visible .tab-ic .dep-rod{transform:scaleY(1.6)}
@@ -239,6 +240,6 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 /* telescopic gauge: the two arms telescope out toward the wall of the hole */
 .tab-ic .tel-l{transform-origin:15px 28px}.tab-ic .tel-r{transform-origin:29px 28px}
 .tab:hover .tab-ic .tel-l,.tab:focus-visible .tab-ic .tel-l,.tab:hover .tab-ic .tel-r,.tab:focus-visible .tab-ic .tel-r{transform:scaleX(1.45)}
-@keyframes ic-turn{to{stroke-dashoffset:-5}}
+@keyframes ic-turn{to{transform:translateY(2.5px)}}
 @keyframes ic-roll{to{transform:translateX(3px)}}
 @media (prefers-reduced-motion: reduce){.tab-ic *{transition:none!important;animation:none!important}}
