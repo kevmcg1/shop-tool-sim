@@ -25,7 +25,8 @@ const CORE = (function(){
     const yc = -st.deep, R = r, Ro = r + armT;   // a U: straight walls down to yc, then a half circle (radius r, centred at yc) round the bottom
     const rd = 0.36*zs, cd = rd*st.web;   // the rim's and the web's thickness
     return { g, armL, armR, hx, hubR, cx, cy: yc, rxi: R, ryi: R, rxo: Ro, ryo: Ro, zs, ar, st, pw: 2, rd, cd, rimW: st.rimW, r, armT,
-      bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34 };
+      bottom: yc - Ro, rimFront: rd/2 + 0.022, coreFront: cd/2 + 0.015, armTop: 0.08 + ar, hubTop: 0.34, lvLift: Math.max(0, rd/2 + 0.022 - (cd/2 + 0.015)) + 0.02 };   // lvLift: the spindle lock stands this far off the web, so its arm clears the thicker rim round it
+    // (the spindle lock sits on the thin web, but its arm swings over the rim's shoulder: it is raised on a base to clear it)
   }
   // a (super)ellipse's half-height at fraction t of its radius
   const se = (t, p) => p === 2 ? Math.sqrt(1 - t*t) : Math.pow(Math.max(0, 1 - Math.pow(Math.abs(t), p)), 1/p);
@@ -969,10 +970,12 @@ function build(){
   // spindle lock
   const lg = new T.Group(); lg.position.set(D.hx + 0.2, 0.13, D.coreFront - 0.003); root.add(lg);
   const seat = new T.Mesh(new T.CylinderGeometry(0.1, 0.105, 0.04, 40), M.chrome);
-  seat.rotation.x = Math.PI/2; seat.position.z = 0.02; lg.add(pickable(seat, 'lever'));
+  seat.rotation.x = Math.PI/2; seat.position.z = 0.02 + D.lvLift; lg.add(pickable(seat, 'lever'));
+  const stand = new T.Mesh(new T.CylinderGeometry(0.095, 0.1, D.lvLift + 0.02, 40), M.satin);   // the base the lock stands on, from the web up past the rim
+  stand.rotation.x = Math.PI/2; stand.position.z = (D.lvLift + 0.02)/2 - 0.01; lg.add(pickable(stand, 'lever'));
   const ball = new T.Mesh(new T.SphereGeometry(0.085, 32, 20), M.chrome);
-  ball.position.z = 0.055; lg.add(pickable(ball, 'lever'));
-  leverR = new T.Group(); leverR.position.z = 0.05 + 0.04*D.zs; lg.add(leverR);
+  ball.position.z = 0.055 + D.lvLift; lg.add(pickable(ball, 'lever'));
+  leverR = new T.Group(); leverR.position.z = 0.05 + 0.04*D.zs + D.lvLift; lg.add(leverR);
   leverR.add(pickable(new T.Mesh(new T.TorusGeometry(0.1, 0.018, 12, 40), M.chrome), 'lever'));
   const armG = new T.CylinderGeometry(0.013, 0.02, 0.26, 16);
   armG.rotateZ(-Math.PI/2); armG.translate(0.23, 0, 0);
@@ -1621,7 +1624,7 @@ const EXAM = [
   ['Anvil', 'Fixed measuring face', () => ({ p: new T.Vector3(-0.06, SP_R, 0), n: new T.Vector3(-0.3, 1, 0.2).normalize() })],
   ['Measuring faces', '0.256″ carbide tips', () => ({ p: new T.Vector3((B + state.reading)/2, 0, 0), n: new T.Vector3(0, -0.6, 1).normalize() })],
   ['Spindle', 'Moves 0.025″ per turn (40 TPI)', () => ({ p: new T.Vector3(B + state.reading + Math.max(0.02, Math.min(0.5, (1.03 - state.reading)/2)), SP_R, 0), n: new T.Vector3(0, 1, 0.25).normalize() })],
-  ['Spindle lock', 'Flip to hold the reading', () => { const D = dims(); return { p: new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + 0.1), n: new T.Vector3(-0.2, 0.8, 0.6).normalize() }; }],
+  ['Spindle lock', 'Flip to hold the reading', () => { const D = dims(); return { p: new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + D.lvLift + 0.1), n: new T.Vector3(-0.2, 0.8, 0.6).normalize() }; }],
   ['Frame size', '', nameplateAnchor],
   ['Sleeve (barrel)', 'Fixed; carries the main scale', () => cylAnchor((dims().hubR + S0)/2 + 0.02, SLV_R, -0.9)],
   ['Index line', 'Reference line for the thimble', () => cylAnchor(S0 - 0.04, SLV_R, 0)],
@@ -3274,7 +3277,7 @@ function toolSDF(){
     return s*Math.sqrt(d);
   };
   const cyl = (p, x0, x1, r) => { const a = Math.abs(p.x - (x0 + x1)/2) - (x1 - x0)/2, b = Math.hypot(p.y, p.z) - r; return Math.min(Math.max(a, b), 0) + Math.hypot(Math.max(a, 0), Math.max(b, 0)); };
-  const lever = new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + 0.05);
+  const lever = new T.Vector3(D.hx + 0.2, 0.13, D.coreFront + D.lvLift + 0.05);
   const frame = p => { const q = sdPoly(p.x, p.y), c = Math.abs(p.z) - zh; return Math.min(Math.max(q, c), 0) + Math.hypot(Math.max(q, 0), Math.max(c, 0)); };   // the frame
   const rest = p => {
     let d = cyl(p, -0.32, 0, 0.15);                                                          // the anvil
