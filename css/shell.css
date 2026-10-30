@@ -253,3 +253,7 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 
 /* the footer: the page content runs straight down to the footer's line, with no black block beside the tab above it; only the tab and the band under the line are black */
 .foot-strip{background:linear-gradient(#131416 calc(100% - 12px),var(--bar) 0)}
+
+/* the footer plate lies over the bottom of the page: the tool shows through on both sides of the tab, and only the tab and the band under the line are solid */
+.foot-strip{position:absolute;left:0;right:0;bottom:0;z-index:40;pointer-events:none;background:linear-gradient(transparent calc(100% - 12px),var(--bar) 0)}
+.foot-strip .foot{pointer-events:auto}

@@ -79,6 +79,13 @@
     new MutationObserver(run).observe(document.body, { attributes: true, attributeFilter: ['class', 'hidden'], subtree: true, childList: true });
     addEventListener('resize', run);
   }
-  function go(){ stack(); iconsOnly(); trace(); guard(); }
+  // the footer plate is drawn over the bottom of the page (the page runs on behind its sides), so each tool leaves that much room at the bottom
+  // of its sidebar and of its reading panel, and its content never sits under the plate
+  function footRoom(){
+    const st = document.createElement('style');
+    st.textContent = ':root{--foot:40px}aside{padding-bottom:calc(28px + var(--foot))!important}main{padding-bottom:var(--foot);background:var(--panel,#131416)}';
+    document.head.appendChild(st);
+  }
+  function go(){ stack(); iconsOnly(); trace(); guard(); footRoom(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go();
 })();
