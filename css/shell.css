@@ -250,3 +250,6 @@ input,textarea,[contenteditable]{-webkit-user-select:text;user-select:text}
 .title-strip .site-link{left:56px}
 @media (max-width:1100px){.title-strip .reset-wrap{gap:14px;right:46px}.title-strip .site-link{left:46px}}
 @media (max-width:640px){.title-strip .reset-wrap{gap:10px;right:40px}}
+
+/* the footer: the page content runs straight down to the footer's line, with no black block beside the tab above it; only the tab and the band under the line are black */
+.foot-strip{background:linear-gradient(#131416 calc(100% - 12px),var(--bar) 0)}
