@@ -936,7 +936,7 @@ function stepSeq(dt){
         const want = -state.eps;
         if (Math.abs(want) > ZERO_RANGE){ setDelta(Math.sign(want)*ZERO_RANGE); toast('The scriber sits too far out for the main-scale adjustment — re-clamp it closer'); }
         else { setDelta(want); toast('Zeroed on the surface plate: both scales read 0'); }
-      } else if (!state.practice) toast(`Reads ${(readingMM()/IN).toFixed(3)}″ / ${readingMM().toFixed(2)} mm`);
+      } else if (!state.practice) toast(`Reads ${fmtIn(splitIn(readingMM()).total)}″ / ${fmtMM(splitMM(readingMM()).total)} mm`);
     }
   }
 }
