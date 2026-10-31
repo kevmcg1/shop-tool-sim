@@ -1950,11 +1950,27 @@ function fitBox(root){
 }
 // open screen areas to frame the model in: the band under the top buttons, and the column
 // between the top-left and top-right buttons (which can run the full height of the view)
+// where the floating buttons really are right now (the stacked view and mouse buttons sit where the layout pass didn't put them)
+function fitObstacles(){
+  if (document.body.classList.contains('exam')) return labelObstacles();
+  const w = wrap.getBoundingClientRect(), out = [];
+  for (const o of OV_ITEMS){
+    const e = wrap.querySelector(o.sel);
+    if (!e || e.classList.contains('ov-hide') || getComputedStyle(e).display === 'none') continue;
+    const b = e.getBoundingClientRect(), r = { x: b.left - w.left, y: b.top - w.top, w: b.width, h: b.height, fixed: true };
+    if (r.w < 1 || r.h < 1 || r.x >= w.width || r.y >= w.height || r.x + r.w <= 0 || r.y + r.h <= 0) continue;
+    out.push(r);
+  }
+  return out;
+}
 function freeRects(W, H){
-  const rs = labelObstacles(), out = [];
+  const rs = fitObstacles(), out = [];
   let top = 8, bottom = H - 8, left = 8, right = W - 8;
   for (const r of rs){
     if (r.h > H*0.4 && r.x > W*0.5) right = Math.min(right, r.x - 10);           // the flat view down the right side
+    else if (r.h > r.w*1.5){                                                      // a stacked column of buttons: it narrows the area from its side, it doesn't cut a band
+      if (r.x + r.w/2 < W/2) left = Math.max(left, r.x + r.w + 10); else right = Math.min(right, r.x - 10);
+    }
     else if (r.y + r.h/2 < H/2) top = Math.max(top, r.y + r.h + 10);
     else bottom = Math.min(bottom, r.y - 10);
   }
