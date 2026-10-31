@@ -2435,7 +2435,7 @@ async function start(){
     ['pointerdown', 'wheel', 'keydown'].forEach(t => window.addEventListener(t, stop, { capture: true, once: true }));
     const refit = () => { if (!touched && !state.exam) { setView('iso'); if (flight) flight.ms = 1; } };
     requestAnimationFrame(() => requestAnimationFrame(refit));
-    [150, 400, 900, 1600].forEach(ms => setTimeout(refit, ms));
+    [150, 400, 900, 1600, 2600, 4200].forEach(ms => setTimeout(refit, ms));
     window.addEventListener('resize', () => setTimeout(refit, 120));
   }
   measureFeature('s1');

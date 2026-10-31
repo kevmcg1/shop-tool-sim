@@ -43,7 +43,7 @@
 .bg-sw i{flex:none;width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:radial-gradient(circle at 50% 38%,var(--a),var(--b))}
 .bg-cu{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .bg-cu label{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 8px;border:1px solid #3d4147;border-radius:8px;font-size:12px;color:#c9ced4}
-.bg-cu input{width:28px;height:20px;padding:0;border:1px solid #3d4147;border-radius:5px;background:none;cursor:pointer}
+.bg-cu input{width:32px;height:24px;padding:0;border:1px solid #3d4147;border-radius:5px;background:none;cursor:pointer}
 @media (prefers-reduced-motion: reduce){.bg-sw button{transition:none}}`;
 
   const root = document.documentElement;

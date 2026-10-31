@@ -19,5 +19,10 @@ aside > section.folded > h2.sec-toggle{margin-bottom:0}
 
 /* the "stable release" tag sits just under the logo in each tool's left sidebar */
 .stable-row{display:flex;justify-content:center;margin:7px 0 0}
-.stable-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 8px;border:1px solid rgba(95,207,138,.45);border-radius:999px;background:rgba(95,207,138,.08);color:#5fcf8a;font:800 9.5px/1 "Inter",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.stable-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px 3px 8px;border:1px solid rgba(95,207,138,.45);border-radius:999px;background:rgba(95,207,138,.08);color:#5fcf8a;font:800 11px/1 "Inter",system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
 .stable-tag::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor}
+
+/* tap targets of at least 24 px, and readable white-on-blue for the reading card's helper */
+.shop-vchip{min-height:24px}
+.cell.total .howread,.reading .total .howread{color:#fff;border-color:rgba(255,255,255,.7);background:rgba(0,0,0,.2)}
+.cell.total .howread:hover,.reading .total .howread:hover{background:rgba(0,0,0,.35);border-color:#fff;color:#fff}
