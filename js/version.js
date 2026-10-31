@@ -3,8 +3,9 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep ONE entry per day, and each entry to ONE short, simple sentence: if today already has an entry, add to its sentence instead of a new entry.
 window.__SHOP = {
-  version: '1.3.32',
+  version: '1.3.33',
   changelog: [
+    { v: '1.3.33', date: '2026-10-31', title: 'Smooth start', items: ['The page now waits behind a short cover until it has loaded and the frames are steady, tells you if your device is struggling, and starts the tools on a graphics setting that fits.'] },
     { v: '1.3.31', date: '2026-10-26', title: 'Background gradients', items: ['Settings can change the background gradient in every tool, with a blue and dark gray default; the table now only shows under the depth micrometer and height gage, just where the tool and part stand, the background dissolves and rebuilds when its gradient changes, shadows follow the dissolve, and every walkthrough step closes with an uplifting line.'] },
     { v: '1.3.30', date: '2026-10-25', title: 'Ranges, zero reset and small screens', items: ['Every tool shows its size range, has Reset to zero and folding sidebar categories, and fits small laptops.'] },
     { v: '1.3.29', date: '2026-10-24', title: 'Friendlier walkthroughs and sturdier knobs', items: ['Walkthroughs are friendlier, the micrometer frame is a U, and opening the inspector shows a no-cheating note.'] },

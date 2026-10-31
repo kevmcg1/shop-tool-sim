@@ -151,7 +151,10 @@ function applyGfx(name) {
 }
 function updateGfxInfo() { $('gfxInfo').textContent = `Render scale ${Math.round(dprCur * 100)}% · adapts automatically to hold 60 fps.`; }
 // a weak machine (few cores, little memory, or a basic or software graphics chip) starts on a lighter setting
-function autoGfx(){
+function autoGfx(){ const own = autoGfxOwn(), t = (() => { try { return parent.__perf && parent.__perf.tier; } catch (e) { return null; } })(), R = { low: 0, medium: 1, high: 2 };
+  return t && R[t] < R[own] ? t : own;   // (the opening page measured how smooth this device runs: never start higher than that)
+}
+function autoGfxOwn(){
   const cores = navigator.hardwareConcurrency || 4, mem = navigator.deviceMemory || 8;
   let gpu = '';
   try { const gl = renderer.getContext(), d = gl.getExtension('WEBGL_debug_renderer_info'); gpu = d ? String(gl.getParameter(d.UNMASKED_RENDERER_WEBGL)) : ''; } catch (e) {}
