@@ -278,7 +278,7 @@ function screw(x, y, z, r) {
 /* ------------------------------------------------------------------ dimensions (inches) */
 const BT = 0.07;             // half beam thickness
 const XL = -0.8, XR = 8.75; // beam ends; x = 0 is the fixed outside-jaw face
-const TRAVEL = 6.3;
+const TRAVEL = 6.0;   // a 6″ caliper reads to 6.000 and no further
 const ID_FACE = -0.5;       // fixed inside-jaw measuring face; moving face sits at pos + ID_FACE
 const ROD_Y = 0.16, ROD_Z = -0.045;
 
@@ -1945,6 +1945,9 @@ function fitBox(root){
     if (b.isEmpty()) return;
     b.getSize(s); if (Math.max(s.x, s.y, s.z) > 25) return;          // the table or floor under everything
     box.union(b);
+    // (the corners of each part's own box, turned the way the part is, hug the model far closer than the one box round everything)
+    const lb = o.geometry.boundingBox, ps = box.pts || (box.pts = []);
+    for (const x of [lb.min.x, lb.max.x]) for (const y of [lb.min.y, lb.max.y]) for (const z of [lb.min.z, lb.max.z]) ps.push(new T.Vector3(x, y, z).applyMatrix4(o.matrixWorld));
   });
   return box;
 }
@@ -1963,6 +1966,22 @@ function fitObstacles(){
   }
   return out;
 }
+// every largest open rectangle between the floating buttons (the model may sit anywhere the buttons are not, not just in one band)
+function emptyRects(W, H, rs){
+  const g = 8, cl = (v, a, b) => Math.min(b, Math.max(a, v));
+  const ob = rs.map(r => ({ x0: r.x - g, y0: r.y - g, x1: r.x + r.w + g, y1: r.y + r.h + g }));
+  const line = (lo, hi, k0, k1) => [...new Set([lo, hi, ...ob.flatMap(o => [cl(o[k0], lo, hi), cl(o[k1], lo, hi)])])].sort((a, b) => a - b);
+  const xs = line(8, W - 8, 'x0', 'x1'), ys = line(8, H - 8, 'y0', 'y1'), found = [];
+  for (let i = 0; i < xs.length; i++) for (let j = i + 1; j < xs.length; j++){
+    const w = xs[j] - xs[i]; if (w < W*0.3) continue;
+    for (let k = 0; k < ys.length; k++) for (let m = k + 1; m < ys.length; m++){
+      const h = ys[m] - ys[k]; if (h < H*0.25) continue;
+      if (ob.some(o => o.x0 < xs[j] && o.x1 > xs[i] && o.y0 < ys[m] && o.y1 > ys[k])) continue;
+      found.push({ x: xs[i], y: ys[k], w, h });
+    }
+  }
+  return found.filter(a => !found.some(b => b !== a && b.x <= a.x && b.y <= a.y && b.x + b.w >= a.x + a.w && b.y + b.h >= a.y + a.h)).sort((a, b) => b.w*b.h - a.w*a.h).slice(0, 12);
+}
 function freeRects(W, H){
   const rs = fitObstacles(), out = [];
   let top = 8, bottom = H - 8, left = 8, right = W - 8;
@@ -1978,6 +1997,7 @@ function freeRects(W, H){
   let l = 8, rr = W - 8;
   for (const r of rs){ if (r.x + r.w/2 < W/2) l = Math.max(l, r.x + r.w + 10); else rr = Math.min(rr, r.x - 10); }
   if (rr - l > W*0.25) out.push({ x: l, y: 8, w: rr - l, h: H - 16 });
+  emptyRects(W, H, rs).forEach(r => out.push(r));
   return out.length ? out : [{ x: 8, y: 8, w: W - 16, h: H - 16 }];
 }
 // find the camera spot (and zoom) that fits the box into the free area, looking along dir
@@ -1995,8 +2015,8 @@ function fitIsoIn(dir, target, dist, box, free){
   const cam = camera.clone(), cv = canvas, W = cv.clientWidth, H = cv.clientHeight;
   if (cam.isOrthographicCamera) cam.zoom = 1;
   if (box.isEmpty() || W < 2 || H < 2) return { target: target.clone(), zoom: cam.zoom, pos: target.clone().addScaledVector(dir, dist) };
-  const pts = [];
-  for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) pts.push(new T.Vector3(x, y, z));
+  const pts = box.pts && box.pts.length ? box.pts.slice() : [];
+  if (!pts.length) for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) pts.push(new T.Vector3(x, y, z));
   const tg = box.getCenter(new T.Vector3()), q = new T.Vector3();
   let d = dist;
   const place = () => { cam.position.copy(tg).addScaledVector(dir, d); cam.lookAt(tg); cam.updateMatrixWorld(true); cam.updateProjectionMatrix(); };
@@ -2006,7 +2026,7 @@ function fitIsoIn(dir, target, dist, box, free){
   for (let i = 0; i < 6; i++){
     place();
     let b = bounds();
-    const s = Math.min(free.w/Math.max(1, b.x1 - b.x0), free.h/Math.max(1, b.y1 - b.y0))*0.92;
+    const s = Math.min(free.w/Math.max(1, b.x1 - b.x0), free.h/Math.max(1, b.y1 - b.y0))*0.96;
     if (cam.isOrthographicCamera) cam.zoom *= s; else d /= s;
     place(); b = bounds();
     // then slide it so the middle of the box sits in the middle of the free area
@@ -3726,7 +3746,7 @@ async function start() {
     ['pointerdown', 'wheel', 'keydown'].forEach(t => window.addEventListener(t, stop, { capture: true, once: true }));
     const refit = () => { if (!touched && !state.exam) { setView('iso', true); } };
     requestAnimationFrame(() => requestAnimationFrame(refit));
-    [150, 400, 900, 1600].forEach(ms => setTimeout(refit, ms));
+    [150, 400, 900, 1600, 2600, 4200].forEach(ms => setTimeout(refit, ms));
     window.addEventListener('resize', () => setTimeout(refit, 120));
   }
   window.__caliper = { state, camera, controls, setView, newSample, setPractice, checkPractice, setInst, setPos };

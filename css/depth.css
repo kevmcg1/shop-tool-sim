@@ -370,7 +370,8 @@ button:hover .svg-inline--fa,button:focus-visible .svg-inline--fa,.mk:hover .mou
   .prow{flex-wrap:wrap}
   .prow input{flex:1 1 100%;font-size:20px}
   .pgo{flex:1 1 0;justify-content:center}
-  .actions .pbtn span,.pbtn span{font-size:13px}
+  .actions .pbtn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}   /* (icon only up here, the same as its neighbours; the words stay for a screen reader) */
+  .pbtn span{font-size:13px}
   .fx-hero{padding:11px 12px;gap:10px}
   .fx-head h4{font-size:16px}
   .fx-num b{font-size:22px}

@@ -3752,7 +3752,7 @@ function start(){
     ['pointerdown', 'wheel', 'keydown'].forEach(t => window.addEventListener(t, stop, { capture: true, once: true }));
     const refit = () => { if (!touched && !state.exam && !state.coach) { setView('iso', true); } };
     requestAnimationFrame(() => requestAnimationFrame(refit));
-    [150, 400, 900, 1600].forEach(ms => setTimeout(refit, ms));
+    [150, 400, 900, 1600, 2600, 4200].forEach(ms => setTimeout(refit, ms));
     window.addEventListener('resize', () => setTimeout(refit, 120));
   }
   // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
