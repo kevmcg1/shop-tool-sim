@@ -12,6 +12,12 @@
 //                   tools, closing), "Where did the sidebar go?", the tools inside the panel, Show me step by step, the page
 //                   around the tools (tabs, changelog, Reset all)
 //
+// Aim for mistakes (the first mode in the list) is the hunting mode: it types hostile values (half-inches, commas, units, huge numbers, markup), hits every button
+// six times in a blink, clicks everything with a pointer cursor, runs at twice the pace, and treats every note from the two eyes below as a mistake.
+// UX intelligence (js/devaudit.js) looks at every screen the way a designer would, at phone, tablet, laptop and monitor sizes, and reads the 3D picture
+// itself. Machinist (strict) holds each tool to what a shop expects: the zero check, landing on the reading asked for, inches and millimeters agreeing,
+// the parts adding up, a certified gage block reading true. Everything they find is listed as a mistake or a note, with who would flag it.
+//
 // After every step it looks for: a script error or unhandled promise, a console error, a lost 3D context, a frame that
 // stalled, "NaN" / "undefined" / "Infinity" showing in the page, and numbers in the lab that stopped being numbers. It also
 // times every frame to rate how smoothly each tool ran, and notes whether each control did anything. The report gives
@@ -36,8 +42,9 @@
   const SH = () => window.__shell;
   const TOOLS = [['caliper', 'Dial caliper'], ['vernier', 'Vernier caliper'], ['micrometer', 'Outside micrometer'], ['depth', 'Depth micrometer'], ['height', 'Height gage'], ['telescopic', 'Telescopic gauge'], ['page', 'Page & panel (flows)']];
   const NAME = Object.fromEntries(TOOLS);
-  const RATE = 10;   // steps a second
+  let RATE = 10;   // steps a second (Aim for mistakes goes faster, so one control lands while the last is still moving)
   const MODES = {
+    mistakes:   { label: 'Aim for mistakes: hostile typing, rapid clicking, 600 pairs, 400 random runs, every screen size, UX and machinist checks on every step', pairs: 600, seqs: 400, combos: 128, probe: 6, hunt: true },
     thorough:   { label: 'Thorough: every control, every pair, every checkbox combination, 800 random runs, all flows', pairs: Infinity, seqs: 800, combos: 256, probe: 6 },
     standard:   { label: 'Standard: every control, 400 pairs, 64 combinations, 250 random runs, all flows',             pairs: 400,      seqs: 250, combos: 64,  probe: 4 },
     quick:      { label: 'Quick: every control, 60 pairs, 12 combinations, 40 random runs, all flows',                 pairs: 60,       seqs: 40,  combos: 12,  probe: 3 }
@@ -47,6 +54,10 @@
   // frame times (ms between two painted frames): 60 fps is 16.7; past 34 is under 30 fps; past 50 the eye sees a hitch; past 100 it is a jank
   const FR = { fine: 34, slow: 50, jank: 100, stall: 700 };
   const WARN = { jank: 1, stall: 1, 'slow control': 1 };
+  // a finding is a warning if its kind always is, or the audit that found it called it a note; everything else is a mistake
+  const isWarn = x => !!(WARN[x.type] || x.sev === 'note');
+  const fkey = f => f.type + '|' + f.detail.replace(/\d+/g, '#');
+  const AUD = () => window.__devAudit;
 
   const pct = (a, p) => { if (!a.length) return 0; const s = a.slice().sort((x, y) => x - y); return s[Math.min(s.length - 1, Math.floor(p*s.length))]; };
   const avg = a => a.length ? a.reduce((s, x) => s + x, 0)/a.length : 0;
@@ -110,8 +121,10 @@
     d.querySelectorAll('input[type=text], input[type=number], input[type=search], input:not([type]), textarea').forEach(el => {
       if (skip(el) || el.readOnly) return;
       const base = labelOf(el), num = el.type === 'number', lo = el.min === '' ? 0 : +el.min, hi = el.max === '' ? 100 : +el.max;
+      const hostile = window.__devHunt ? [['half', '1/2'], ['comma', '0,5'], ['padded', '  0.5  '], ['unit in', '0.5 in'], ['unit mm', '12.7mm'], ['one over', '0.99995'], ['exponent', '1e9'], ['hex', '0x10'], ['dash', '-0'], ['dot', '.'], ['markup', '<b>x</b>'], ['long', '9'.repeat(40)], ['symbol', '\u00bd'], ['two dots', '1.2.3']] : [];
       const vals = num ? [['mid', String((lo + hi)/2)], ['min', String(lo)], ['max', String(hi)], ['empty', ''], ['too low', String(lo - 1)], ['too high', String(hi + 1)]]
         : [['number', '0.5'], ['precise', '1.2345'], ['negative', '-3'], ['empty', ''], ['letters', 'abc'], ['huge', '99999'], ['tiny', '0.0000001']];
+      hostile.forEach(h => vals.push(h));
       vals.forEach(([n, v]) => list.push({ key: key(base + '=' + n, 'type'), label: base + ' ← ' + n, kind: 'type', v, get: () => el }));
     });
     // everything else a hand can operate: ARIA buttons / switches / menu items, disclosure summaries, colour pickers, the draggable dividers
@@ -135,6 +148,17 @@
     // the 3D view: drags, scroll and a click, like a hand would
     const cv = d.querySelector('#cv, #view canvas, canvas.gl');
     if (cv && visible(cv)) ['orbit drag', 'pan drag', 'zoom in', 'zoom out', 'click middle', 'small drag'].forEach(n => list.push({ key: 'view:' + n, label: '3D view: ' + n, kind: 'view', how: n, get: () => cv }));
+    // hunting: every button hit six times in a blink (a double click, a nervous thumb), and anything else a hand could click that the lists above missed
+    if (window.__devHunt){
+      list.filter(a => a.kind === 'click').slice(0, 45).forEach(a => list.push({ key: key(a.label, 'burst'), label: 'burst: ' + a.label, kind: 'burst', get: a.get }));
+      let extra = 0;
+      for (const el of d.querySelectorAll('body *')){
+        if (extra >= 40) break;
+        if (el.closest('.holo, .gd, .dev, canvas, .dd-list') || !visible(el) || el.disabled || el.matches('button, input, select, textarea, a[href], summary, [role]')) continue;
+        if (w.getComputedStyle(el).cursor !== 'pointer' || list.some(a => { const q = a.get && a.get(); return q && (q === el || q.contains(el) || el.contains(q)); })) continue;
+        list.push({ key: key(labelOf(el), 'click'), label: 'clickable: ' + labelOf(el), kind: 'click', get: () => el }); extra++;
+      }
+    }
     KEYS.forEach(k => list.push({ key: 'key:' + k, label: 'key ' + k, kind: 'key', k, get: () => d.body }));
     return list;
   }
@@ -145,6 +169,7 @@
     // a tooltip left showing by the last hover goes when the pointer moves on
     if (w.__devHover && w.__devHover !== el){ try { w.__devHover.dispatchEvent(new w.PointerEvent('pointerout', { bubbles: true, pointerType: 'mouse', relatedTarget: w.document.body })); } catch (e) {} w.__devHover = null; }
     if (a.kind === 'click'){ el.click(); }
+    else if (a.kind === 'burst'){ for (let i = 0; i < 6; i++) el.click(); }
     else if (a.kind === 'hover'){ el.scrollIntoView && el.scrollIntoView({ block: 'nearest', inline: 'nearest' }); el.dispatchEvent(new w.PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' })); w.__devHover = el; }
     else if (a.kind === 'divider'){
       const r = el.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2, h = a.how;
@@ -192,7 +217,7 @@
     } catch (e) {}
     try {
       // (on the page itself, everything but this panel: its own report quotes the words it is looking for)
-      const t = w === window ? [...w.document.body.children].filter(e => e !== panel).map(e => e.innerText || '').join(' ') : (w.document.body.innerText || ''), m = BAD_TEXT.exec(t);
+      const t = w === window ? [...w.document.body.children].filter(e => e !== panel && !/^(SCRIPT|STYLE|TEMPLATE|NOSCRIPT)$/.test(e.tagName)).map(e => e.innerText || '').join(' ') : (w.document.body.innerText || ''), m = BAD_TEXT.exec(t);
       if (m){ const i = m.index; found.push({ type: 'bad text on screen', detail: '“' + t.slice(Math.max(0, i - 24), i + 24).replace(/\s+/g, ' ') + '”' }); }
     } catch (e) {}
     try {
@@ -201,6 +226,16 @@
         const c = L.cam; if (c && ![c.r, c.th, c.ph, c.t.x, c.t.y, c.t.z].every(Number.isFinite)) found.push({ type: 'number gone bad', detail: 'the camera has a non-number' });
       }
     } catch (e) {}
+    // what a designer and a machinist would flag on this page right now (the same sights every step, so each is told of once)
+    try {
+      const O = run.opt || {}, A = AUD();
+      if (A && (O.ux || O.mach)){
+        mon.audits = (mon.audits || 0) + 1;
+        if (O.mach && w !== window) A.machinist(w, run.cur).forEach(x => found.push(x));
+        if (O.ux && (O.hunt || mon.audits % 8 === 1)) A.ux(w, { strict: O.hunt }).forEach(x => found.push(x));
+      }
+    } catch (e) { found.push({ type: 'audit stopped', detail: String(e && e.message || e).slice(0, 160), sev: 'note', persp: 'Glitch' }); }
+    try { mon.warns.slice(mark.w || 0).forEach(x => found.push({ type: 'console warning', detail: x.msg, sev: 'note' })); } catch (e) {}
     return { found, worst, gaps };
   }
 
@@ -238,6 +273,7 @@
 .dev .sc{margin:4px 0;font-size:12px}.dev .sc b{display:flex;gap:6px}.dev .sc ul{margin:2px 0 0;padding-left:16px;color:#aeb2b9;font-size:11.5px}
 .dev .ctl{width:100%;border-collapse:collapse;font-size:11px}.dev .ctl td,.dev .ctl th{padding:2px 5px;border-bottom:1px solid #1f2125;text-align:left;font-weight:400}.dev .ctl th{color:#8a8f97}
 .dev .ctl td:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums}
+.dev .tag{display:inline-block;font-size:10.5px;font-weight:600;border:1px solid currentColor;border-radius:99px;padding:0 6px;margin-right:4px;color:#8a8f97}
 .dev .chk{display:inline-flex;gap:5px;align-items:center;margin-right:10px}
 @media (prefers-reduced-motion: reduce){.dev,.dev[hidden],.dev .bar i{transition:none}}`;
   document.head.appendChild(css);
@@ -247,6 +283,7 @@
   panel.innerHTML = '<h3>Dev mode · auto test <small id="devSub">idle</small></h3><div class="body">' +
     '<div class="grid">' + TOOLS.map(t => '<label><input type="checkbox" data-t="' + t[0] + '" checked> ' + t[1] + '</label>').join('') + '</div>' +
     '<div class="row" style="margin-top:4px"><label class="chk"><input type="checkbox" id="devCtl" checked> Controls</label><label class="chk"><input type="checkbox" id="devCombo" checked> Combinations</label><label class="chk"><input type="checkbox" id="devFlow" checked> Flows</label></div>' +
+    '<div class="row" style="margin-top:2px"><label class="chk" title="Looks at every screen for cut-off text, hard-to-read colors, covered or tiny controls, and a 3D model that is small, cut off or under the buttons, at phone, tablet, laptop and monitor sizes"><input type="checkbox" id="devUx" checked> UX intelligence</label><label class="chk" title="A machinist\u2019s strict eye: zero check, reading lands where asked, inches and millimeters agree, parts add up, resolution and range"><input type="checkbox" id="devMach" checked> Machinist (strict)</label></div>' +
     '<div class="row"><select id="devMode">' + Object.keys(MODES).map(k => '<option value="' + k + '"' + (k === 'thorough' ? ' selected' : '') + '>' + MODES[k].label + '</option>').join('') + '</select><input type="number" id="devSeed" value="' + (qs.get('seed') || 20261012) + '" style="max-width:110px" aria-label="Seed"></div>' +
     '<div class="row"><button class="go" id="devGo">Start</button><button id="devStop" disabled>Stop</button><button id="devSummary">Copy summary</button><button id="devCopy">Copy report</button><button id="devSave">Download</button></div>' +
     '<div class="now" id="devEst"></div><div class="bar"><i id="devBar"></i></div><div class="now" id="devNow"></div><table class="sum" id="devSum"></table><div id="devFeed"></div><div id="devFinds"></div></div>';
@@ -258,9 +295,9 @@
   const fmtMs = ms => ms < 90000 ? Math.round(ms/1000) + ' s' : Math.round(ms/60000) + ' min';
   function newTool(id){ return { id, name: NAME[id] || id, controls: 0, singles: { run: 0, withFindings: 0 }, pairs: { run: 0, possible: 0 }, combos: { run: 0, possible: 0, toggles: 0 }, sequences: { run: 0 }, worstFrameMs: 0, findings: [], ms: 0, ctl: {}, fr: { n: 0, over34: 0, over50: 0, over100: 0, max: 0, sample: [] }, scenarios: [] }; }
   function addFinding(T, f, seq){
-    const k = f.type + '|' + f.detail.replace(/\d+/g, '#');
+    const k = fkey(f);
     let x = T.findings.find(y => y.k === k);
-    if (!x){ x = { k, type: f.type, detail: f.detail, count: 0, example: seq.slice(-8), by: {} }; T.findings.push(x); }
+    if (!x){ x = { k, type: f.type, detail: f.detail, sev: f.sev || (WARN[f.type] ? 'note' : 'mistake'), persp: f.persp || 'Glitch', count: 0, example: seq.slice(-8), by: {} }; T.findings.push(x); }
     x.count++;
     const last = seq[seq.length - 1] || '?'; x.by[last] = (x.by[last] || 0) + 1;
   }
@@ -295,11 +332,15 @@
   }
   async function testTool(id, mode, seed, T, opt){
     const t0 = Date.now(), rand = rng(seed + id.length*131);
+    run.cur = id;
     let f = await openTool(id), w = f.contentWindow, mon = instrument(w);
+    // every sidebar category is opened, so no control is hidden away; the ones that were folded are folded again at the end
+    const folded = [...w.document.querySelectorAll('aside > section.folded > h2')].map(h => { h.click(); return (h.textContent || '').trim(); });
+    if (folded.length) await sleep(500);
     // how much the page changes by itself, so that a control's effect can be told from that
     { const m0 = mon.muts; await sleep(600); mon.idle = (mon.muts - m0)/600; }
     const step = async (a, seq) => {
-      const mark = { e: mon.errors.length, g: mon.gaps.length, m: mon.muts }, v0 = valueSig(a), c0 = camSig(w);
+      const mark = { e: mon.errors.length, g: mon.gaps.length, m: mon.muts, w: mon.warns.length }, v0 = valueSig(a), c0 = camSig(w);
       // a steady beat: each step has its own slot of 1000/RATE ms, and the time spent looking over the page and checking for glitches
       // comes out of that slot, so the pace holds at RATE steps a second however busy the page is
       let thrown = null; const now0 = performance.now();
@@ -315,9 +356,10 @@
       const c = ctlOf(T, a); c.runs++;
       if (valueSig(a) !== v0 || camSig(w) !== c0 || (mon.muts - mark.m) > mon.idle*(performance.now() - now0)*1.5 + 3) c.effects++;
       r.gaps.forEach(g => { if (c.gaps.length < 120) c.gaps.push(g); if (g > c.worst) c.worst = g; if (g > FR.jank) c.jank++; });
-      if (r.found.length) c.issues++;
+      const fresh = r.found.filter(x => !x.persp || !T.findings.some(y => y.k === fkey(x)));   // (an audit finding that was already told of is not this control's doing)
+      if (fresh.length) c.issues++;
       r.found.forEach(x => addFinding(T, x, seq));
-      return r.found.filter(x => !WARN[x.type]).length;
+      return fresh.filter(x => !isWarn(x)).length;
     };
     let actions = actionsOf(w);
     T.controls = actions.length;
@@ -362,6 +404,7 @@
         if (p % 40 === 39){ f = await reload(id); w = f.contentWindow; mon = instrument(w); }
       }
     }
+    if (opt.ux && opt.hunt && !run.stop){ await uxSweep(id, f, T, 'after every control'); }
     // 3. every on/off combination of the checkboxes (each one a single flip from the last), and some of the other controls on top of each
     if (opt.combos && !run.stop){
       const togs = actionsOf(w).filter(a => a.kind === 'toggle').map(a => a.key), k = Math.min(togs.length, 10);
@@ -399,11 +442,18 @@
         if (s % 15 === 14){ f = await reload(id); w = f.contentWindow; mon = instrument(w); }
       }
     }
-    // 5. whole journeys, with checks along the way
+    // 5. the machinist's tests
+    if (opt.mach && MACHINIST[id] && !run.stop){
+      await reload(id); f = await openTool(id); w = f.contentWindow; mon = instrument(w);
+      await runFlows(id, T, mode, rand, MACHINIST[id]);
+    }
+    if (opt.ux && !run.stop){ await reload(id); f = await openTool(id); w = f.contentWindow; instrument(w); await uxSweep(id, f, T, 'fresh'); }
+    // 6. whole journeys, with checks along the way
     if (opt.flows && FLOWS[id] && !run.stop){
       f = await reload(id); w = f.contentWindow; mon = instrument(w);
       await runFlows(id, T, mode, rand);
     }
+    try { const hs = [...(f.contentWindow.document.querySelectorAll('aside > section:not(.folded) > h2') || [])].filter(h => folded.includes((h.textContent || '').trim())); hs.forEach(h => h.click()); } catch (e) {}
     T.ms = Date.now() - t0;
   }
 
@@ -537,7 +587,7 @@
         const dm = instrument(dw), acts = actionsOf(dw).filter(a => a.kind !== 'key' || a.k !== 'Escape'), rand = rng(7), mark = { e: dm.errors.length, g: dm.gaps.length };
         c.metric('controls found in the panel', acts.length); let done = 0;
         for (let i = 0; i < 40 && !run.stop; i++){ const a = acts[Math.floor(rand()*acts.length)]; try { perform(dw, a, rand); done++; } catch (e) { c.fail('“' + a.label + '” threw: ' + e.message); } await sleep(110); }
-        const r = inspect(dw, dm, mark); r.found.forEach(x => (WARN[x.type] ? c.warn : c.fail)(x.type + ': ' + x.detail));
+        const r = inspect(dw, dm, mark); r.found.filter(x => !x.persp).forEach(x => (isWarn(x) ? c.warn : c.fail)(x.type + ': ' + x.detail));
         c.metric('actions used', done); smoothNote(c, 'the panel under use', frameStats(r.gaps));
         // however it ended, the gauge must be somewhere sensible: still on the tool, or cleanly handed back to it
         await sleep(1500); const f = L.fly(); c.ok('afterwards the gauge is ' + (f.attached ? 'still drawn on the tool' : 'handed back to the tool (its own copy shows)'));
@@ -707,6 +757,11 @@
   } };
   ['caliper', 'vernier', 'micrometer', 'depth', 'height'].forEach(id => { FLOWS[id] = [MOUSE_FLOW]; });
   FLOWS.telescopic.push(MOUSE_FLOW);
+  FLOWS.page.push({ name: 'Page: what a designer would flag', win: 'top', persp: 'UX', async run(c){
+    const A = AUD(); if (!A || !(run.opt && run.opt.ux)){ c.warn('UX scan is off'); return; }
+    const found = A.ux(window, { strict: run.opt.hunt }); found.forEach(x => c.find(x));
+    const bad = found.filter(x => x.sev === 'mistake'); if (bad.length) bad.forEach(x => c.fail(x.type + ': ' + x.detail)); else c.ok('nothing a designer would flag on the page itself (' + found.length + ' notes)');
+  } });
 
   /* ---------------- practice, the walkthrough and the embeds, in every tool that has them ---------------- */
   const pressKey = (w, k, o) => { const e = new w.KeyboardEvent('keydown', Object.assign({ key: k, code: k, bubbles: true, cancelable: true }, o || {})); (w.document.activeElement || w.document.body).dispatchEvent(e); };
@@ -867,6 +922,138 @@
     }
   } });
 
+
+  /* ---------------- the machinist's tests: what a shop would do with each tool, held to the tool's own resolution ---------------- */
+  const readOf = w => { const d = w.document, e = d.querySelector('#lcd') || d.querySelector('#iTot'); return e ? e.textContent.trim() : null; };
+  const unitOf = w => { const e = w.document.querySelector('#lcd'); const u = e && e.parentElement && e.parentElement.querySelector('.unit'); return u ? u.textContent.trim() : ''; };
+  // wait until the reading has stopped moving
+  async function settled(w, ms){
+    let last = readOf(w), since = Date.now(); const t0 = Date.now();
+    while (Date.now() - t0 < (ms || 20000)){ await sleep(150); const now = readOf(w); if (now !== last){ last = now; since = Date.now(); } else if (Date.now() - since > 2200) break; }
+    return last;
+  }
+  const btnText = (w, re) => [...w.document.querySelectorAll('button')].find(b => re.test(b.textContent.trim()) && b.getClientRects().length);
+  async function pickSample(w, v){
+    const d = w.document, l = d.getElementById('sampleSel') || d.getElementById('partSel'); if (!l || ![...l.options].some(o => o.value === v)) return false;
+    l.value = v; l.dispatchEvent(new w.Event('input', { bubbles: true })); l.dispatchEvent(new w.Event('change', { bubbles: true })); await sleep(1600); return true;
+  }
+  async function goTo(w, v){
+    const d = w.document, st = d.getElementById('setTo'), g = d.getElementById('goBtn'); if (!st) return null;
+    st.focus(); st.value = String(v); st.dispatchEvent(new w.Event('input', { bubbles: true }));
+    if (g) g.click(); else st.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await sleep(250); return settled(w);
+  }
+  const fmtR = (id, v) => v.toFixed(AUD().RES[id].dec);
+  const RANGE = { caliper: [0, 6], vernier: [0, 6], depth: [0, 1], height: [0, 12] };
+  const MACHINIST = {};
+  const machFlows = id => {
+    const R = AUD().RES[id], tol = R.tol/6, out = [];
+    const frames = w => [...w.document.querySelectorAll('[data-range]')];
+    const near = (a, b) => Math.abs(a - b) <= tol;
+    const pn = t => { const m = /(-|−)?\s*(\d+(?:\.\d+)?)/.exec(String(t || '')); return m ? (m[1] ? -1 : 1)*parseFloat(m[2]) : NaN; };
+    // 1. the first thing a machinist does: close it on nothing, and it must read nothing
+    if (id !== 'height') out.push({ name: 'Machinist: the zero check', win: 'tool', persp: 'Machinist', async run(c){
+      const w = c.w, sizes = id === 'micrometer' ? frames(w) : [null];
+      for (const fb of sizes){
+        if (fb){ fb.click(); await sleep(3200); await settled(w, 4000); }
+        const B = fb ? +fb.dataset.range : 0, name = fb ? B + '–' + (B + 1) + '″ frame' : NAME[id];
+        const ok = await pickSample(w, id === 'depth' ? 'plate' : 'none'); if (!ok){ c.warn(name + ': no empty-jaws or plate sample to close on'); continue; }
+        const cb = w.document.getElementById('closeBtn'); if (!cb){ c.warn(name + ': no close button'); continue; }
+        cb.click(); const r = await settled(w), v = pn(r);
+        if (!Number.isFinite(v)) c.fail(name + ': closed, the reading says “' + r + '”');
+        else if (id === 'micrometer' ? !near(v, B) : !near(v, 0)) c.fail(name + ': closed on nothing it reads ' + r + ', it should read ' + fmtR(id, B));
+        else c.ok(name + ': closed, it reads ' + r);
+      }
+    } });
+    // 2. wide open: never past the end of its range
+    if (id !== 'height') out.push({ name: 'Machinist: wide open stays inside the range', win: 'tool', persp: 'Machinist', async run(c){
+      const w = c.w, sizes = id === 'micrometer' ? frames(w) : [null];
+      for (const fb of sizes){
+        if (fb){ fb.click(); await sleep(3200); await settled(w, 4000); }
+        const B = fb ? +fb.dataset.range : 0, top = id === 'micrometer' ? B + 1 : RANGE[id][1], name = fb ? B + '–' + (B + 1) + '″ frame' : NAME[id];
+        await pickSample(w, id === 'depth' ? 'plate' : 'none');
+        const ob = w.document.getElementById('openBtn'); if (!ob){ c.warn(name + ': no open button'); continue; }
+        ob.click(); const r = await settled(w), v = pn(r);
+        if (!Number.isFinite(v)) c.fail(name + ': open, the reading says “' + r + '”');
+        else if (v > top + tol) c.fail(name + ': opened it reads ' + r + ', past the ' + top + '″ end of its range');
+        else if (v < top - 0.3) c.warn(name + ': opened all the way it only reads ' + r + ' of ' + top + '″');
+        else c.ok(name + ': open, it reads ' + r);
+      }
+    } });
+    // 3. go to a reading from above and from below: it must land on exactly what was asked, both ways, every time
+    out.push({ name: 'Machinist: it lands on the reading you ask for, from above and from below', win: 'tool', persp: 'Machinist', async run(c){
+      const w = c.w, B = id === 'micrometer' ? 2 : 0;
+      if (B) { const fb = frames(w).find(b => +b.dataset.range === B); if (fb){ fb.click(); await sleep(3200); await settled(w, 4000); } }
+      await pickSample(w, id === 'depth' ? 'plate' : id === 'height' ? 'plate' : 'none');
+      if (id === 'micrometer'){ /* no part: free spindle */ }
+      const T = id === 'micrometer' ? [B + 0.25, B + 0.6254, B + 0.9999] : id === 'depth' ? [0.125, 0.5, 0.999] : id === 'height' ? [0.5, 3.742, 11.5] : [0.5, 1.234, 2.5, 5.999];
+      const hi = id === 'micrometer' ? B + 0.95 : id === 'depth' ? 0.95 : id === 'height' ? 11.9 : 5.7, lo = id === 'micrometer' ? B + 0.05 : id === 'depth' ? 0.05 : id === 'height' ? 0.1 : 0.1;
+      const start = readOf(w); let moved = false; const fails = [];
+      for (const v of T){
+        const got = [];
+        for (const from of [hi, lo]){ await goTo(w, from); const r = await goTo(w, v); got.push(r); }
+        const a = pn(got[0]), b = pn(got[1]);
+        if (got.some(g => g !== start)) moved = true;
+        if (!Number.isFinite(a) || !Number.isFinite(b)) fails.push('go to ' + v + ': the reading says “' + got.join('” and “') + '”');
+        else if (!near(a, v) || !near(b, v)) fails.push('go to ' + v + ': it reads ' + got[0] + ' from above and ' + got[1] + ' from below');
+        else if (got[0] !== got[1]) fails.push('go to ' + v + ': ' + got[0] + ' from above but ' + got[1] + ' from below');
+        else c.ok('go to ' + v + ': ' + got[0] + ' both ways');
+      }
+      if (!moved) c.warn('the reading never left ' + start + ', the tool would not be driven from the “Go to” box here (nothing to check)'); else fails.forEach(m => c.fail(m));
+    } });
+    // 4. metric entry: a length typed in millimeters must land on the same place as the inches
+    if (id !== 'height') out.push({ name: 'Machinist: a length typed in millimeters lands on the same place', win: 'tool', persp: 'Machinist', async run(c){
+      const w = c.w; if (id === 'micrometer'){ const f0 = frames(w).find(b => +b.dataset.range === 0); if (f0){ f0.click(); await sleep(3200); await settled(w, 4000); } }
+      await pickSample(w, id === 'depth' ? 'plate' : 'none');
+      const inB = btnText(w, /^Inches$/), mmB = btnText(w, /^(Millimeters|Metric)$/), st = w.document.getElementById('setTo'); if (!inB || !mmB || !st){ c.warn('no unit switch to test'); return; }
+      inB.click(); await sleep(500);
+      mmB.click(); await sleep(700);
+      if (!/mm|millimet|metric/i.test(st.placeholder + ' ' + st.title)){ c.warn('switched to millimeters, the “Go to” box still talks inches (“' + st.placeholder + '”)'); inB.click(); return; }
+      const mmV = id === 'caliper' || id === 'vernier' ? 25.4 : 12.7, want = mmV/25.4;
+      const got = await goTo(w, mmV), v = pn(got), u = unitOf(w);
+      if (!Number.isFinite(v)) c.fail(mmV + ' mm typed, the reading says “' + got + '”');
+      else if (Math.abs(v - (/mm/i.test(u) ? mmV : want)) > (/mm/i.test(u) ? 0.02 : tol)) c.fail(mmV + ' mm typed in came out as ' + got + ' ' + u + ', it should be ' + (/mm/i.test(u) ? mmV.toFixed(2) + ' mm' : want.toFixed(4) + ' in'));
+      else c.ok(mmV + ' mm typed in reads ' + got + ' ' + u);
+      inB.click(); await sleep(500);
+    } });
+    // 5. a certified standard: a 1.0000″ gage block, measured the shop way, must read 1.0000″
+    if (id === 'micrometer') out.push({ name: 'Machinist: a 1.0000″ gage block reads 1.0000″', win: 'tool', persp: 'Machinist', async run(c){
+      const w = c.w, fb = frames(w).find(b => +b.dataset.range === 0); if (fb){ fb.click(); await sleep(3200); await settled(w, 4000); }
+      if (!(await pickSample(w, 'g1'))){ c.warn('no 1.0000″ gage block in the list'); return; }
+      const ab = w.document.getElementById('autoBtn'); if (!ab){ c.warn('no auto measure'); return; }
+      ab.click(); await sleep(2500); const r = await settled(w, 20000), v = pn(r);
+      if (!Number.isFinite(v)) c.fail('measured the gage block, the reading says “' + r + '”');
+      else if (Math.abs(v - 1) > 0.00015) c.fail('a 1.0000″ standard reads ' + r + ' (off by ' + ((v - 1)*10000).toFixed(1) + ' ten-thousandths)');
+      else c.ok('a 1.0000″ standard reads ' + r);
+    } });
+    return out;
+  };
+  ['caliper', 'vernier', 'micrometer', 'depth', 'height'].forEach(id => { MACHINIST[id] = machFlows(id); });
+
+
+  /* ---------------- looking at the tool at every screen size ---------------- */
+  const sizeName = v => v[0] + '×' + v[1];
+  // the tool's own page is made smaller and bigger in turn, as if the window were (a phone, a tablet, a laptop, a big monitor); at each size it is sent to
+  // its overview and looked at: the page for what a designer would flag, the 3D picture for a model that is tiny, cut off or under the buttons
+  async function uxSweep(id, f, T, label){
+    const A = AUD(), O = run.opt || {}; if (!A || !(O.ux || O.mach)) return;
+    const w = f.contentWindow, mon = instrument(w), keep = f.getAttribute('style');
+    try {
+      for (const v of A.VIEWPORTS){
+        if (run.stop) break;
+        progress(T, label + ': looking at it at ' + sizeName(v), .97);
+        f.style.width = v[0] + 'px'; f.style.height = v[1] + 'px'; f.style.maxWidth = 'none';
+        await sleep(900);
+        const btn = w.document.querySelector('[data-view="iso"]') || w.document.querySelector('[data-view="overview"]');
+        if (btn && btn.getClientRects().length){ btn.click(); await sleep(2600); }
+        const seq = [label + ' at ' + sizeName(v)];
+        if (O.ux){ A.ux(w, { strict: O.hunt }).forEach(x => addFinding(T, x, seq)); }
+        if (O.mach) A.machinist(w, id).forEach(x => addFinding(T, x, seq));
+        if (O.ux){ const r = await A.frame3d(w, !!btn); r.found.forEach(x => addFinding(T, x, seq)); if (r.info) (T.views = T.views || []).push(Object.assign({ size: sizeName(v) }, r.info)); }
+      }
+    } finally { if (keep == null) f.removeAttribute('style'); else f.setAttribute('style', keep); await sleep(1000); }
+  }
+
   // what to say about a stretch of frames
   function smoothNote(c, what, f){
     if (f.n < 6){ c.warn(what + ': too few frames to rate (' + f.n + ')'); return; }
@@ -893,18 +1080,22 @@
     const dw = dockWin(tab);
     if (!dw) c.fail('the tool frame is missing'); else if (showsLength(dw, mm)) c.ok('the ' + NAME[tab] + ' reads the gauge: ' + mm.toFixed(2) + ' mm'); else c.fail('the ' + NAME[tab] + ' does not show ' + mm.toFixed(2) + ' mm (' + (mm/IN).toFixed(4) + ' in) anywhere');
   }
-  async function runFlows(id, T, mode, rand){
-    const list = FLOWS[id];
+  async function runFlows(id, T, mode, rand, extra){
+    const list = extra || FLOWS[id];
     for (let i = 0; i < list.length && !run.stop; i++){
       const sc = list[i], top = sc.win === 'top';
       progress(T, 'flow: ' + sc.name, .96);
       const w = top ? window : (sc.win === 'tool' ? (SH().frames[id] || {}).contentWindow : labWin()), mon = instrument(w), t0 = Date.now();
       const out = { name: sc.name, pass: true, notes: [], metrics: {}, ms: 0 };
-      const mark = { e: mon.errors.length, g: mon.gaps.length };
-      const c = { w, L: top ? null : w.__lab, mon, ok: m => out.notes.push('✓ ' + m), warn: m => out.notes.push('• ' + m), fail: m => { out.pass = false; out.notes.push('✗ ' + m); }, metric: (k, v) => { out.metrics[k] = v; } };
+      const mark = { e: mon.errors.length, g: mon.gaps.length, w: mon.warns.length };
+      const finds = [], c = { w, L: top ? null : w.__lab, mon, find: f => finds.push(f), ok: m => out.notes.push('✓ ' + m), warn: m => out.notes.push('• ' + m), fail: m => { out.pass = false; out.notes.push('✗ ' + m); }, metric: (k, v) => { out.metrics[k] = v; } };
+      run.cur = id;
       try { await sc.run(c); } catch (e) { out.pass = false; out.notes.push('✗ stopped: ' + String((e && e.message) || e).slice(0, 200)); }
+      finds.forEach(f => addFinding(T, f, [sc.name]));
+      if (sc.persp) out.notes.filter(n => n[0] === '✗').forEach(n => addFinding(T, { type: sc.name, detail: n.slice(2), sev: 'mistake', persp: sc.persp }, [sc.name]));
       const r = inspect(w, mon, mark);
-      r.found.filter(x => !WARN[x.type]).forEach(x => { out.pass = false; out.notes.push('✗ ' + x.type + ': ' + x.detail); addFinding(T, x, [sc.name]); });
+      r.found.filter(x => x.persp).forEach(x => addFinding(T, x, [sc.name]));
+      r.found.filter(x => !x.persp && !isWarn(x)).forEach(x => { out.pass = false; out.notes.push('✗ ' + x.type + ': ' + x.detail); addFinding(T, x, [sc.name]); });
       addFrames(T, r.gaps); out.ms = Date.now() - t0;
       T.scenarios.push(out); render();
       if (!top) try { w.document.querySelector('.gd-x') && w.document.querySelector('.gd-x').click(); } catch (e) {}
@@ -934,7 +1125,7 @@
   function render(){
     const R = run.report; if (!R) return;
     const rows = Object.values(R.tools).map(T => {
-      const errs = T.findings.filter(x => !WARN[x.type]).length, warns = T.findings.filter(x => WARN[x.type]).length, fl = T.scenarios, flBad = fl.filter(s => !s.pass).length;
+      const errs = T.findings.filter(x => !isWarn(x)).length, warns = T.findings.filter(x => isWarn(x)).length, fl = T.scenarios, flBad = fl.filter(s => !s.pass).length;
       const fb = feedback(T), bad = errs + flBad;
       return '<tr><td>' + T.name + '</td><td>' + T.controls + '</td><td>' + T.singles.run + '</td><td>' + T.pairs.run + '<span style="color:#8a8f97"> / ' + T.pairs.possible + '</span></td><td>' + T.combos.run + '</td><td>' + T.sequences.run + '</td><td>' + (fl.length ? (fl.length - flBad) + '/' + fl.length : '–') + '</td><td class="' + fb.grade.cls + '">' + (T.fr.n ? fb.grade.word : '–') + '</td><td class="' + (bad ? 'bad' : warns ? 'warn' : 'ok') + '">' + (bad ? bad + ' issue' + (bad > 1 ? 's' : '') : warns ? warns + ' warning' + (warns > 1 ? 's' : '') : 'clean') + '</td></tr>';
     }).join('');
@@ -952,23 +1143,27 @@
     }).join('');
     const all = [];
     Object.values(R.tools).forEach(T => T.findings.forEach(x => all.push({ tool: T.name, x })));
-    all.sort((p, q) => (WARN[p.x.type] ? 1 : 0) - (WARN[q.x.type] ? 1 : 0));
-    $d('devFinds').innerHTML = all.length ? all.slice(0, 60).map(({ tool, x }) => '<div class="find ' + (WARN[x.type] ? 'warn' : 'bad') + '"><b>' + tool + ' · ' + x.type + (x.count > 1 ? ' (×' + x.count + ')' : '') + '</b>' + esc(x.detail) + '<code>' + esc(x.example.map((s, i) => (i + 1) + '. ' + s).join('\n') + (Object.keys(x.by || {}).length > 1 ? '\nset off most by: ' + Object.entries(x.by).sort((p, q) => q[1] - p[1]).slice(0, 4).map(e => e[0] + ' ×' + e[1]).join(', ') : '')) + '</code></div>').join('') : (run.on ? '' : '<div class="ok">Nothing glitched.</div>');
+    all.sort((p, q) => (isWarn(p.x) ? 1 : 0) - (isWarn(q.x) ? 1 : 0));
+    // the count of mistakes by who would flag them, ahead of the list
+    const by = {}; all.forEach(({ x }) => { if (!isWarn(x)){ const k = x.persp || 'Glitch'; by[k] = (by[k] || 0) + 1; } });
+    const head = Object.keys(by).length ? '<div class="fb"><b>Mistakes by who would flag them.</b> ' + Object.entries(by).map(e => e[0] + ' ' + e[1]).join(' · ') + '</div>' : '';
+    $d('devFinds').innerHTML = all.length ? head + all.slice(0, 150).map(({ tool, x }) => '<div class="find ' + (isWarn(x) ? 'warn' : 'bad') + '"><b>' + tool + ' · ' + (x.persp && x.persp !== 'Glitch' ? '<span class="tag">' + x.persp + (isWarn(x) ? ' note' : ' mistake') + '</span> ' : '') + x.type + (x.count > 1 ? ' (×' + x.count + ')' : '') + '</b>' + esc(x.detail) + '<code>' + esc(x.example.map((s, i) => (i + 1) + '. ' + s).join('\n') + (Object.keys(x.by || {}).length > 1 ? '\nset off most by: ' + Object.entries(x.by).sort((p, q) => q[1] - p[1]).slice(0, 4).map(e => e[0] + ' ×' + e[1]).join(', ') : '')) + '</code></div>').join('') : (run.on ? '' : '<div class="ok">Nothing glitched.</div>');
   }
   // the whole report as plain words: what ran, how smooth it was, and what to look at
   function summaryText(){
     const R = run.report; if (!R) return 'No run yet.';
     const L = ['Shop Tool Sim dev run · ' + R.mode + ' · seed ' + R.seed + ' · ' + R.startedAt + (R.totalMs ? ' · ' + fmtMs(R.totalMs) : ''), ''];
     Object.values(R.tools).forEach(T => {
-      const fb = feedback(T), errs = T.findings.filter(x => !WARN[x.type]), warns = T.findings.filter(x => WARN[x.type]);
+      const fb = feedback(T), errs = T.findings.filter(x => !isWarn(x)), warns = T.findings.filter(x => isWarn(x));
       L.push(T.name.toUpperCase() + ' — ' + (errs.length || T.scenarios.some(s => !s.pass) ? 'ISSUES' : 'clean') + (T.fr.n ? ' · ' + fb.grade.word : ''));
       L.push('  controls ' + T.controls + ' · single ' + T.singles.run + ' · pairs ' + T.pairs.run + '/' + T.pairs.possible + ' · checkbox combinations ' + T.combos.run + '/' + T.combos.possible + ' (' + T.combos.toggles + ' checkboxes) · random runs ' + T.sequences.run + ' · flows ' + T.scenarios.filter(s => s.pass).length + '/' + T.scenarios.length);
       if (T.fr.n) L.push('  smoothness: ' + T.fr.n + ' frames, average ' + fb.frames.avg + ' ms, p95 ' + fb.frames.p95 + ' ms, worst ' + fb.frames.max + ' ms, ' + fb.frames.over50 + ' hitches, ' + fb.frames.over100 + ' janks');
       fb.slow.filter(r => r.p95FrameMs > FR.fine).forEach(r => L.push('  slow: ' + r.label + ' — p95 ' + r.p95FrameMs + ' ms, worst ' + r.worstFrameMs + ' ms'));
       if (fb.inert.length) L.push('  did nothing visible: ' + fb.inert.map(r => r.label).join(', '));
       T.scenarios.forEach(s => { L.push('  ' + (s.pass ? '✓' : '✗') + ' ' + s.name + ' (' + Math.round(s.ms/1000) + ' s)'); s.notes.filter(n => n[0] !== '✓' || !s.pass).forEach(n => L.push('      ' + n)); });
-      errs.forEach(x => L.push('  ✗ ' + x.type + ' ×' + x.count + ': ' + x.detail + ' (after: ' + x.example.join(' › ') + ')'));
-      warns.forEach(x => L.push('  • ' + x.type + ' ×' + x.count + ': ' + x.detail));
+      errs.forEach(x => L.push('  ✗ ' + (x.persp && x.persp !== 'Glitch' ? '[' + x.persp + ' mistake] ' : '') + x.type + ' ×' + x.count + ': ' + x.detail + ' (after: ' + x.example.join(' › ') + ')'));
+      warns.forEach(x => L.push('  • ' + (x.persp && x.persp !== 'Glitch' ? '[' + x.persp + ' note] ' : '') + x.type + ' ×' + x.count + ': ' + x.detail));
+      if (T.views) L.push('  3D framing: ' + T.views.map(v => v.size + (v.blank ? ' blank' : ' fills ' + v.width + '%×' + v.height + '%' + (v.touch ? ' cut at ' + v.touch : '') + (v.covered ? ' ' + v.covered + '% under buttons' : ''))).join(' · '));
       L.push('');
     });
     return L.join('\n');
@@ -977,7 +1172,8 @@
     if (run.on) return;
     const mode = MODES[$d('devMode').value], seed = +$d('devSeed').value || 1;
     const ids = [...panel.querySelectorAll('input[data-t]:checked')].map(x => x.dataset.t);
-    const opt = { controls: $d('devCtl').checked, combos: $d('devCombo').checked, flows: $d('devFlow').checked };
+    const hunt = !!mode.hunt, opt = { controls: $d('devCtl').checked, combos: $d('devCombo').checked, flows: $d('devFlow').checked, ux: $d('devUx').checked || hunt, mach: $d('devMach').checked || hunt, hunt };
+    window.__devHunt = hunt; RATE = hunt ? 20 : 10; run.opt = opt;
     if (!ids.length) return;
     run.on = true; run.stop = false; run.steps = 0; run.active = 0; run.t0 = Date.now();
     run.report = { startedAt: new Date().toISOString(), mode: $d('devMode').value, seed, options: opt, userAgent: navigator.userAgent, tools: {}, note: 'Pairs, combinations and runs are sampled unless the mode is Thorough; the counts say what was covered. Frame times are the gaps between painted frames.' };
@@ -996,7 +1192,7 @@
     // the report carries the feedback with it
     Object.values(run.report.tools).forEach(T => { const fb = feedback(T); T.feedback = { smoothness: fb.grade.word, frames: fb.frames, slowestControls: fb.slow, didNothingVisible: fb.inert.map(r => r.label), controls: fb.rows }; });
     run.on = false; $d('devGo').disabled = false; $d('devStop').disabled = true; $d('devBar').style.width = '100%';
-    const bad = Object.values(run.report.tools).reduce((s, T) => s + T.findings.filter(x => !WARN[x.type]).length + T.scenarios.filter(q => !q.pass).length, 0);
+    const bad = Object.values(run.report.tools).reduce((s, T) => s + T.findings.filter(x => !isWarn(x)).length + T.scenarios.filter(q => !q.pass).length, 0);
     $d('devSub').textContent = (run.stop ? 'stopped · ' : 'done · ') + fmtMs(run.report.totalMs) + ' · ' + (bad ? bad + ' issue' + (bad > 1 ? 's' : '') : 'clean');
     $d('devNow').textContent = '';
     render();
