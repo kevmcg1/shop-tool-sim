@@ -3734,6 +3734,7 @@ async function start() {
   await new Promise(r => setTimeout(r));
   try { await renderer.compileAsync(scene, camera); } catch (e) {}
   booted = true;
+  try { resize(); } catch (e) {}   // draws one frame now, behind the loading screen, so buffers and textures are uploaded before the first drag
   // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
   if (window.__holo) window.__holo.attach({ THREE, select: $('sampleSel'),
     caption: v => PARTS[v] ? [PARTS[v].label, TOOL[PARTS[v].tool].name + ' · ' + PARTS[v].what] : ['No part', ''],
