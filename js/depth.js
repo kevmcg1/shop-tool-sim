@@ -3139,11 +3139,29 @@ function toScreen(v){ const p = v.clone().project(camera), r = el.getBoundingCli
 // Turning the ratchet or thimble by hand works like a real knob: circle the pointer around it and it turns
 // with you. The pointer is traced onto the plane the knob turns in (through the point grabbed, square to the
 // spindle (+y)), and the change in its angle round the axis is the turn, whichever way the camera looks.
-// Seen nearly side-on that plane is edge-on and a circle can't be read from it, so there it falls back to
-// dragging along the knob's surface (up and down across it).
+// Seen nearly side-on that plane is edge-on and the pointer can't be traced onto it, so there the knob's circle is
+// read off the screen instead: the knob is an ellipse (flattened by how steeply the camera looks down), and the
+// pointer's angle round that ellipse's centre is the turn, so circling it clockwise or the other way works from any view.
 const _knobHit = new T.Vector3(), _knobView = new T.Vector3();
+function knobScreen(d, px, py){
+  const rx = (px - d.cen.x)/d.rad, ry = (py - d.cen.y)/(d.rad*d.flat);
+  return Math.hypot(rx, ry) < 0.2 ? null : Math.atan2(ry, rx);   // too near the centre to say which way round
+}
 function knobGrab(d, p, axis){
-  if (Math.abs(camera.getWorldDirection(_knobView).dot(axis)) < 0.3) return;
+  const dot = Math.abs(camera.getWorldDirection(_knobView).dot(axis));
+  if (dot < 0.3){
+    const r = Math.hypot(p.x, p.z), c = new T.Vector3(0, p.y, 0), right = new T.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+    const o = toScreen(c);
+    d.cen = o; d.flat = Math.max(dot, 0.12); d.rad = Math.max(8, toScreen(c.clone().addScaledVector(right, r)).sub(o).length());
+    // which way round the screen the knob's own turning (+ about +y) goes
+    const a0 = Math.atan2(p.x, p.z), q0 = toScreen(new T.Vector3(r*Math.sin(a0), p.y, r*Math.cos(a0))), q1 = toScreen(new T.Vector3(r*Math.sin(a0 + 0.2), p.y, r*Math.cos(a0 + 0.2)));
+    const f0 = knobScreen(d, q0.x, q0.y), f1 = knobScreen(d, q1.x, q1.y);
+    d.scrSign = f0 != null && f1 != null ? Math.sign(((f1 - f0 + Math.PI) % TAU + TAU) % TAU - Math.PI) || 1 : 1;
+    const g = el.getBoundingClientRect();
+    d.scrAng = knobScreen(d, d.sx - g.left, d.sy - g.top);
+    d.scr = true;
+    return;
+  }
   d.plane = new T.Plane().setFromNormalAndCoplanarPoint(axis, p);
   d.ang = knobAngle(d);
 }
@@ -3154,6 +3172,13 @@ function knobAngle(d){
 }
 function knobTurn(e, d){
   const r = el.getBoundingClientRect();
+  if (d.scr){
+    const a = knobScreen(d, e.clientX - r.left, e.clientY - r.top);
+    if (a == null || d.scrAng == null){ if (a != null) d.scrAng = a; return 0; }
+    let da = a - d.scrAng; d.scrAng = a;
+    da = ((da + Math.PI) % TAU + TAU) % TAU - Math.PI;
+    return da*d.scrSign;
+  }
   ndc.set(((e.clientX - r.left)/r.width)*2 - 1, -((e.clientY - r.top)/r.height)*2 + 1);
   const a = knobAngle(d);
   if (a == null || d.ang == null){ d.ang = a; return 0; }
@@ -3184,7 +3209,7 @@ el.addEventListener('pointerdown', e => {
     // tangent at the grab point: one unit of rotation about the vertical axis
     const dirW = new T.Vector3(p.z, 0, -p.x);
     const sd = toScreen(p.clone().add(dirW.clone().multiplyScalar(0.01))).sub(toScreen(p)).divideScalar(0.01);
-    drag = { kind, x: e.clientX, y: e.clientY, sd };
+    drag = { kind, x: e.clientX, y: e.clientY, sd, sx: e.clientX, sy: e.clientY };
     if (kind === 'ratchet' || kind === 'thimble') knobGrab(drag, p, new T.Vector3(0, 1, 0));
     stopAnim();
     if (kind === 'ratchet'){ endCoach(); state.slipAcc = 0; }
@@ -3208,7 +3233,7 @@ el.addEventListener('pointermove', e => {
   const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
   drag.x = e.clientX; drag.y = e.clientY;
   const l2 = drag.sd.lengthSq();
-  let du = drag.plane ? knobTurn(e, drag) : l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dx*0.01;
+  let du = drag.plane || drag.scr ? knobTurn(e, drag) : l2 > 9 ? (dx*drag.sd.x + dy*drag.sd.y)/l2 : dx*0.01;
   if (e.shiftKey) du *= 0.2;
   if (fineOn) du *= FINE_K;
   tryTurn(-du/(TPI*TAU), drag.kind);
