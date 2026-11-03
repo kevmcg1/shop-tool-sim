@@ -34,6 +34,8 @@
     '.stab-i{width:22px;height:22px;fill:#e2e5eb;opacity:.9}' +
     '.stab-t{margin:0;font-size:14px;line-height:1.5;font-weight:500;color:#e2e5eb}' +
     '.stab-s{margin:0;font-size:12px;line-height:1.4;color:#c3c7ce;opacity:.7;font-variant-numeric:tabular-nums}' +
+    '.stab-m{margin:0;font-size:12px;line-height:1.4;color:#e2e5eb;font-variant-numeric:tabular-nums;display:flex;gap:10px;justify-content:center}' +
+    '.stab-m span+span{opacity:.7}' +
     '.stab-bar{width:100%;height:3px;border-radius:999px;background:rgba(195,199,206,.18);overflow:hidden}' +
     '.stab-bar i{display:block;height:100%;background:#e2e5eb;border-radius:inherit;transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}' +
     '.stab-skip{margin-top:4px;padding:8px 18px;font:inherit;font-size:12.5px;font-weight:500;color:#e2e5eb;background:transparent;border:1px solid rgba(226,229,235,.45);border-radius:8px;cursor:pointer;opacity:0;visibility:hidden;transition:opacity .4s ease,border-color .25s ease,color .25s ease}' +
@@ -46,10 +48,11 @@
   // (the gauge icon from Font Awesome Free 6.5.2, CC BY 4.0, as in js/icons.js)
   cover.innerHTML = '<div class="stab-in"><svg class="stab-i" viewBox="0 0 512 512" aria-hidden="true"><path d="M0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm320 96c0-26.9-16.5-49.9-40-59.3V88c0-13.3-10.7-24-24-24s-24 10.7-24 24V292.7c-23.5 9.5-40 32.5-40 59.3c0 35.3 28.7 64 64 64s64-28.7 64-64zM144 176a32 32 0 1 0 0-64 32 32 0 1 0 0 64zm-16 80a32 32 0 1 0 -64 0 32 32 0 1 0 64 0zm288 32a32 32 0 1 0 0-64 32 32 0 1 0 0 64zM400 144a32 32 0 1 0 -64 0 32 32 0 1 0 64 0z"/></svg>' +
     '<p class="stab-t" id="stabT">Getting everything ready…</p><p class="stab-s" id="stabS"></p>' +
+    '<p class="stab-m"><span id="stabP">0%</span><span id="stabE">Estimating time left…</span></p>' +
     '<div class="stab-bar" role="progressbar" aria-label="Getting ready" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="stabF"></i></div>' +
     '<button type="button" class="stab-skip" id="stabSkip">Skip</button></div>';
   root.appendChild(cover);
-  var elT = cover.querySelector('#stabT'), elS = cover.querySelector('#stabS'), elF = cover.querySelector('#stabF'), bar = cover.querySelector('.stab-bar'), skip = cover.querySelector('#stabSkip');
+  var elT = cover.querySelector('#stabT'), elS = cover.querySelector('#stabS'), elF = cover.querySelector('#stabF'), elP = cover.querySelector('#stabP'), elE = cover.querySelector('#stabE'), bar = cover.querySelector('.stab-bar'), skip = cover.querySelector('#stabSkip');
 
   // ---- the frame counter ----
   var hist = [], last = 0, startAt = now(), stallMs = 0, steadySince = 0, noteAt = 0, finished = false, introOver = false;
@@ -144,7 +147,7 @@
     if (finished) return; finished = true;
     var tf = pickTier(); if (!P.tier || RANK[tf] < RANK[P.tier]) P.tier = tf;
     P.ready = true; pushTier();
-    elF.style.transform = 'scaleX(1)'; bar.setAttribute('aria-valuenow', 100);
+    elF.style.transform = 'scaleX(1)'; bar.setAttribute('aria-valuenow', 100); elP.textContent = '100%'; elE.textContent = 'Ready';
     cover.classList.add('out');
     setTimeout(function(){ if (cover.parentNode) cover.remove(); if (css.parentNode) css.remove(); }, 600);
     waiting.splice(0).forEach(function(f){ try { f(P); } catch (e) {} });
@@ -153,7 +156,7 @@
   skip.addEventListener('click', finish);
   // tools that build later (the ones loading in the background) ask for the tier as they start; give it to them as soon as there is a guess
   P.tier = (cores <= 2 || mem <= 2) ? 'low' : null;
-  var shown = 0;
+  var shown = 0, disp = 0, etaS = null, lastTick = now();
   var poll = setInterval(function(){
     if (finished){ clearInterval(poll); return; }
     var el = now() - startAt, ready = toolReady(), warm = noWarm ? 1 : warmFraction();
@@ -161,7 +164,18 @@
     var steadyFor = steadySince ? performance.now() - steadySince : 0, need = P.troubled ? 2*STEADY_MS : STEADY_MS;
     var p = 0.05 + 0.45*ready + 0.25*Math.min(1, steadyFor/need) + (P.troubled ? 0.25*warm : 0.25*ready);
     shown = Math.max(shown, Math.min(0.97, p));   // (only ever forward)
-    elF.style.transform = 'scaleX(' + shown.toFixed(3) + ')'; bar.setAttribute('aria-valuenow', Math.round(shown*100));
+    // the percentage eases toward the real progress so it counts up smoothly instead of jumping at each step
+    var dt = now() - lastTick; lastTick = now();
+    disp += (shown - disp)*Math.min(1, dt/250); if (shown - disp < 0.002) disp = shown;
+    // time left: how long it took to get this far, scaled to what is left (smoothed so it does not jump), never less than the frame check still has to run
+    var raw = disp > 0.08 ? el*(1 - disp)/disp : 6000, floor = Math.max(0, need - steadyFor) + (ready ? 0 : 800);
+    if (ready && !P.troubled && introOver) raw = floor + 300;   // (once the tool is built the only thing left is the steady-frames check)
+    raw = Math.min(Math.max(raw, floor), Math.max(0, CAP - el));
+    etaS = etaS == null ? raw : etaS + (raw - etaS)*0.15;
+    var secs = Math.max(1, Math.ceil(etaS/1000));
+    elF.style.transform = 'scaleX(' + disp.toFixed(3) + ')'; bar.setAttribute('aria-valuenow', Math.round(disp*100));
+    elP.textContent = Math.round(disp*100) + '%';
+    elE.textContent = el < 700 ? 'Estimating time left…' : (secs <= 1 ? 'Less than a second left' : 'About ' + (secs >= 60 ? Math.ceil(secs/60) + ' min' : secs + ' s') + ' left');
     if (P.troubled){ var tt = pickTier(); if (!P.tier || RANK[tt] < RANK[P.tier]) P.tier = tt; pushTier(); }   // (the setting only ever goes lighter)
     var noteHeld = P.troubled && now() - noteAt < NOTE_MIN_MS;
     var steadyOk = steadyFor >= need && ready && introOver;
