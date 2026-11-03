@@ -274,6 +274,16 @@
 .dev .ctl{width:100%;border-collapse:collapse;font-size:11px}.dev .ctl td,.dev .ctl th{padding:2px 5px;border-bottom:1px solid #1f2125;text-align:left;font-weight:400}.dev .ctl th{color:#8a8f97}
 .dev .ctl td:nth-child(n+3){text-align:right;font-variant-numeric:tabular-nums}
 .dev .tag{display:inline-block;font-size:10.5px;font-weight:600;border:1px solid currentColor;border-radius:99px;padding:0 6px;margin-right:4px;color:#8a8f97}
+.dev .con{margin-top:10px;border-top:1px solid #2a2d31;padding-top:8px}
+.dev .con h4{margin:0 0 4px;font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.dev .con h4 small{font-weight:400;color:#8a8f97;font-size:11.5px}
+.dev .con .row{margin-top:4px;align-items:center}.dev .con .row button{padding:3px 9px;font-size:11.5px}
+.dev .con .row .chk{margin:0 6px 0 0;font-size:11.5px}
+.dev .conlog{margin-top:6px;max-height:240px;overflow:auto;background:#0d0e10;border:1px solid #2a2d31;border-radius:8px;padding:4px 0;font:11px/1.5 ui-monospace,Consolas,monospace;user-select:text}
+.dev .conlog div{padding:1px 8px;white-space:pre-wrap;word-break:break-word;border-left:3px solid transparent;color:#c9ccd1;user-select:text}
+.dev .conlog .t{color:#6b7078}.dev .conlog .w{color:#8a8f97}
+.dev .conlog .warn{border-left-color:#e8c547;color:#f1dc8a}.dev .conlog .error{border-left-color:#ff7a6e;color:#ffa79e}
+.dev .conlog .info,.dev .conlog .debug{color:#9ab6e0}.dev .conlog .empty{color:#6b7078}
 .dev .chk{display:inline-flex;gap:5px;align-items:center;margin-right:10px}
 @media (prefers-reduced-motion: reduce){.dev,.dev[hidden],.dev .bar i{transition:none}}`;
   document.head.appendChild(css);
@@ -286,9 +296,56 @@
     '<div class="row" style="margin-top:2px"><label class="chk" title="Looks at every screen for cut-off text, hard-to-read colors, covered or tiny controls, and a 3D model that is small, cut off or under the buttons, at phone, tablet, laptop and monitor sizes"><input type="checkbox" id="devUx" checked> UX intelligence</label><label class="chk" title="A machinist\u2019s strict eye: zero check, reading lands where asked, inches and millimeters agree, parts add up, resolution and range"><input type="checkbox" id="devMach" checked> Machinist (strict)</label></div>' +
     '<div class="row"><select id="devMode">' + Object.keys(MODES).map(k => '<option value="' + k + '"' + (k === 'thorough' ? ' selected' : '') + '>' + MODES[k].label + '</option>').join('') + '</select><input type="number" id="devSeed" value="' + (qs.get('seed') || 20261012) + '" style="max-width:110px" aria-label="Seed"></div>' +
     '<div class="row"><button class="go" id="devGo">Start</button><button id="devStop" disabled>Stop</button><button id="devSummary">Copy summary</button><button id="devCopy">Copy report</button><button id="devSave">Download</button></div>' +
-    '<div class="now" id="devEst"></div><div class="bar"><i id="devBar"></i></div><div class="now" id="devNow"></div><table class="sum" id="devSum"></table><div id="devFeed"></div><div id="devFinds"></div></div>';
+    '<div class="now" id="devEst"></div><div class="bar"><i id="devBar"></i></div><div class="now" id="devNow"></div><table class="sum" id="devSum"></table><div id="devFeed"></div><div id="devFinds"></div>' +
+    '<div class="con"><h4>Console <small id="conCount"></small></h4><div class="row"><label class="chk"><input type="checkbox" data-lv="log" checked> Logs</label><label class="chk"><input type="checkbox" data-lv="warn" checked> Warnings</label><label class="chk"><input type="checkbox" data-lv="error" checked> Errors</label><button id="conClear">Clear</button><button id="conCopy">Copy</button></div><div class="conlog" id="conLog" role="log" aria-live="off"></div></div></div>';
   document.body.appendChild(panel);
   const $d = id => panel.querySelector('#' + id);
+
+  /* ---------------- the console: everything the page and every tool logs, shown in the panel ---------------- */
+  const con = { rows: [], max: 600, queued: false };
+  const conText = a => a.map(x => {
+    if (x instanceof Error) return x.stack ? String(x.stack).split(/\r?\n/).slice(0, 3).join(' | ') : x.message;
+    if (x && typeof x === 'object'){ try { return JSON.stringify(x).slice(0, 400); } catch (e) { return String(x); } }
+    return String(x);
+  }).join(' ').slice(0, 1200);
+  const conLevel = l => l === 'error' || l === 'assert' ? 'error' : l === 'warn' ? 'warn' : l === 'info' ? 'info' : l === 'debug' ? 'debug' : 'log';
+  function conPush(src, level, msg){
+    const d = new Date(), p = (n, k) => String(n).padStart(k || 2, '0');
+    con.rows.push({ src, level, msg, t: p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3) });
+    if (con.rows.length > con.max) con.rows.splice(0, con.rows.length - con.max);
+    if (!con.queued){ con.queued = true; setTimeout(conDraw, 120); }
+  }
+  const conShown = r => { const lv = r.level === 'error' ? 'error' : r.level === 'warn' ? 'warn' : 'log'; const b = panel.querySelector('input[data-lv="' + lv + '"]'); return !b || b.checked; };
+  function conDraw(){
+    con.queued = false;
+    if (panel.hidden) return;   // drawn when the panel opens
+    const box = $d('conLog'), stick = box.scrollTop + box.clientHeight >= box.scrollHeight - 24, rows = con.rows.filter(conShown);
+    box.innerHTML = rows.length ? rows.slice(-300).map(r => '<div class="' + r.level + '"><span class="t">' + r.t + '</span> <span class="w">' + r.src + '</span> ' + r.msg.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>').join('') : '<div class="empty">Nothing logged yet.</div>';
+    $d('conCount').textContent = con.rows.length + ' logged' + (rows.length !== con.rows.length ? ', ' + rows.length + ' shown' : '');
+    if (stick) box.scrollTop = box.scrollHeight;
+  }
+  function conCapture(w, src){
+    try {
+      if (!w || w.__devCon || !w.console) return; w.__devCon = true;
+      ['log', 'info', 'warn', 'error', 'debug', 'assert'].forEach(m => {
+        const o = w.console[m]; if (typeof o !== 'function') return;
+        w.console[m] = function(...a){
+          try { if (m === 'assert'){ if (!a[0]) conPush(src, 'error', 'Assertion failed: ' + conText(a.slice(1))); } else conPush(src, conLevel(m), conText(a)); } catch (e) {}
+          return o.apply(this, a);
+        };
+      });
+      w.addEventListener('error', e => conPush(src, 'error', (e.message || 'error') + ' (' + String(e.filename || '').split('/').pop().split('?')[0] + ':' + (e.lineno || '?') + ')'));
+      w.addEventListener('unhandledrejection', e => conPush(src, 'error', 'Unhandled promise: ' + conText([e.reason])));
+    } catch (e) {}
+  }
+  conCapture(window, 'page');
+  // each tool is its own frame: pick them up as they appear
+  const conScan = () => document.querySelectorAll('iframe[id^="app-"]').forEach(f => { try { conCapture(f.contentWindow, NAME[f.id.slice(4)] || f.id.slice(4)); } catch (e) {} });
+  conScan(); setInterval(conScan, 250);
+  panel.querySelectorAll('input[data-lv]').forEach(b => b.addEventListener('change', conDraw));
+  $d('conClear').addEventListener('click', () => { con.rows.length = 0; conDraw(); });
+  $d('conCopy').addEventListener('click', () => { const t = con.rows.filter(conShown).map(r => r.t + ' [' + r.src + '] ' + r.level + ': ' + r.msg).join(String.fromCharCode(10)); try { navigator.clipboard.writeText(t); $d('devNow').textContent = 'Console copied.'; } catch (e) { $d('devNow').textContent = 'Could not copy.'; } });
+  new MutationObserver(() => { if (!panel.hidden) conDraw(); }).observe(panel, { attributes: true, attributeFilter: ['hidden'] });
 
   /* ---------------- the run ---------------- */
   const run = { on: false, stop: false, report: null, steps: 0, t0: 0 };
