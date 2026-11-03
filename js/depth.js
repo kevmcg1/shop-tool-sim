@@ -3722,7 +3722,7 @@ window.__guideDrag = () => {
   }
   return { pts, turn: true };
 };
-function start(){
+async function start(){
   window.__load && window.__load.set(0.9, 'Setting up the view…');
   atlas = makeAtlas(['0','1','2','3','4','5','6','7','8','9','10','15','20']);
   controls = new T.OrbitControls(camera, el);
@@ -3746,6 +3746,11 @@ function start(){
   setRange(0);
   bindFinish();
   setView('iso', true);
+  // compile every shader and upload every buffer behind the loading screen, so the first drag doesn't stall on it
+  shopFinish(scene);
+  await new Promise(r => setTimeout(r));
+  try { await renderer.compileAsync(scene, camera); } catch (e) {}
+  try { resize(); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); } catch (e) {}
 
   // the first view is framed before the layout has settled (fonts, panels, the flat view's corner),
   // so frame it again a few times as things land, until the first touch from the user
