@@ -1,7 +1,9 @@
 // Makes repeat visits fast: the libraries from the CDNs (three.js, Font Awesome, the fonts) and this site's own versioned files are kept
 // on the device after the first visit and served from there. The page itself (index.html) always asks the network first, so a new
-// release shows up straight away; every css/ and js/ file carries ?v=N, so a changed file is a new address and is never stale.
-const CACHE = 'shop-tool-sim-v1';
+// release shows up straight away (it skips the browser's own HTTP cache too, which GitHub Pages lets hold a page for 10 minutes);
+// every css/ and js/ file carries ?v=N so a changed file is a new address, and those files are also re-checked in the background on each
+// visit, so even a file that changed without its ?v=N being bumped is picked up on the next visit. Nobody has to clear cache or cookies.
+const CACHE = 'shop-tool-sim-v2';
 const CDN = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com|fonts\.gstatic\.com)\//;
 const FONT_CSS = /^https:\/\/fonts\.googleapis\.com\//;
 
@@ -20,7 +22,7 @@ async function cacheFirst(req, cors){
 }
 async function networkFirst(req){
   const c = await caches.open(CACHE);
-  try { const res = await fetch(req); if (res && res.ok) c.put(req, res.clone()); return res; }
+  try { const res = await fetch(req, { cache: 'no-cache' }); if (res && res.ok) c.put(req, res.clone()); return res; }
   catch (e) { const hit = await c.match(req); if (hit) return hit; throw e; }
 }
 async function staleWhileRevalidate(req){
@@ -37,6 +39,6 @@ self.addEventListener('fetch', e => {
   if (FONT_CSS.test(req.url)) { e.respondWith(staleWhileRevalidate(req).catch(() => fetch(req))); return; }
   if (url.origin === location.origin) {
     if (req.mode === 'navigate' || url.pathname.endsWith('/') || url.pathname.endsWith('.html')) { e.respondWith(networkFirst(req)); return; }
-    if (url.search.includes('v=')) { e.respondWith(cacheFirst(req, false).catch(() => fetch(req))); return; }
+    if (url.search.includes('v=')) { e.respondWith(staleWhileRevalidate(req).catch(() => fetch(req))); return; }
   }
 });
