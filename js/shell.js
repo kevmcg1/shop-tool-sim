@@ -44,6 +44,8 @@ function pageFor(a){
 function lockDown(w){
   if (!w || w.__lockedDown) return;
   w.__lockedDown = true;
+  // when the person last touched anything (here or in a tool's frame): background loading waits for a quiet moment so it never lands mid-drag
+  ['pointerdown', 'pointermove', 'wheel', 'keydown', 'touchstart', 'touchmove'].forEach(t => w.addEventListener(t, () => { window.__lastIn = performance.now(); }, { capture: true, passive: true }));
   w.addEventListener('contextmenu', e => e.preventDefault(), true);
   // the backtick key opens the dev panel (js/devmode.js), also while a tool's frame has the keyboard (the page itself hears it directly)
   if (w !== window) w.addEventListener('keydown', e => {
@@ -392,13 +394,28 @@ lockDown(window);
     const c = navigator.connection;
     if (c && (c.saveData || /(^|-)2g$/.test(c.effectiveType || ''))) return;   // (a data-saving connection loads a tool when it is opened)
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // A tool's start-up builds its whole 3D scene in one go, which on this one thread stalls whatever is on screen. While the cover is still up
+    // (a struggling device waits behind it) that costs nothing; once the page is in use, the next tool only starts in a quiet moment: nothing
+    // touched for a second, the tab on show, the frames steady, and an idle slice of the browser's own time. It also backs off between tools.
+    const calmNow = () => {
+      const P = window.__perf; if (!P || !P.ready) return true;   // (the cover is still up)
+      return !document.hidden && performance.now() - (window.__lastIn || 0) > 1200;
+    };
+    const whenCalm = (go, t00) => {
+      if (calmNow() || Date.now() - t00 > 20000) return (window.requestIdleCallback ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 50));
+      setTimeout(() => whenCalm(go, t00), 400);
+    };
     const next = () => {
       const a = APPS.find(x => !frames[x.id]);
       if (!a) return;
+      whenCalm(() => build(a), Date.now());
+    };
+    const build = (a) => {
+      if (frames[a.id]) return next();
       const f = frameFor(a, true), t0 = Date.now();
       const done = () => {
         if (f.dataset.warm){ delete f.dataset.warm; f.classList.remove('warm'); if (current !== a.id) pause(f, true); }
-        setTimeout(next, 50);
+        setTimeout(next, window.__perf && window.__perf.ready && !window.__perf.troubled ? 1500 : 50);
       };
       const poll = () => {
         if (!f.dataset.warm) return done();   // (opened by its tab meanwhile: it carries on as the tool on show)
