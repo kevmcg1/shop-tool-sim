@@ -293,3 +293,32 @@
     return { out: (obj, opts) => run(obj, false, opts), in: (obj, opts) => run(obj, true, opts), paint, tool };
   };
 })();
+
+// Compiling a tool's shaders without freezing the page. window.__compileScene(renderer, scene, camera) resolves when every shader is ready.
+// Where the browser can compile in parallel (three.js's compileAsync), it does; the older three.js in some tools has no such call, and
+// without it all of a scene's shaders are linked in one go (a stall of most of a second on a modest device). So there they are made a
+// few at a time instead: the scene is drawn with only the parts that share one material showing, then the page gets a breath, and so on.
+window.__compileScene = async function(renderer, scene, camera){
+  let parallel = false;
+  try { parallel = !!(renderer.compileAsync && renderer.extensions && renderer.extensions.has && renderer.extensions.has('KHR_parallel_shader_compile')); } catch (e) {}
+  if (parallel){ try { await renderer.compileAsync(scene, camera); return; } catch (e) {} }
+  const parts = [], groups = new Map(), breath = () => new Promise(r => setTimeout(r, 0));
+  scene.traverse(o => {
+    if (!(o.isMesh || o.isLine || o.isPoints || o.isSprite)) return;
+    parts.push({ o, vis: o.visible, cull: o.frustumCulled });
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { if (!m) return; let g = groups.get(m.uuid); if (!g) groups.set(m.uuid, g = new Set()); g.add(o); });
+  });
+  const shadow = renderer.shadowMap.autoUpdate;
+  try {
+    parts.forEach(p => { p.o.frustumCulled = false; });
+    renderer.shadowMap.autoUpdate = true;
+    for (const g of groups.values()){
+      parts.forEach(p => { p.o.visible = g.has(p.o) && p.vis; });
+      try { renderer.render(scene, camera); } catch (e) {}
+      await breath();
+    }
+  } finally {
+    parts.forEach(p => { p.o.visible = p.vis; p.o.frustumCulled = p.cull; });
+    renderer.shadowMap.autoUpdate = shadow;
+  }
+};

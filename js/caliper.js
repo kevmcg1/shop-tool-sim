@@ -3735,7 +3735,7 @@ async function start() {
   // compile every shader in the background before the first frame, so loading never freezes the page
   shopFinish(scene);
   await new Promise(r => setTimeout(r));
-  try { await renderer.compileAsync(scene, camera); } catch (e) {}
+  try { await (window.__compileScene ? window.__compileScene(renderer, scene, camera) : renderer.compileAsync(scene, camera)); } catch (e) {}
   booted = true;
   try { resize(); } catch (e) {}   // draws one frame now, behind the loading screen, so buffers and textures are uploaded before the first drag
   // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)

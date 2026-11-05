@@ -2421,7 +2421,7 @@ async function start(){
   // compile every shader in the background before the first frame, so loading never freezes the page
   shopFinish(scene);
   await new Promise(r => setTimeout(r));
-  try { await renderer.compileAsync(scene, camera); } catch (e) {}
+  try { await (window.__compileScene ? window.__compileScene(renderer, scene, camera) : renderer.compileAsync(scene, camera)); } catch (e) {}
   resize();
   state.hs = 140;
   { const o = orthoFor([640, 560, 1000], [-20, 210, 0]); camera.position.copy(o.p); controls.target.copy(o.t); camera.zoom = o.z; camera.updateProjectionMatrix(); controls.update(); }

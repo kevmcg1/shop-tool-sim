@@ -1522,7 +1522,7 @@ requestAnimationFrame(tick);   // draws behind the loading screen
 // never stalls partway through; then the loading screen fades and the gauge and its part build in as it goes.
 (async function boot(){
  window.__load&&window.__load.set(.72,'Getting the shaders ready…');
- try{renderer.compile(scene,camera);}catch(e){}
+ try{window.__compileScene?await window.__compileScene(renderer,scene,camera):renderer.compile(scene,camera);}catch(e){}
  for(let i=0;i<2;i++)await nextFrame();
  Dissolve.out(toolRoot,{ms:140,cells:40,frame:()=>invalidate(120)});
  for(let i=0;i<9;i++)await nextFrame();
