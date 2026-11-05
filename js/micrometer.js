@@ -3770,7 +3770,7 @@ async function start(){
   // compile every shader and upload every buffer behind the loading screen, so the first drag doesn't stall on it
   shopFinish(scene);
   await new Promise(r => setTimeout(r));
-  try { await renderer.compileAsync(scene, camera); } catch (e) {}
+  try { await (window.__compileScene ? window.__compileScene(renderer, scene, camera) : renderer.compileAsync(scene, camera)); } catch (e) {}
   try { resize(); renderer.shadowMap.needsUpdate = true; renderer.render(scene, camera); } catch (e) {}
   // part preview: a hologram of the highlighted part beside the open Part list (js/holo.js)
   if (window.__holo) window.__holo.attach({ THREE: T, select: $('sampleSel'),
