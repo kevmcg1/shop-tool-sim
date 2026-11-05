@@ -3,8 +3,9 @@
 // `changelog`, set `version` to match, and raise the ?v=N on every css/ and js/ link in index.html.
 // Keep ONE entry per day, and each entry to ONE short, simple sentence: if today already has an entry, add to its sentence instead of a new entry.
 window.__SHOP = {
-  version: '1.3.36',
+  version: '1.3.37',
   changelog: [
+    { v: '1.3.37', date: '2026-11-05', title: 'Fewer lag spikes on load', items: ['Loading no longer stutters on fast or slow devices: the caliper paints lighter textures on weaker devices, and the other tools now load in the background only in quiet moments, never while you are using the page.'] },
     { v: '1.3.36', date: '2026-11-03', title: 'Console in dev mode', items: ['Dev mode now has a Console section that shows everything the page and every tool logs, with filters, Clear and Copy.'] },
     { v: '1.3.35', date: '2026-11-02', title: 'Smoother rotation and a freer ratchet', items: ['The tools now prepare everything while loading so the first rotation no longer stutters, and the depth micrometer ratchet turns clockwise or counter-clockwise by circling it from any view, and some bugs and glitches are fixed.'] },
     { v: '1.3.33', date: '2026-10-31', title: 'Smooth start', items: ['The page now waits behind a short cover until it has loaded and the frames are steady, tells you if your device is struggling, and starts the tools on a graphics setting that fits, and some bugs and glitches are fixed.'] },

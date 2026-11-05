@@ -171,17 +171,20 @@ function stepGfxDown(){
 }
 
 /* ------------------------------------------------------------------ textures */
+// (a lighter device paints these smaller: the same look, a quarter of the pixels and strokes, so the build doesn't stall the page)
+const LITE = (() => { try { const t = parent.__perf && parent.__perf.tier; if (t) return t !== 'high'; } catch (e) {} return (navigator.hardwareConcurrency || 4) <= 4 || (navigator.deviceMemory || 8) <= 4; })();
 function brushedTexture(base, spread, color) {
-  const c = document.createElement('canvas'); c.width = c.height = 1024;
+  const N = LITE ? 512 : 1024, K = N / 1024;
+  const c = document.createElement('canvas'); c.width = c.height = N;
   const g = c.getContext('2d');
-  g.fillStyle = `rgb(${base},${base},${base})`; g.fillRect(0, 0, 1024, 1024);
-  for (let i = 0; i < 9000; i++) {
-    const y = Math.random() * 1024, x0 = Math.random() * 1024, len = 60 + Math.random() * 800;
+  g.fillStyle = `rgb(${base},${base},${base})`; g.fillRect(0, 0, N, N);
+  for (let i = 0, n = LITE ? 2800 : 9000; i < n; i++) {
+    const y = Math.random() * N, x0 = Math.random() * N, len = (60 + Math.random() * 800) * K;
     const v = clamp(base + (Math.random() * 2 - 1) * spread, 0, 255) | 0;
     g.strokeStyle = `rgba(${v},${v},${v},${0.25 + Math.random() * 0.45})`;
-    g.lineWidth = 0.4 + Math.random() * 1.3;
+    g.lineWidth = (0.4 + Math.random() * 1.3) * Math.max(K, 0.75);
     g.beginPath(); g.moveTo(x0, y); g.lineTo(x0 + len, y); g.stroke();
-    if (x0 + len > 1024) { g.beginPath(); g.moveTo(x0 - 1024, y); g.lineTo(x0 + len - 1024, y); g.stroke(); }
+    if (x0 + len > N) { g.beginPath(); g.moveTo(x0 - N, y); g.lineTo(x0 + len - N, y); g.stroke(); }
   }
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
@@ -542,7 +545,7 @@ const bezel = new THREE.Group(); dial.add(bezel);
   bezel.add(ring);
 
   // dial face
-  const S = 2048, c = document.createElement('canvas'); c.width = c.height = S;
+  const S = LITE ? 1024 : 2048, c = document.createElement('canvas'); c.width = c.height = S;
   const g = c.getContext('2d'), cx = S / 2, px = (S / 2) / 0.67;
   const P = (u, v) => [cx + u * px, cx - v * px];
   g.fillStyle = '#f0f1f2'; g.beginPath(); g.arc(cx, cx, S / 2, 0, TAU); g.fill();
