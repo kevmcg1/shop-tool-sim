@@ -21,8 +21,6 @@
 <link rel="stylesheet" href="css/footer.css">
 <link rel="stylesheet" href="css/ui-extras.css">
 <link rel="stylesheet" href="css/guide.css">
-<link rel="stylesheet" href="css/jaw-maker.css">
-<link rel="stylesheet" href="css/manufacture.css">
 
 <!-- The loading screen's own styles live here rather than in a stylesheet:
      a stylesheet is one of the things being waited for, and a curtain that
@@ -103,7 +101,7 @@
 (function () {
   "use strict";
 
-  var ASSET_HINT = 58;      /* <link rel=stylesheet> + <script src> in this file */
+  var ASSET_HINT = 54;      /* <link rel=stylesheet> + <script src> in this file */
   var HARD_STOP  = 20000;   /* never sit behind a stuck bar longer than this */
 
   var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
@@ -718,9 +716,6 @@
             </span>
           </div>
           <div class="mkp-rows" id="fx-vises"></div>
-          <button id="jm-open" class="pm-wide" title="Set two planes through the part and cut a soft jaw for each side">
-            <i class="fa-solid fa-vector-square"></i> Custom soft jaw maker
-          </button>
           <div class="pm-note" id="fx-empty" hidden>
             No vise in the scene — pick one above, or load a scenario from the Library.
           </div>
@@ -1556,10 +1551,6 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 1.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11z"/><path d="M7 6.5v3"/><circle cx="7" cy="4.5" r="0.5" fill="currentColor"/></svg>
             Guide
           </button>
-          <button class="vt-btn" id="btn-manufacture" title="Open Manufacture: model a part, program toolpaths, simulate and post G-code">
-            <i class="fa-solid fa-industry"></i>
-            Manufacture
-          </button>
           <button class="vt-btn" id="btn-settings" title="Open settings">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="2"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.8 2.8l1.05 1.05M10.15 10.15l1.05 1.05M2.8 11.2l1.05-1.05M10.15 3.85l1.05-1.05"/></svg>
             Settings
@@ -2023,11 +2014,6 @@
      MakeProgram rather than restating any of their geometry. -->
 <script src="js/jaw-clearance.js"></script>
 <script src="js/fixture-panel.js"></script>
-<!-- Custom soft jaw maker: reads the part at two planes and cuts both jaws. -->
-<script src="js/jaw-maker.js"></script>
-<!-- Press "-" to unlock everything and clear the popups. -->
-<script src="js/unlock-key.js"></script>
-<script src="js/manufacture-launch.js"></script>
 <script src="js/session.js"></script>
 <!-- The cutter-comp controller. It was dropped from this list when the comp
      panel came out of the sidebar, so nothing was left that could set
