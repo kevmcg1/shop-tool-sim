@@ -655,6 +655,13 @@
 
           <div class="stk-group">
             <div class="stk-head">Dovetail</div>
+            <div class="stk-soon" id="pm-dt-soon" role="status" aria-disabled="true">
+              <i class="fa-solid fa-lock"></i><span>Coming soon</span>
+            </div>
+            <!-- Dovetail controls are parked until the feature returns: keep this
+                 block hidden, flip Stock.DOVETAIL_ENABLED in part-models.js, and
+                 delete #pm-dt-soon to restore. -->
+            <div hidden>
             <div class="stk-row stk-row-3" id="pm-dt-mode">
               <button data-dt="off" class="on">Plain blank</button>
               <button data-dt="x">↔ X</button>
@@ -675,6 +682,7 @@
               widest part, at the bottom; the root comes out narrower by the depth
               times the angle, which is what stops it lifting out.
               1.250 × .125 at 45° is the usual prep.
+            </div>
             </div>
           </div>
 
