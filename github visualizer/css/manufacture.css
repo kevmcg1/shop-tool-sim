@@ -1,0 +1,20 @@
+/* Full-screen host for the Manufacture workspace (manufacture/index.html). */
+#mf-root {
+  position: fixed; inset: 0; z-index: 20000; display: flex; flex-direction: column;
+  background: #0b0b0b; color: #e8e8e8; font-family: "Inter", -apple-system, "Segoe UI", sans-serif; font-size: 13px;
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .22s cubic-bezier(.2,.7,.2,1), visibility 0s linear .22s;
+}
+#mf-root.show { opacity: 1; visibility: visible; pointer-events: auto; transition-delay: 0s; }
+#mf-root .mf-head { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px; background: #121212; border-bottom: 1px solid #2a2a2a; }
+#mf-root .mf-title { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#mf-root .mf-title i { margin-right: 10px; }
+#mf-root .mf-back {
+  display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 12px; background: transparent; color: #e8e8e8;
+  border: 1px solid #5a5a5a; border-radius: 6px; cursor: pointer; font: 500 12.5px "Inter", sans-serif;
+  transition: border-color .18s ease, transform .12s ease;
+}
+#mf-root .mf-back:hover { border-color: #fff; }
+#mf-root .mf-back:active { transform: scale(.97); }
+#mf-root iframe { flex: 1 1 auto; width: 100%; border: 0; background: #fff; min-height: 0; }
+@media (max-width: 520px) { #mf-root .mf-title span { display: none; } }
