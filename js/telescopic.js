@@ -534,15 +534,17 @@ let pinchMid=null;
 cv.addEventListener('pointerdown',e=>{
  cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
  if(ptrs.size===1){
-  const pan=e.button===2||e.button===1||e.shiftKey,h=pan?null:hitPart(e);
+  const MM=window.__mouseMap||{rotate:0,pan:2,zoom:1},mb=e.pointerType==='mouse'?e.button:MM.rotate;   // which mouse button does what is the gear's choice (js/mouse-settings.js)
+  if(mb!==MM.rotate&&mb!==MM.pan&&mb!==MM.zoom&&!e.shiftKey){cv.releasePointerCapture&&cv.releasePointerCapture(e.pointerId);ptrs.delete(e.pointerId);return;}
+  const pan=mb===MM.pan||e.shiftKey,zm=!pan&&mb===MM.zoom&&mb!==MM.rotate,h=(pan||zm)?null:hitPart(e);
   const free=AW.t>0;   // away on the measuring panel the gauge can't be rocked
-  const mode=pan?'pan':(!EX.on&&h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';   // (in Examine a drag always turns the camera, never rocks the gauge)
+  const mode=pan?'pan':zm?'zoom':(!EX.on&&h&&!free&&(h==='knob'||S.dragR||S.dragY))?'rock':'orbit';   // (in Examine a drag always turns the camera, never rocks the gauge)
   drag={mode,part:h,x:e.clientX,y:e.clientY,moved:0,vy:0,vOn:false,acc:0,dep:null};
   if(h==='knob'&&GP&&GP.knobG){   // the lock knob reads a turn as a turn: clockwise locks it, counterclockwise unlocks it (the screen angle round the knob)
    const kc=new THREE.Box3().setFromObject(GP.knobG).getCenter(new THREE.Vector3()).project(camera),kb=cv.getBoundingClientRect();
    drag.kx=kb.left+(kc.x+1)/2*kb.width;drag.ky=kb.top+(1-kc.y)/2*kb.height;drag.ka=Math.atan2(e.clientY-drag.ky,e.clientX-drag.kx);drag.kt=0;drag.turned=false;
   }
-  if(pan)cv.style.cursor='move';
+  if(pan)cv.style.cursor='move';else if(zm)cv.style.cursor='ns-resize';
   if(mode==='orbit'){cam.orb=true;if(EX.on)PV.p=null;else pvPick(e);}else PV.p=null;   // (Examine turns about the gauge itself, not the point under the pointer, so the tool never swings)
   if(h&&AM.on)autoCancel();   // taking hold of the gauge by hand ends Auto measure
  }
@@ -557,6 +559,7 @@ cv.addEventListener('pointermove',e=>{
   if(pinchMid)panBy(mid.x-pinchMid.x,mid.y-pinchMid.y);pinchMid=mid;return;}
  if(!drag)return;drag.moved+=Math.abs(dx)+Math.abs(dy);
  if(drag.mode==='pan')panBy(dx,dy);
+ else if(drag.mode==='zoom')cam.zoom=clamp(cam.zoom*Math.exp(dy*.006),.15,4);
  else if(drag.mode==='rock'){
   if(drag.part==='knob'&&drag.moved<=6)return;
   if(drag.part==='knob'&&drag.kx!==undefined&&Math.hypot(e.clientX-drag.kx,e.clientY-drag.ky)<110){
@@ -580,6 +583,7 @@ function endPtr(e){
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
 cv.addEventListener('wheel',e=>{e.preventDefault();const dy=clamp(e.deltaY*(e.deltaMode===1?33:e.deltaMode===2?400:1),-300,300);cam.zoom=clamp(cam.zoom*Math.exp(dy*.0009),.15,4);},{passive:false});
 cv.addEventListener('contextmenu',e=>e.preventDefault());
+if(window.__mouseSettings)window.__mouseSettings.attach({domElement:cv,mouseButtons:{}});   // the gear and the Rotate / Pan / Zoom legend in the reading HUD; the buttons are read from window.__mouseMap on each press
 
 /* ================= FRAME UPDATE ================= */
 let last=performance.now(),hudT=0;

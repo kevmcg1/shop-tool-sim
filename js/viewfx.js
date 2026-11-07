@@ -11,7 +11,8 @@
     views.parentNode.insertBefore(box, views);
     box.appendChild(views);
     // the mouse controls (settings gear and the three mouse buttons) sit in the bottom row, just right of the Go button
-    if (go) go.after(legend); else if (quick) quick.appendChild(legend);
+    // (the telescopic gauge keeps them in its reading HUD, where its own markup put them)
+    if (!legend.closest('.hud')){ if (go) go.after(legend); else if (quick) quick.appendChild(legend); }
     // a clean mouse drawing in each .mouse (its class l / m / r says which button is lit; js/mouse-settings.js keeps that class up to date)
     const MS = '<svg viewBox="0 0 24 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="1.5" width="18" height="29" rx="9"/><path d="M3 12.5h18M12 1.5v11" stroke-width="1.5"/>' +
       '<path class="hl hl-l" d="M3 12.5v-2A9 9 0 0 1 12 1.5v11z" fill="currentColor" stroke="none"/><path class="hl hl-r" d="M21 12.5v-2A9 9 0 0 0 12 1.5v11z" fill="currentColor" stroke="none"/><rect class="hl hl-m" x="10" y="4.5" width="4" height="6.5" rx="2" fill="currentColor" stroke="none"/></svg>';
