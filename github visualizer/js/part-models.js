@@ -1518,11 +1518,15 @@ const Stock = (() => {
     ? [d.dia / 2, d.dia / 2, d.len / 2]
     : [d.sx / 2, d.sy / 2, d.sz / 2];
 
+  /* Dovetail blanks are parked ("Coming soon"). While this is false no blank
+     can carry a dovetail — not from the panel, a saved scene or a sample —
+     because dovetailOf() reports none. Flip to true to bring it back. */
+  const DOVETAIL_ENABLED = false;
   const DT_DEFAULT = () => ({ on: false, along: "x", w: 1.250 * MM_PER_IN,
                               h: 0.125 * MM_PER_IN, angle: 45 });
   function dovetailOf(def) {
     const d = Object.assign(DT_DEFAULT(), def.dovetail || {});
-    if (!d.on || def.shape === "cyl") return null;
+    if (!DOVETAIL_ENABLED || !d.on || def.shape === "cyl") return null;
     const half = halfOf(def);
     const tan = Math.tan(Math.max(0, Math.min(70, d.angle)) * Math.PI / 180);
     const foot = Math.max(d.w, 0.2) / 2;
@@ -1903,7 +1907,7 @@ const Stock = (() => {
   return { MAX_CUTS, METALS, METAL_CHOICES, SWEEP, aimSweep,
            make, proxy, material, addCut, extendCut,
            truncate, clearCuts, rebuildGrid, upload, halfOf,
-           dovetailOf, applyDovetail, DT_DEFAULT };
+           dovetailOf, applyDovetail, DT_DEFAULT, DOVETAIL_ENABLED };
 })();
 
 const Store = (() => {
@@ -3321,6 +3325,7 @@ const Panel = (() => {
        is hidden. */
     $("#pm-dt-mode").addEventListener("click", e => {
       const b = e.target.closest("[data-dt]"); if (!b) return;
+      if (!Stock.DOVETAIL_ENABLED) return;
       const p = stockTarget(); if (!p) return;
       const d = dtOf(p);
       const want = b.dataset.dt !== "off";
@@ -3344,6 +3349,7 @@ const Panel = (() => {
     });
     [["#pm-dt-w", "w"], ["#pm-dt-h", "h"], ["#pm-dt-a", "angle"]].forEach(([sel, k]) => {
       $(sel).addEventListener("input", () => {
+        if (!Stock.DOVETAIL_ENABLED) return;
         const p = stockTarget(); if (!p) return;
         const v = parseFloat($(sel).value);
         if (!isFinite(v)) return;
@@ -4543,7 +4549,7 @@ M30
       /* Mid-disintegration the panel shows where the blank is heading, not
          the tenon that is still tearing away. */
       const aim = (d.dovetail && d.dovetail.pending) || dt;
-      const lit = round || !aim.on ? "off" : aim.along;
+      const lit = !Stock.DOVETAIL_ENABLED || round || !aim.on ? "off" : aim.along;
       $("#pm-dt-mode").querySelectorAll("[data-dt]").forEach(b => {
         b.classList.toggle("on", b.dataset.dt === lit);
         b.disabled = round && b.dataset.dt !== "off";
