@@ -7,7 +7,7 @@
 // the tool that opens first has its stylesheets asked for now, alongside this page's own, so its frame (made a moment later) finds them
 // already on the way and its bubbles can start straight away. (Keep these in step with the css/ links in the tools' pages below.)
 (function(){
-  var CSS = { caliper: 'caliper.css?v=57', vernier: 'caliper.css?v=57', micrometer: 'micrometer.css?v=57', depth: 'depth.css?v=57', height: 'height.css?v=57', telescopic: 'telescopic.css?v=69' };
+  var CSS = { caliper: 'caliper.css?v=57', vernier: 'caliper.css?v=57', micrometer: 'micrometer.css?v=57', depth: 'depth.css?v=57', height: 'height.css?v=57', telescopic: 'telescopic.css?v=75' };
   var id = location.hash.slice(1); if (!CSS[id]){ try { id = localStorage.getItem('precision-tools-last'); } catch (e) {} } if (!CSS[id]) id = 'caliper';
   ['css/' + CSS[id], 'css/embeds.css?v=1'].forEach(function(u){ var l = document.createElement('link'); l.rel = 'preload'; l.as = 'style'; l.href = u; document.head.appendChild(l); });
 })();
@@ -417,7 +417,7 @@ if (location.protocol === 'file:'){
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=5"><\/script>
 <script src="js/mouse-settings.js?v=8"><\/script>
-<script src="js/viewfx.js?v=12"><\/script>
+<script src="js/viewfx.js?v=13"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
@@ -678,7 +678,7 @@ if (location.protocol === 'file:'){
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=5"><\/script>
 <script src="js/mouse-settings.js?v=8"><\/script>
-<script src="js/viewfx.js?v=12"><\/script>
+<script src="js/viewfx.js?v=13"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
@@ -954,7 +954,7 @@ if (location.protocol === 'file:'){
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=5"><\/script>
 <script src="js/mouse-settings.js?v=8"><\/script>
-<script src="js/viewfx.js?v=12"><\/script>
+<script src="js/viewfx.js?v=13"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/depth.js?v=75"><\/script>
@@ -1184,7 +1184,7 @@ if (location.protocol === 'file:'){
 <script src="js/plate.js?v=52"><\/script>
 <script src="js/bg-gradient.js?v=5"><\/script>
 <script src="js/mouse-settings.js?v=8"><\/script>
-<script src="js/viewfx.js?v=12"><\/script>
+<script src="js/viewfx.js?v=13"><\/script>
 <script src="js/pivot.js?v=51"><\/script>
 <script src="js/smooth.js?v=3"><\/script>
 <script src="js/height.js?v=75"><\/script>
@@ -1215,7 +1215,7 @@ if (location.protocol === 'file:'){
 <link rel="preload" href="fonts/inter-latin-wght-normal.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/roboto-latin-700-italic.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>@font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Bebas Neue";font-style:normal;font-weight:400;font-display:swap;src:url(fonts/bebas-neue-latin-400-normal.woff2?v=1) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Roboto";font-style:italic;font-weight:700;font-display:swap;src:url(fonts/roboto-latin-700-italic.woff2?v=1) format("woff2")}</style>
-<link rel="stylesheet" href="css/telescopic.css?v=73">
+<link rel="stylesheet" href="css/telescopic.css?v=75">
 <link rel="stylesheet" href="css/embeds.css?v=1">
 <link rel="stylesheet" href="css/icons.css?v=53">
 <link rel="stylesheet" href="css/chrome.css?v=4">
@@ -1334,6 +1334,11 @@ if (location.protocol === 'file:'){
           <div class="h-row h-min"><span>Shortest so far</span><b id="hMin">–</b></div>
         </div>
         <div class="st" id="hStat"></div>
+        <div class="legend" aria-label="Mouse controls">
+          <span class="mk"><span class="mouse l" aria-hidden="true"><i class="fa-solid fa-computer-mouse"></i><b></b></span>Rotate</span>
+          <span class="mk"><span class="mouse r" aria-hidden="true"><i class="fa-solid fa-computer-mouse"></i><b></b></span>Pan</span>
+          <span class="mk"><span class="mouse m" aria-hidden="true"><i class="fa-solid fa-computer-mouse"></i><b></b></span>Zoom</span>
+        </div>
       </div>
       <div class="actions">
         <button class="ib" type="button" id="sideBtn" aria-pressed="false" aria-label="Hide the side panel" data-tip="Hide the side panel&#10;Gives the 3D view the whole width."><i class="fa-solid fa-angles-left ic-off"></i><i class="fa-solid fa-angles-right ic-on"></i></button>
@@ -1437,11 +1442,12 @@ if (location.protocol === 'file:'){
 <script src="js/dropdowns.js?v=51"><\/script>
 <script src="js/range-fill.js?v=51"><\/script>
 <script src="js/tgauge.js?v=66"><\/script>
-<script src="js/viewfx.js?v=12"><\/script>
+<script src="js/viewfx.js?v=13"><\/script>
 <script src="js/quips.js?v=5"><\/script>
 <script src="js/gdrich.js?v=16"><\/script>
 <script src="js/paper.js?v=5"><\/script>
-<script src="js/telescopic.js?v=105"><\/script>
+<script src="js/mouse-settings.js?v=8"><\/script>
+<script src="js/telescopic.js?v=106"><\/script>
 <script src="js/tips.js?v=53"><\/script>
 <script src="js/howread.js?v=5"><\/script>
 <script src="js/version.js?v=114"><\/script>
