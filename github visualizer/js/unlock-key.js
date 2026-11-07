@@ -11,7 +11,16 @@
   var on = false, obs = null, freed = [];
 
   var css = document.createElement("style");
-  css.textContent = "body.unlock-all #toast{display:none!important}";
+  /* Unlocked, every sidebar section is on screen at once, including the guided
+     build (Guide Me Through It) that normally replaces the rest while it runs. */
+  css.textContent =
+    "body.unlock-all #toast{display:none!important}" +
+    "body.unlock-all #sidebar > .section," +
+    "body.unlock-all #sidebar #mkp-section," +
+    "body.unlock-all #sidebar #sb-model," +
+    "body.unlock-all #sidebar #sb-setup{display:block!important}" +
+    "body.unlock-all #machine-state-panel," +
+    "body.unlock-all #mkp-launch{display:block!important}";
   document.head.appendChild(css);
 
   function typing(t) {
