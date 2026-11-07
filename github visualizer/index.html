@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="css/footer.css">
 <link rel="stylesheet" href="css/ui-extras.css">
 <link rel="stylesheet" href="css/guide.css">
+<link rel="stylesheet" href="css/jaw-maker.css">
 
 <!-- The loading screen's own styles live here rather than in a stylesheet:
      a stylesheet is one of the things being waited for, and a curtain that
@@ -101,7 +102,7 @@
 (function () {
   "use strict";
 
-  var ASSET_HINT = 54;      /* <link rel=stylesheet> + <script src> in this file */
+  var ASSET_HINT = 56;      /* <link rel=stylesheet> + <script src> in this file */
   var HARD_STOP  = 20000;   /* never sit behind a stuck bar longer than this */
 
   var t0 = (window.performance && performance.now) ? performance.now() : Date.now();
@@ -716,6 +717,9 @@
             </span>
           </div>
           <div class="mkp-rows" id="fx-vises"></div>
+          <button id="jm-open" class="pm-wide" title="Set two planes through the part and cut a soft jaw for each side">
+            <i class="fa-solid fa-vector-square"></i> Custom soft jaw maker
+          </button>
           <div class="pm-note" id="fx-empty" hidden>
             No vise in the scene — pick one above, or load a scenario from the Library.
           </div>
@@ -2014,6 +2018,8 @@
      MakeProgram rather than restating any of their geometry. -->
 <script src="js/jaw-clearance.js"></script>
 <script src="js/fixture-panel.js"></script>
+<!-- Custom soft jaw maker: reads the part at two planes and cuts both jaws. -->
+<script src="js/jaw-maker.js"></script>
 <script src="js/session.js"></script>
 <!-- The cutter-comp controller. It was dropped from this list when the comp
      panel came out of the sidebar, so nothing was left that could set
