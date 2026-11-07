@@ -33,7 +33,7 @@
 
   var root, canvas, renderer, views = {}, tris = null, dims = null, partMesh = null;
   var built = false, dirty = false, rafId = 0, loopOn = false;
-  var out = { F: null, M: null };
+  var out = { F: null, M: null }, unlocked = false;
   var partScene, partCam, partGroup, planeObjs = {};
   var raycaster = new THREE_.Raycaster();
   var libOK = false, libLoading = null;
@@ -304,9 +304,9 @@
 
   /* ---------- update (the live part) -------------------------------------- */
   function clampPlanes() {
-    var L = dims.L / IN;
-    st.planeF = Math.min(Math.max(st.planeF, 0), L);
-    st.planeM = Math.min(Math.max(st.planeM, 0), L);
+    var L = dims.L / IN, lo = unlocked ? -L : 0, hi = unlocked ? 2 * L : L;
+    st.planeF = Math.min(Math.max(st.planeF, lo), hi);
+    st.planeM = Math.min(Math.max(st.planeM, lo), hi);
   }
 
   function update() {
@@ -441,7 +441,10 @@
     var sel = $("#jm-part"), list = sources();
     sel.innerHTML = list.length ? list.map(function (p) { return '<option value="' + p.id + '">' + p.name + "</option>"; }).join("")
       : '<option value="">Demo part (no part loaded)</option>';
-    if (list.length) sel.value = String(st.partId || list[0].id);
+    if (list.length) {
+      if (!list.some(function (p) { return p.id === st.partId; })) st.partId = list[0].id;
+      sel.value = String(st.partId);
+    }
   }
 
   function syncFields() {
@@ -453,8 +456,14 @@
       if (k.indexOf("plane") === 0) i.max = L.toFixed(3);
     });
     $$("[data-mm]").forEach(function (s) { s.textContent = "(" + (st[s.dataset.mm] * IN).toFixed(2) + " mm)"; });
-    $('[data-k="H"]').disabled = st.autoH;
-    $('[data-k="stick"]').disabled = !st.autoH;
+    $('[data-k="H"]').disabled = st.autoH && !unlocked;
+    $('[data-k="stick"]').disabled = !st.autoH && !unlocked;
+    $$("[data-k]").forEach(function (i) {
+      var n = NUM[i.dataset.k];
+      if (unlocked) { i.removeAttribute("min"); i.removeAttribute("max"); }
+      else if (n && i.dataset.k.indexOf("plane") !== 0) { i.min = n.min; i.max = n.max; }
+    });
+    $$("[data-r]").forEach(function (r) { r.min = unlocked ? (-L).toFixed(3) : 0; r.max = (unlocked ? 2 * L : L).toFixed(3); });
   }
 
   function applyVise(k) {
@@ -487,7 +496,7 @@
       b.onclick = function () { st.axisY = b.dataset.axis === "y"; reload(true); };
     });
     $("#jm-swap").onclick = function () { st.swap = !st.swap; reload(true); };
-    $("#jm-snap").onclick = function () { st.planeF = 0; st.planeM = dims.L / IN; schedule(); };
+    $("#jm-snap").onclick = function () { snapPlanes(); schedule(); };
     $("#jm-part").onchange = function (e) { st.partId = +e.target.value || null; reload(true); };
     $("#jm-stl-f").onclick = function () { exportStl("F"); };
     $("#jm-stl-m").onclick = function () { exportStl("M"); };
@@ -496,11 +505,17 @@
     $$("[data-vise]").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.vise === st.vise ? "true" : "false"); });
   }
 
+  /* A plane lying exactly on an end face slices nothing, so sit just inside it. */
+  function snapPlanes() {
+    var L = dims.L / IN, e = Math.min(0.02, L / 4);
+    st.planeF = e; st.planeM = L - e;
+  }
+
   function reload(snap) {
     prepare();
     $$("[data-axis]").forEach(function (b) { b.setAttribute("aria-pressed", (b.dataset.axis === "y") === st.axisY ? "true" : "false"); });
     rebuildPartMesh();
-    if (snap) { st.planeF = 0; st.planeM = dims.L / IN; }
+    if (snap) snapPlanes();
     $("#jm-dim-P").textContent = "Part  " + fmt(dims.L) + " along the jaws  ×  " + fmt(dims.Wd) + " across  ×  " + fmt(dims.Ht) + " tall";
     schedule();
   }
@@ -611,6 +626,16 @@
   }
 
   /* ---------- open / close ------------------------------------------------- */
+  function setUnlocked(v) {
+    unlocked = !!v;
+    if (!built) return;
+    if (unlocked) {
+      st.autoH = false; st.autoCb = false;
+      $("#jm-autoh").checked = false; $("#jm-autocb").checked = false;
+    }
+    schedule();
+  }
+
   function open() {
     if (!built) buildDom();
     root.classList.add("show");
@@ -633,5 +658,5 @@
   document.addEventListener("click", function (e) {
     if (e.target.closest && e.target.closest("#jm-open")) { e.preventDefault(); open(); }
   });
-  window.JawMaker = { open: open, close: close, state: st, _debug: function () { return { dims: dims, out: out, views: views, planeObjs: planeObjs }; } };
+  window.JawMaker = { open: open, close: close, setUnlocked: setUnlocked, state: st, _debug: function () { return { dims: dims, out: out, views: views, planeObjs: planeObjs }; } };
 })();
