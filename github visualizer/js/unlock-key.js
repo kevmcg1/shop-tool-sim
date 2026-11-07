@@ -57,7 +57,13 @@
     } else {
       if (obs) obs.disconnect();
       obs = null;
+      /* put back what was switched off, then let the app repaint itself */
+      freed.forEach(function (el) { if (el.isConnected) el.setAttribute("disabled", ""); });
       freed = [];
+      try {
+        if (window.PartModels && window.PartModels.fixture) window.PartModels.fixture.state();
+        window.dispatchEvent(new Event("resize"));
+      } catch (e) {}
     }
     if (window.JawMaker && window.JawMaker.setUnlocked) window.JawMaker.setUnlocked(on);
   }

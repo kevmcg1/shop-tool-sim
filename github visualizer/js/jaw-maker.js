@@ -33,7 +33,7 @@
 
   var root, canvas, renderer, views = {}, tris = null, dims = null, partMesh = null;
   var built = false, dirty = false, rafId = 0, loopOn = false;
-  var out = { F: null, M: null }, unlocked = false;
+  var out = { F: null, M: null }, unlocked = false, lockedAuto = null;
   var partScene, partCam, partGroup, planeObjs = {};
   var raycaster = new THREE_.Raycaster();
   var libOK = false, libLoading = null;
@@ -627,17 +627,22 @@
 
   /* ---------- open / close ------------------------------------------------- */
   function setUnlocked(v) {
-    unlocked = !!v;
+    v = !!v;
+    if (v === unlocked) return;
+    unlocked = v;
     if (!built) return;
     if (unlocked) {
+      lockedAuto = { h: st.autoH, cb: st.autoCb };
       st.autoH = false; st.autoCb = false;
-      $("#jm-autoh").checked = false; $("#jm-autocb").checked = false;
+    } else if (lockedAuto) {
+      st.autoH = lockedAuto.h; st.autoCb = lockedAuto.cb; lockedAuto = null;
     }
+    $("#jm-autoh").checked = st.autoH; $("#jm-autocb").checked = st.autoCb;
     schedule();
   }
 
   function open() {
-    if (!built) buildDom();
+    if (!built) { buildDom(); if (unlocked) { unlocked = false; setUnlocked(true); } }
     root.classList.add("show");
     document.body.style.overflow = "hidden";
     fillParts();
